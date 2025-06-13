@@ -66,15 +66,25 @@
 
 ### 🚀 Get started in 30 seconds
 ```bash
+# Install pre-requisites
+
+npm -y i @anthropic-ai/claude-code
+
 # Initialize with SPARC development environment
 Step 1. Install Claude Code: ``` npm install -g @anthropic-ai/claude ```
 Step 2. ``` npx -y claude-flow@latest init --sparc ```
+
+# Check claude is initialized
+claude
 
 # Use the local wrapper after init
 ./claude-flow sparc "build and test my project"  # SPARC development
 ./claude-flow swarm "Build a REST API" --strategy development --monitor  # Swarm coordination
 Optional: ./claude-flow start --ui  # Interactive process management
 ```
+
+# Add this to your shell or ~/.bashrc to ease access to the wrapper
+alias claude-flow=$PWD/claude-flow
 
 ```bash
 # ⚡ SPARC Development Workflow (NEW: Simplified!)

@@ -1,5 +1,5 @@
-import { CLI, success, error, warning, info, VERSION } from "../cli-core.ts";
-import type { Command, CommandContext } from "../cli-core.ts";
+import { CLI, VERSION } from "../cli-core.ts";
+import { success, error, warning, info, type Command, type CommandContext } from "../cli-utils.ts";
 import { bold, blue, yellow } from "https://deno.land/std@0.224.0/fmt/colors.ts";
 import { Orchestrator } from "../../core/orchestrator-fixed.ts";
 import { ConfigManager } from "../../core/config.ts";

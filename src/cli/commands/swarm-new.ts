@@ -6,8 +6,7 @@ import { SwarmCoordinator } from '../../swarm/coordinator.ts';
 import { TaskExecutor } from '../../swarm/executor.ts';
 import { SwarmMemoryManager } from '../../swarm/memory.ts';
 import { generateId } from '../../utils/helpers.ts';
-import { success, error, warning, info } from "../cli-core.ts";
-import type { CommandContext } from "../cli-core.ts";
+import { success, error, warning, info, type CommandContext } from "../cli-utils.ts";
 import { SwarmStrategy, SwarmMode, AgentType } from '../../swarm/types.ts';
 
 export async function swarmAction(ctx: CommandContext) {

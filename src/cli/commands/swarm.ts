@@ -3,8 +3,7 @@
  */
 
 import { generateId } from '../../utils/helpers.ts';
-import { success, error, warning, info } from "../cli-core.ts";
-import type { CommandContext } from "../cli-core.ts";
+import { success, error, warning, info, type CommandContext } from "../cli-utils.ts";
 import { SwarmCoordinator } from '../../coordination/swarm-coordinator.ts';
 import { BackgroundExecutor } from '../../coordination/background-executor.ts';
 import { SwarmMemoryManager } from '../../memory/swarm-memory.ts';

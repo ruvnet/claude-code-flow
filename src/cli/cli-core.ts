@@ -4,35 +4,12 @@
  */
 
 import { parse } from "https://deno.land/std@0.224.0/flags/mod.ts";
-import { red, green, yellow, blue, bold, cyan } from "https://deno.land/std@0.224.0/fmt/colors.ts";
+import { bold, blue } from "https://deno.land/std@0.224.0/fmt/colors.ts";
 import { ensureDir } from "https://deno.land/std@0.224.0/fs/mod.ts";
 import { join } from "https://deno.land/std@0.224.0/path/mod.ts";
+import { success, error, warning, info, type CommandContext, type Command, type Option } from "./cli-utils.ts";
 
 export const VERSION = "1.0.43";
-
-interface CommandContext {
-  args: string[];
-  flags: Record<string, unknown>;
-  config?: Record<string, unknown> | undefined;
-}
-
-interface Command {
-  name: string;
-  description: string;
-  aliases?: string[];
-  subcommands?: Command[];
-  action?: (ctx: CommandContext) => Promise<void> | void;
-  options?: Option[];
-}
-
-interface Option {
-  name: string;
-  short?: string;
-  description: string;
-  type?: "string" | "boolean" | "number";
-  default?: unknown;
-  required?: boolean;
-}
 
 class CLI {
   private commands: Map<string, Command> = new Map();
@@ -104,7 +81,7 @@ class CLI {
 
     const command = this.commands.get(commandName);
     if (!command) {
-      console.error(red(`Unknown command: ${commandName}`));
+      error(`Unknown command: ${commandName}`);
       console.log(`Run "${this.name} help" for available commands`);
       Deno.exit(1);
     }
@@ -119,12 +96,12 @@ class CLI {
       if (command.action) {
         await command.action(ctx);
       } else {
-        console.log(yellow(`Command '${commandName}' has no action defined`));
+        warning(`Command '${commandName}' has no action defined`);
       }
-    } catch (error) {
-      console.error(red(`Error executing command '${commandName}':`), (error as Error).message);
+    } catch (err) {
+      error(`Error executing command '${commandName}': ${(err as Error).message}`);
       if (flags.verbose) {
-        console.error(error);
+        console.error(err);
       }
       Deno.exit(1);
     }
@@ -192,7 +169,7 @@ class CLI {
     return options;
   }
 
-  private showHelp(): void {
+  showHelp(): void {
     console.log(`
 ${bold(blue(`🧠 ${this.name} v${VERSION}`))} - ${this.description}
 
@@ -239,26 +216,8 @@ Created by rUv - Built with ❤️ for the Claude community
   }
 }
 
-// Helper functions
-function success(message: string): void {
-  console.log(green(`✅ ${message}`));
-}
-
-function error(message: string): void {
-  console.error(red(`❌ ${message}`));
-}
-
-function warning(message: string): void {
-  console.warn(yellow(`⚠️  ${message}`));
-}
-
-function info(message: string): void {
-  console.log(blue(`ℹ️  ${message}`));
-}
-
 // Export for use in other modules
-export { CLI, success, error, warning, info };
-export type { Command, CommandContext, Option };
+export { CLI };
 
 // Main CLI setup if running directly
 if (import.meta.main) {

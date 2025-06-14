@@ -224,6 +224,135 @@ npx claude-flow sparc run security-review "token handling security implications"
 - **`hotfix/sparc-<issue>`**: Bug fixes using SPARC debugging workflow
 - **`refactor/sparc-<component>`**: Refactoring using optimization mode
 
+### Commit Message Format
+```
+<type>(<scope>): <subject>
+
+[optional body]
+
+[optional footer]
+```
+
+### Types
+- **feat**: New feature or functionality
+- **fix**: Bug fix
+- **docs**: Documentation only changes
+- **style**: Code style changes (formatting, missing semicolons, etc.)
+- **refactor**: Code change that neither fixes a bug nor adds a feature
+- **perf**: Performance improvements
+- **test**: Adding or updating tests
+- **build**: Changes to build system or dependencies
+- **ci**: Changes to CI configuration files and scripts
+- **chore**: Other changes that don't modify src or test files
+- **revert**: Reverts a previous commit
+
+### Scope (optional but recommended)
+The scope should indicate the area of the codebase affected:
+- **cli**: CLI commands and interfaces
+- **core**: Core orchestration and system components
+- **memory**: Memory management and persistence
+- **sparc**: SPARC methodology implementation
+- **swarm**: Multi-agent coordination features
+- **mcp**: Model Context Protocol integration
+- **agent**: Agent management and spawning
+- **task**: Task creation and management
+- **workflow**: Workflow execution engine
+- **monitor**: System monitoring and UI
+- **config**: Configuration management
+- **build**: Build system and tooling
+- **deno**: Deno-specific configuration and deps
+
+### Subject Rules
+- Use imperative mood ("add" not "adds" or "added")
+- Don't capitalize first letter
+- No period at the end
+- Maximum 50 characters
+- Be specific and descriptive
+
+### Body Guidelines
+- Wrap at 72 characters
+- Explain what and why vs. how
+- Include context for the change
+- Reference related issues or PRs
+- Use bullet points for multiple changes
+
+### Footer Format (when needed)
+```
+Fixes: #123
+Refs: #456
+Breaking: <description of breaking change>
+```
+
+### Examples
+
+**Good Commits:**
+```
+feat(auth): add JWT token expiration handling
+
+- Create useAuth hook for centralized auth state management
+- Distinguish between expired and invalid tokens in middleware
+- Add session expiration messages to login page
+- Redirect to login with expiration flag
+
+Fixes: #234
+```
+
+```
+fix(teams): prevent duplicate team invitations
+
+Check for existing pending invitations before creating new ones
+to avoid database constraint violations and improve UX.
+```
+
+```
+perf(analysis): batch transcript processing for large calls
+
+Implement chunked processing for transcripts over 10K words to
+reduce memory usage and improve analysis speed by 40%.
+```
+
+```
+refactor(ui): extract call player controls to separate component
+
+Move player controls logic from CallPage to dedicated component
+for better reusability and testing isolation.
+```
+
+**Bad Commits (avoid these):**
+```
+Added new feature          # Not imperative mood
+FEAT: New UI              # Don't use all caps
+fix: fixed the bug.       # Redundant and has period
+update code               # Too vague
+feat: implement complete user authentication system with JWT # Too long
+```
+
+### Atomic Commits
+- Each commit should represent ONE logical change
+- If you need "and" in your commit message, consider splitting it
+- All tests should pass after each commit
+- The project should build successfully after each commit
+- Don't mix refactoring with feature changes
+
+### Commit Best Practices
+1. **Review before committing**: Use `git diff --staged` to review changes
+2. **Keep commits focused**: One concept per commit
+3. **Write for future readers**: Clear messages help debugging
+4. **Test before committing**: Run `pnpm test` and `pnpm typecheck`
+5. **Don't commit generated files**: Build artifacts, node_modules, etc.
+6. **Squash WIP commits**: Clean up history before merging
+
+### Breaking Changes
+If a commit introduces breaking changes, add in the footer:
+```
+feat(api): change call analysis response format
+
+Restructure analysis response to include timestamps at item level
+instead of top level for better component isolation.
+
+Breaking: Analysis response structure changed, update frontend parsers
+```
+
 ## Troubleshooting
 
 ### Common SPARC Issues

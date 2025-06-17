@@ -77,23 +77,23 @@ Created by rUv - Built with ❤️ for the Claude community
 `);
 }
 
-function printVersion() {
+export function printVersion() {
   console.log(`Claude-Flow v${VERSION}`);
 }
 
-function printError(message) {
+export function printError(message) {
   console.error(`❌ Error: ${message}`);
 }
 
-function printSuccess(message) {
+export function printSuccess(message) {
   console.log(`✅ ${message}`);
 }
 
-function printWarning(message) {
+export function printWarning(message) {
   console.warn(`⚠️  Warning: ${message}`);
 }
 
-function showHelpWithCommands() {
+export function showHelpWithCommands() {
   printHelp();
   console.log('\nRegistered Commands:');
   const commands = listCommands();
@@ -2712,7 +2712,7 @@ The Claude-Flow system automatically manages session files. Do not modify these 
 }
 
 // Helper function to create SPARC structure manually
-async function createSparcStructureManually() {
+export async function createSparcStructureManually(forceOverwrite = false) { // Added forceOverwrite parameter
   try {
     // Create .roo directory structure
     const rooDirectories = [
@@ -2734,37 +2734,224 @@ async function createSparcStructureManually() {
       }
     }
     
-    // Create .roomodes file (copy from existing if available, or create basic version)
-    let roomodesContent;
+    // Create .roomodes file
+    const roomodesPath = '.roomodes';
+    // const forceOverwrite = Deno.args.includes('--force'); // Now passed as parameter
+    let createRoomodes = true;
+
     try {
-      // Check if .roomodes already exists and read it
-      roomodesContent = await Deno.readTextFile('.roomodes');
-      console.log('  ✓ Using existing .roomodes configuration');
-    } catch {
-      // Create basic .roomodes configuration
-      roomodesContent = createBasicRoomodesConfig();
-      await Deno.writeTextFile('.roomodes', roomodesContent);
-      console.log('  ✓ Created .roomodes configuration');
+      await Deno.stat(roomodesPath); // Check if file exists
+      if (!forceOverwrite) {
+        printWarning(`File ${roomodesPath} already exists. Use --force to overwrite.`);
+        createRoomodes = false;
+      } else {
+        printWarning(`Overwriting ${roomodesPath} due to --force flag.`);
+      }
+    } catch (error) {
+      if (!(error instanceof Deno.errors.NotFound)) {
+        throw error; // Rethrow if it's not a "file not found" error
+      }
+      // File does not exist, so proceed with creation
+    }
+
+    if (createRoomodes) {
+      const roomodesContent = createComprehensiveRoomodesConfig();
+      await Deno.writeTextFile(roomodesPath, roomodesContent);
+      console.log(`  ✓ ${forceOverwrite ? 'Overwrote' : 'Created'} ${roomodesPath} with comprehensive SPARC modes`);
     }
     
     // Create basic workflow templates
-    const basicWorkflow = createBasicSparcWorkflow();
-    await Deno.writeTextFile('.roo/workflows/basic-tdd.json', basicWorkflow);
-    console.log('  ✓ Created .roo/workflows/basic-tdd.json');
+    const workflowPath = '.roo/workflows/basic-tdd.json';
+    let createWorkflow = true;
+    try {
+      await Deno.stat(workflowPath);
+      if (!forceOverwrite) {
+        printWarning(`File ${workflowPath} already exists. Use --force to overwrite.`);
+        createWorkflow = false;
+      } else {
+        printWarning(`Overwriting ${workflowPath} due to --force flag.`);
+      }
+    } catch (error) {
+      if (!(error instanceof Deno.errors.NotFound)) {
+        throw error;
+      }
+    }
+
+    if (createWorkflow) {
+      const basicWorkflow = createBasicSparcWorkflow();
+      await Deno.writeTextFile(workflowPath, basicWorkflow);
+      console.log(`  ✓ ${forceOverwrite ? 'Overwrote' : 'Created'} ${workflowPath}`);
+    }
     
     // Create README for .roo directory
-    const rooReadme = createRooReadme();
-    await Deno.writeTextFile('.roo/README.md', rooReadme);
-    console.log('  ✓ Created .roo/README.md');
+    const rooReadmePath = '.roo/README.md';
+    let createRooReadmeFile = true;
+    try {
+      await Deno.stat(rooReadmePath);
+      if (!forceOverwrite) {
+        // printWarning(`File ${rooReadmePath} already exists. Use --force to overwrite.`); // READMEs are less critical to force
+        createRooReadmeFile = false;
+      } else {
+        // If forceOverwrite is true, we intend to overwrite or create.
+      }
+    } catch (error) {
+      if (!(error instanceof Deno.errors.NotFound)) {
+        throw error;
+      }
+      // File not found, will be created
+    }
+    if (createRooReadmeFile) { // This condition might be redundant if forceOverwrite implies creation/overwriting
+        if (await Deno.stat(rooReadmePath).then(() => true).catch(() => false) && !forceOverwrite) {
+            // Already exists and not forcing, so skip. (Handled by initial check better)
+        } else {
+            const rooReadmeContent = createRooReadme();
+            await Deno.writeTextFile(rooReadmePath, rooReadmeContent);
+            console.log(`  ✓ ${forceOverwrite && (await Deno.stat(rooReadmePath).then(() => true).catch(() => false)) ? 'Overwrote' : 'Created'} ${rooReadmePath}`);
+        }
+    }
+
+
+    // Create placeholder READMEs
+    const placeholderReadmes = [
+      { path: '.roo/templates/README.md', content: "This directory can store custom code templates for SPARC modes, such as boilerplate for new modules, components, or test files. These templates can be used by SPARC modes to accelerate development." },
+      { path: '.roo/modes/README.md', content: "This directory can store custom SPARC mode definitions if you need to extend or tailor the default modes provided in the .roomodes file. Files here might define specialized roles, instructions, or toolsets for your project's unique needs." },
+      { path: '.roo/configs/README.md', content: "This directory can store project-specific configurations for SPARC modes or workflows. For example, you might have different linting rules, testing configurations, or deployment settings for different modes." }
+    ];
+
+    for (const readme of placeholderReadmes) {
+      let createReadme = true;
+      try {
+        await Deno.stat(readme.path);
+        if (!forceOverwrite) {
+          // printWarning(`File ${readme.path} already exists. Use --force to overwrite.`); // READMEs are less critical
+          createReadme = false;
+        } else {
+           printWarning(`Overwriting ${readme.path} due to --force flag.`);
+        }
+      } catch (error) {
+        if (!(error instanceof Deno.errors.NotFound)) {
+          throw error;
+        }
+      }
+      if (createReadme) {
+        await Deno.writeTextFile(readme.path, readme.content);
+        console.log(`  ✓ ${forceOverwrite ? 'Overwrote' : 'Created'} ${readme.path}`);
+      }
+    }
     
-    console.log('  ✅ Basic SPARC structure created successfully');
+    console.log('  ✅ SPARC structure creation process completed.');
     
   } catch (err) {
     console.log(`  ❌ Failed to create SPARC structure: ${err.message}`);
+    console.error(err); // Log the full error for more details
   }
 }
 
-function createBasicRoomodesConfig() {
+function createComprehensiveRoomodesConfig() {
+  return JSON.stringify({
+    "customModes": [
+      {
+        "slug": "architect",
+        "name": "🏗️ Architect",
+        "roleDefinition": "You are an expert system architect. Your role is to design scalable, secure, and modular software architectures based on provided functional specifications, user needs, and constraints. You define responsibilities across services, APIs, components, and data stores. You produce diagrams, data flow specifications, and integration point definitions.",
+        "customInstructions": "Focus on creating robust and maintainable architectures. Produce Mermaid diagrams for system components, sequence diagrams for key interactions, and data models. Ensure designs are cloud-native where appropriate and account for security, scalability, and observability. Emphasize clear modular boundaries, well-defined interfaces, and extensibility. Avoid hardcoding secrets or environment-specific values; instead, define configuration strategies. Specify technologies and patterns with justification.",
+        "groups": ["read", "edit", "browser"],
+        "source": "project"
+      },
+      {
+        "slug": "code",
+        "name": "🧠 Auto-Coder",
+        "roleDefinition": "You are an expert programmer. Your role is to write clean, efficient, well-documented, and modular code based on provided pseudocode, architectural designs, and specifications. You implement features, fix bugs, and refactor code while adhering to project conventions and best practices. You use configuration for environments and break large components into maintainable files.",
+        "customInstructions": "Write modular code using established design patterns and clean architecture principles. Ensure code is testable and includes unit tests for key logic. Never hardcode secrets or environment-specific values; use configuration files or environment variable abstractions. Split code into logical files, generally under 500 lines. Use `new_task` for clearly defined sub-tasks that require separate attention (e.g., a complex algorithm or a separate utility module) and always finish your primary task with `attempt_completion`. Document your code clearly.",
+        "groups": ["read", "edit", "browser", "mcp", "command"],
+        "source": "project"
+      },
+      {
+        "slug": "tdd",
+        "name": "🧪 Tester (TDD)",
+        "roleDefinition": "You are an expert in Test-Driven Development (TDD), specifically following the London School (outside-in) approach. Your role is to write tests first to define behavior, then implement the minimal code required to make the tests pass, and finally refactor the code while keeping tests green.",
+        "customInstructions": "Start by writing a failing test that clearly defines a piece of functionality or behavior. Implement only the code necessary to make that test pass. Once the test is passing, refactor the code for clarity, efficiency, and maintainability, ensuring all tests remain green. Ensure tests are isolated, repeatable, and do not hardcode secrets. Keep test files and implementation files focused and generally under 500 lines. Cover edge cases and validation logic.",
+        "groups": ["read", "edit", "browser", "mcp", "command"],
+        "source": "project"
+      },
+      {
+        "slug": "spec-pseudocode",
+        "name": "📋 Specification Writer",
+        "roleDefinition": "You are an expert technical writer and analyst. Your role is to capture the full project context, including functional requirements, non-functional requirements, user stories, edge cases, and constraints. You translate this understanding into clear, unambiguous, and modular pseudocode, complete with TDD anchors (placeholders or descriptions of tests to be written).",
+        "customInstructions": "Create detailed specifications as a series of Markdown files, typically named `phase_number_name.md`. Your pseudocode should be language-agnostic but detailed enough for a developer to implement. Include clear TDD anchors (e.g., `// TEST: check_user_login_with_invalid_password`). Define data structures, API contracts (if applicable), and logical flows. Split complex logic across modules or separate documents. Ensure requirements are traceable to pseudocode sections.",
+        "groups": ["read", "edit", "browser"],
+        "source": "project"
+      },
+      {
+        "slug": "integration",
+        "name": "🔗 System Integrator",
+        "roleDefinition": "You are an expert integration specialist. Your role is to merge the outputs of various development modes (architecture, code, tests) into a cohesive, working, and tested system. You ensure consistency, interface compatibility, and overall system stability. You configure and troubleshoot interactions between components.",
+        "customInstructions": "Verify interface compatibility between modules and services. Ensure shared modules, libraries, and environment configurations are consistent and correctly applied. Write integration tests to validate interactions between components. Split integration logic and testing across relevant domains or features as needed. Use `new_task` for preflight checks or to address specific integration issues. Document the integration process and any necessary configurations.",
+        "groups": ["read", "edit", "browser", "mcp", "command"],
+        "source": "project"
+      },
+      {
+        "slug": "debug",
+        "name": "🪲 Debugger",
+        "roleDefinition": "You are an expert troubleshooter. Your role is to diagnose and identify the root cause of runtime bugs, logic errors, performance issues, or integration failures. You use systematic debugging techniques to trace, inspect, and analyze system behavior.",
+        "customInstructions": "Utilize logs, traces, stack analysis, and debugging tools to isolate bugs. Formulate hypotheses and test them systematically. Avoid making direct changes to environment configuration unless it's part of a documented fix. Keep fixes modular and ensure they address the root cause, not just symptoms. Document the bug, its cause, and the solution. Write a test case that reproduces the bug before fixing it, if possible.",
+        "groups": ["read", "edit", "browser", "mcp", "command"],
+        "source": "project"
+      },
+      {
+        "slug": "security-review",
+        "name": "🛡️ Security Reviewer",
+        "roleDefinition": "You are a security expert. Your role is to analyze code, architecture, and configurations for potential security vulnerabilities. You identify threats, assess risks, and recommend mitigation strategies based on security best practices and standards (e.g., OWASP Top 10).",
+        "customInstructions": "Review code for common vulnerabilities like injection flaws, XSS, CSRF, insecure authentication/authorization, sensitive data exposure, etc. Analyze architectural designs for security weaknesses. Check configurations for misconfigurations. Recommend specific changes to code, design, or configuration to mitigate identified risks. Prioritize vulnerabilities based on potential impact and likelihood. Reference specific CWEs or OWASP categories where applicable.",
+        "groups": ["read", "edit", "browser"],
+        "source": "project"
+      },
+      {
+        "slug": "docs-writer",
+        "name": "✍️ Documentation Writer",
+        "roleDefinition": "You are an expert technical writer. Your role is to create clear, concise, and comprehensive documentation for the project. This includes user manuals, API documentation, developer guides, and operational procedures.",
+        "customInstructions": "Write documentation tailored to the intended audience (e.g., end-users, developers, operators). Use clear language and provide examples where helpful. Ensure documentation is accurate and up-to-date with the current state of the project. Organize documentation logically. For API documentation, describe endpoints, parameters, request/response formats, and authentication methods. Use Markdown or other specified documentation formats.",
+        "groups": ["read", "edit", "browser"],
+        "source": "project"
+      },
+      {
+        "slug": "devops",
+        "name": "⚙️ DevOps Engineer",
+        "roleDefinition": "You are a DevOps expert. Your role is to manage the continuous integration/continuous deployment (CI/CD) pipeline, infrastructure provisioning, configuration management, monitoring, and logging. You automate processes to ensure efficient and reliable software delivery.",
+        "customInstructions": "Define and implement CI/CD pipelines using tools like Jenkins, GitLab CI, GitHub Actions, etc. Use infrastructure-as-code (IaC) tools like Terraform or CloudFormation. Implement monitoring and alerting solutions (e.g., Prometheus, Grafana, ELK stack). Manage containerization (Docker) and orchestration (Kubernetes) if applicable. Ensure systems are scalable, resilient, and cost-effective. Automate environment setup and configuration.",
+        "groups": ["read", "edit", "browser", "mcp", "command"],
+        "source": "project"
+      },
+      {
+        "slug": "refinement-optimization",
+        "name": "✨ Refinement & Optimization",
+        "roleDefinition": "You are an expert in code quality and performance. Your role is to refactor existing code to improve its structure, readability, maintainability, and performance without altering its external behavior. You identify bottlenecks and apply optimization techniques.",
+        "customInstructions": "Analyze code for areas of improvement (e.g., code smells, complex logic, performance bottlenecks). Apply refactoring patterns systematically (e.g., extract method, introduce parameter object). Profile code to identify performance hotspots and apply appropriate optimization techniques. Ensure all existing tests pass after refactoring or optimization. Improve code clarity and documentation. Focus on measurable improvements.",
+        "groups": ["read", "edit", "browser", "mcp", "command"],
+        "source": "project"
+      },
+      {
+        "slug": "ux-designer",
+        "name": "🎨 UX Designer",
+        "roleDefinition": "You are a UX/UI designer. Your role is to design user-friendly and intuitive interfaces based on user research and product requirements. You create wireframes, mockups, and prototypes.",
+        "customInstructions": "Focus on user-centered design principles. Create wireframes and high-fidelity mockups. Develop interactive prototypes to demonstrate user flows. Ensure designs are accessible and responsive. Collaborate with developers to ensure faithful implementation of designs.",
+        "groups": ["read", "edit", "browser"],
+        "source": "project"
+      },
+      {
+        "slug": "qa-manual",
+        "name": "👨‍🔬 Manual QA Tester",
+        "roleDefinition": "You are a Manual QA Tester. Your role is to perform exploratory testing, usability testing, and verify that the application meets requirements from a user perspective. You create and execute test cases manually.",
+        "customInstructions": "Develop detailed manual test cases based on requirements and user stories. Execute test cases systematically and report defects with clear, reproducible steps. Perform exploratory testing to find issues not covered by formal test cases. Verify bug fixes. Provide feedback on usability and user experience.",
+        "groups": ["read", "browser"],
+        "source": "project"
+      }
+    ]
+  }, null, 2);
+}
+
+// This is the actual comprehensive config
+export function createComprehensiveRoomodesConfig() {
   return JSON.stringify({
     "customModes": [
       {
@@ -2819,7 +3006,7 @@ function createBasicRoomodesConfig() {
   }, null, 2);
 }
 
-function createBasicSparcWorkflow() {
+export function createBasicSparcWorkflow() {
   return JSON.stringify({
     "name": "Basic TDD Workflow",
     "description": "A simple SPARC-based TDD workflow for development",
@@ -2854,7 +3041,7 @@ function createBasicSparcWorkflow() {
   }, null, 2);
 }
 
-function createRooReadme() {
+export function createRooReadme() {
   return `# .roo Directory - SPARC Development Environment
 
 This directory contains the SPARC (Specification, Pseudocode, Architecture, Refinement, Completion) development environment configuration and templates.
@@ -3164,4 +3351,220 @@ For more information about SPARC methodology, see: https://github.com/ruvnet/cla
 
 if (import.meta.main) {
   await main();
+}
+
+// Returns the default JSON string for settings.local.json
+export function getDefaultSettingsJsonContent() {
+  return `{
+  "mcp_auto_connect": true,
+  "sparc_default_mode": "code",
+  "terminal_pool_size": 10,
+  "editor_default_theme": "vs-dark",
+  "ai_model_default_provider": "anthropic",
+  "ai_model_default_id": "claude-3-opus-20240229",
+  "log_level": "info"
+}`;
+}
+
+// Helper function to handle CLAUDE.md output
+export async function handleClaudeMdOutput(workingDir, content, force, merge) {
+  const filePath = `${workingDir}/CLAUDE.md`;
+  try {
+    const exists = await fileExists(filePath); // Using new helper
+
+    if (exists) {
+      if (force) {
+        await Deno.writeTextFile(filePath, content);
+        printSuccess(`Overwrote ${filePath} with new content.`);
+      } else if (merge) {
+        const existingContent = await Deno.readTextFile(filePath);
+        let mergedContent = existingContent;
+        const newSections = [];
+        const existingLines = existingContent.split('\n'); // Corrected split character
+
+        const existingSectionHeaders = new Set();
+        existingLines.forEach(line => {
+          if (line.startsWith("## ")) {
+            existingSectionHeaders.add(line.substring(3).trim());
+          }
+        });
+
+        let currentNewSectionHeader = null;
+        let currentNewSectionLines = []; // Store lines of current new section
+
+        for (const line of content.split('\n')) { // Corrected split character
+          if (line.startsWith("## ")) {
+            // If previous section was new, add it
+            if (currentNewSectionHeader && !existingSectionHeaders.has(currentNewSectionHeader)) {
+              newSections.push(currentNewSectionLines.join('\n'));
+            }
+            // Start new section
+            currentNewSectionHeader = line.substring(3).trim();
+            currentNewSectionLines = [line];
+          } else if (currentNewSectionHeader) { // Only add lines if within a section
+            currentNewSectionLines.push(line);
+          }
+        }
+        // Add the last processed section if it's new
+        if (currentNewSectionHeader && !existingSectionHeaders.has(currentNewSectionHeader) && currentNewSectionLines.length > 0) {
+          newSections.push(currentNewSectionLines.join('\n'));
+        }
+
+        if (newSections.length > 0) {
+          mergedContent += "\n\n" + newSections.join("\n\n"); // Corrected join
+          await Deno.writeTextFile(filePath, mergedContent);
+          printSuccess(`Merged new sections into ${filePath}.`);
+        } else {
+          printWarning(`${filePath} already contains all sections from new content or new content has no sections. No merge performed.`);
+        }
+      } else {
+        printWarning(`${filePath} already exists. Use --force to overwrite or --merge to combine.`);
+      }
+    } else {
+      await Deno.writeTextFile(filePath, content);
+      printSuccess(`Created ${filePath}.`);
+    }
+  } catch (err) {
+    printError(`Error handling ${filePath}: ${err.message}`);
+  }
+}
+
+// Helper function to handle .claude/settings.local.json output
+export async function handleSettingsJsonOutput(workingDir, defaultContentString, force, merge) {
+  const claudeDir = `${workingDir}/.claude`;
+  const filePath = `${claudeDir}/settings.local.json`;
+
+  try {
+    await ensureDirectoryExists(claudeDir); // Using new helper
+    const exists = await fileExists(filePath); // Using new helper
+    const defaultSettings = JSON.parse(defaultContentString);
+
+    if (exists) {
+      if (force) {
+        await Deno.writeTextFile(filePath, JSON.stringify(defaultSettings, null, 2));
+        printSuccess(`Overwrote ${filePath} with default settings.`);
+      } else if (merge) {
+        const existingContent = await Deno.readTextFile(filePath);
+        let existingSettings = {};
+        try {
+          existingSettings = JSON.parse(existingContent);
+        } catch (parseErr) {
+          printWarning(`Could not parse existing ${filePath}. Overwriting with defaults due to merge option.`);
+          await Deno.writeTextFile(filePath, JSON.stringify(defaultSettings, null, 2));
+          printSuccess(`Overwrote corrupted ${filePath} with default settings during merge.`);
+          return;
+        }
+
+        // Merge strategy: existing user settings are preserved for common keys.
+        // New keys from defaultContentString are added if missing in the user's file.
+        const mergedSettings = { ...defaultSettings }; // Start with all defaults
+
+        for (const key in existingSettings) { // Override with user's existing settings
+            if (Object.prototype.hasOwnProperty.call(existingSettings, key)) {
+                 mergedSettings[key] = existingSettings[key];
+            }
+        }
+
+        await Deno.writeTextFile(filePath, JSON.stringify(mergedSettings, null, 2));
+        printSuccess(`Merged settings into ${filePath}. User settings preserved for existing keys.`);
+      } else {
+        printWarning(`${filePath} already exists. Use --force to overwrite or --merge to combine.`);
+      }
+    } else {
+      await Deno.writeTextFile(filePath, JSON.stringify(defaultSettings, null, 2));
+      printSuccess(`Created ${filePath} with default settings.`);
+    }
+  } catch (err) {
+    printError(`Error handling ${filePath}: ${err.message}`);
+  }
+}
+
+// --- New Generic Helper Functions ---
+
+export async function ensureDirectoryExists(dirPath) {
+  try {
+    await Deno.mkdir(dirPath, { recursive: true });
+    // printSuccess(`Directory ensured: ${dirPath}`); // Optional: too verbose for general use
+  } catch (err) {
+    // Deno.mkdir with recursive:true doesn't throw if dir exists,
+    // but might throw for other reasons (e.g. permissions)
+    if (err instanceof Deno.errors.AlreadyExists) {
+      // This case should ideally not be hit due to recursive:true, but good to be aware
+    } else {
+      printError(`Failed to ensure directory ${dirPath}: ${err.message}`);
+      throw err; // Re-throw if it's a critical error
+    }
+  }
+}
+
+export async function fileExists(filePath) {
+  try {
+    await Deno.stat(filePath);
+    return true;
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      return false;
+    }
+    // For other errors (e.g., permission issues), we might want to let them propagate
+    // or handle them differently depending on context. For a simple check, rethrow.
+    throw error;
+  }
+}
+
+export async function writeFileWithHandling(filePath, content, force, merge, mergeStrategy) {
+  const dirPath = filePath.substring(0, filePath.lastIndexOf('/'));
+  if (dirPath) await ensureDirectoryExists(dirPath);
+
+  const exists = await fileExists(filePath);
+
+  if (exists) {
+    if (force) {
+      await Deno.writeTextFile(filePath, content);
+      printSuccess(`Overwrote ${filePath}.`);
+    } else if (merge && mergeStrategy) {
+      const existingContent = await Deno.readTextFile(filePath);
+      let mergedContent;
+      if (typeof mergeStrategy === 'function') {
+        mergedContent = mergeStrategy(existingContent, content);
+      } else {
+        // Basic append for unknown strategies, or could default to skip/warn
+        mergedContent = existingContent + "\\n" + content;
+        printWarning(`Unknown merge strategy for ${filePath}. Appending content.`);
+      }
+      await Deno.writeTextFile(filePath, mergedContent);
+      printSuccess(`Merged content into ${filePath}.`);
+    } else {
+      printWarning(`${filePath} already exists. Use --force to overwrite or --merge to apply a strategy.`);
+    }
+  } else {
+    await Deno.writeTextFile(filePath, content);
+    printSuccess(`Created ${filePath}.`);
+  }
+}
+
+export function getLocalExecutableContent() {
+  return `#!/usr/bin/env bash
+# Claude-Flow Local Executable Wrapper
+
+# Get the directory where the script is located
+SCRIPT_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+
+# Check if node_modules and the CLI entry point exist
+if [ -f "\${SCRIPT_DIR}/node_modules/.bin/claude-flow" ]; then
+    # If using the JS version directly (e.g. from npm install)
+    "\${SCRIPT_DIR}/node_modules/.bin/claude-flow" "$@"
+elif [ -f "\${SCRIPT_DIR}/src/cli/simple-cli.js" ]; then
+    # If running from a source checkout (JS version)
+    deno run --allow-all "\${SCRIPT_DIR}/src/cli/simple-cli.js" "$@"
+elif [ -f "\${SCRIPT_DIR}/src/cli/index.ts" ]; then
+    # If running from a source checkout (TS version)
+    deno run --allow-all "\${SCRIPT_DIR}/src/cli/index.ts" "$@"
+else
+    # Fallback to npx if local installations are not found
+    # This allows the script to work even if not fully set up,
+    # but prefers local versions if available.
+    echo "Local claude-flow installation not found, attempting npx..."
+    npx -y claude-flow@latest "$@"
+fi
+`;
 }

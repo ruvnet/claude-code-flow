@@ -93,15 +93,32 @@ export function parseFlags(args) {
     const arg = args[i];
     
     if (arg.startsWith('--')) {
-      const flagName = arg.substring(2);
+      let flagName = arg.substring(2);
+      let value = true;
       const nextArg = args[i + 1];
-      
+
+      // Handle flags with values (e.g., --config myconfig.json)
+      // and boolean flags (e.g., --force, --merge)
       if (nextArg && !nextArg.startsWith('--')) {
-        flags[flagName] = nextArg;
-        i++; // Skip next arg since we consumed it
-      } else {
-        flags[flagName] = true;
+        // Specific flags that take values
+        if (flagName === "config" || flagName === "name" || flagName === "namespace" ||
+            flagName === "mode" || flagName === "shell" || flagName === "working-directory" ||
+            flagName === "env" || flagName === "output" || flagName === "services" ||
+            flagName === "regions" || flagName === "tools" || flagName === "coverage" ||
+            flagName === "commit" || flagName === "nodes" ||
+            flagName === "replication-factor" || flagName === "access-level" ||
+            flagName === "isolation" || flagName === "resource-quota" ||
+            flagName === "security-profile" || flagName === "template") {
+          value = nextArg;
+          i++; // Skip next arg since we consumed it
+        }
       }
+
+      // Handle potential kebab-case to camelCase conversion if desired, though current structure keeps them kebab-case
+      // Example: if (flagName === "some-flag") flagName = "someFlag";
+
+      flags[flagName] = value;
+
     } else if (arg.startsWith('-') && arg.length > 1) {
       // Short flags
       const shortFlags = arg.substring(1);

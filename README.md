@@ -17,10 +17,10 @@
 
 > 🔥 **One command to rule them all**: `npx claude-flow@latest init --sparc` - Deploy a full AI agent coordination system in seconds!
 
-
 ## 🚀 **What's New in v1.0.70**
 
 ### 🎯 **Critical Fix: SPARC File Initialization**
+
 - **✅ Fixed SPARC Files**: `init --sparc` now properly copies all SPARC mode files to `.claude/commands/sparc/`
 - **✅ Swarm Strategies**: Also copies swarm strategy files to `.claude/commands/swarm/`
 - **✅ Config File**: Creates `.claude/config.json` with proper configuration
@@ -28,6 +28,7 @@
 - **✅ Project-Focused**: Maintains v1.0.70's clear project-building focus
 
 ### 🔧 **Core Improvements**
+
 - **✅ Memory System**: Functional in-memory storage with export/import
 - **✅ Agent Management**: Added `info` and `terminate` commands
 - **✅ MCP Status Detection**: Real-time server status checking
@@ -35,6 +36,7 @@
 - **✅ Error Recovery**: Better handling of port conflicts and missing dependencies
 
 ### 🚀 **Developer Experience**
+
 - **✅ Simplified Setup**: One command initialization with local wrapper
 - **✅ Cross-Platform**: Windows, Mac, and Linux support
 - **✅ No Dependencies**: Works with just Node.js 18+
@@ -42,9 +44,10 @@
 
 ---
 
-## ⚡ **Quick Start** 
+## ⚡ **Quick Start**
 
 ### 🚀 **Instant Setup**
+
 ```bash
 # Install and initialize with SPARC development environment
 npx claude-flow@latest init --sparc
@@ -57,6 +60,7 @@ npx claude-flow@latest init --sparc
 ```
 
 ### 🎛️ **SPARC Development Modes** (17 Specialized Agents)
+
 ```bash
 # List all available SPARC modes
 ./claude-flow sparc modes
@@ -72,6 +76,7 @@ npx claude-flow@latest init --sparc
 ## 🏢 **Enterprise Features**
 
 ### 💼 **Enterprise-Grade Management**
+
 Claude-Flow v1.0.70 includes comprehensive enterprise features for production deployments:
 
 - **🗂️ Project Management**: Complete lifecycle tracking, team collaboration, and resource planning
@@ -98,18 +103,21 @@ claude-flow audit report compliance --framework SOC2 --timerange 90d
 ## 🏗️ **Core Features**
 
 ### 🤖 **Multi-Agent Orchestration**
+
 - **Parallel Execution**: Run up to 10 agents concurrently with BatchTool
 - **Smart Coordination**: Intelligent task distribution and load balancing
 - **Memory Sharing**: Persistent knowledge bank across all agents
 - **Real-time Monitoring**: Live dashboard for agent status and progress
 
 ### 🧠 **SPARC Development Framework**
+
 - **17 Specialized Modes**: Architect, Coder, TDD, Security, DevOps, and more
 - **Workflow Orchestration**: Complete development lifecycle automation
 - **Interactive & Non-interactive**: Flexible execution modes
 - **Boomerang Pattern**: Iterative development with continuous refinement
 
 ### 📊 **Advanced Monitoring & Analytics**
+
 - **System Health Dashboard**: Real-time metrics and performance tracking
 - **Task Coordination**: Dependency management and conflict resolution
 - **Terminal Pool Management**: Efficient resource utilization
@@ -120,6 +128,7 @@ claude-flow audit report compliance --framework SOC2 --timerange 90d
 ## 🛠️ **Installation & Setup**
 
 ### **Method 1: Quick Start with NPX (Recommended)**
+
 ```bash
 # Initialize with full SPARC environment
 npx claude-flow@latest init --sparc
@@ -136,6 +145,7 @@ npx claude-flow@latest init --sparc
 ```
 
 ### **Method 2: Global Installation**
+
 ```bash
 # Install globally
 npm install -g claude-flow
@@ -148,6 +158,7 @@ claude-flow start --ui
 ```
 
 ### **Method 3: Local Project Installation**
+
 ```bash
 # Add to project
 npm install claude-flow --save-dev
@@ -164,6 +175,7 @@ npx claude-flow init --sparc
 ## 🎮 **Usage Examples**
 
 ### 🚀 **Basic Operations**
+
 ```bash
 # Check system status
 ./claude-flow status
@@ -183,6 +195,7 @@ npx claude-flow init --sparc
 ### 🔥 **Advanced Workflows**
 
 #### **Multi-Agent Development**
+
 ```bash
 # Deploy swarm for full-stack development
 ./claude-flow swarm "Build e-commerce platform" \
@@ -200,6 +213,7 @@ batchtool run --parallel \
 ```
 
 #### **SPARC Development Modes**
+
 ```bash
 # Complete development workflow
 ./claude-flow sparc run ask "research best practices for microservices"
@@ -211,6 +225,7 @@ batchtool run --parallel \
 ```
 
 #### **Memory & Coordination**
+
 ```bash
 # Store and query project knowledge
 ./claude-flow memory store requirements "User auth with JWT"
@@ -227,47 +242,52 @@ batchtool run --parallel \
 ## 📋 **Available Commands**
 
 ### **Core Commands**
-| Command | Description | Example |
-|---------|-------------|---------|
-| `init` | Initialize project with Claude integration | `./claude-flow init --sparc` |
-| `start` | Start orchestration system | `./claude-flow start --ui` |
-| `status` | Show system health and metrics | `./claude-flow status` |
-| `agent` | Manage AI agents and hierarchies | `./claude-flow agent spawn researcher` |
-| `swarm` | Advanced multi-agent coordination | `./claude-flow swarm "Build API" --parallel` |
+
+| Command  | Description                                | Example                                      |
+| -------- | ------------------------------------------ | -------------------------------------------- |
+| `init`   | Initialize project with Claude integration | `./claude-flow init --sparc`                 |
+| `start`  | Start orchestration system                 | `./claude-flow start --ui`                   |
+| `status` | Show system health and metrics             | `./claude-flow status`                       |
+| `agent`  | Manage AI agents and hierarchies           | `./claude-flow agent spawn researcher`       |
+| `swarm`  | Advanced multi-agent coordination          | `./claude-flow swarm "Build API" --parallel` |
 
 ### **SPARC Development Modes**
-| Mode | Purpose | Example |
-|------|---------|---------|
-| `architect` | System design and architecture | `./claude-flow sparc run architect "design API"` |
-| `code` | Code development and implementation | `./claude-flow sparc run code "user authentication"` |
-| `tdd` | Test-driven development | `./claude-flow sparc run tdd "payment system"` |
-| `security-review` | Security auditing and analysis | `./claude-flow sparc run security-review "auth flow"` |
-| `integration` | System integration and testing | `./claude-flow sparc run integration "microservices"` |
-| `devops` | Deployment and CI/CD | `./claude-flow sparc run devops "k8s deployment"` |
+
+| Mode              | Purpose                             | Example                                               |
+| ----------------- | ----------------------------------- | ----------------------------------------------------- |
+| `architect`       | System design and architecture      | `./claude-flow sparc run architect "design API"`      |
+| `code`            | Code development and implementation | `./claude-flow sparc run code "user authentication"`  |
+| `tdd`             | Test-driven development             | `./claude-flow sparc run tdd "payment system"`        |
+| `security-review` | Security auditing and analysis      | `./claude-flow sparc run security-review "auth flow"` |
+| `integration`     | System integration and testing      | `./claude-flow sparc run integration "microservices"` |
+| `devops`          | Deployment and CI/CD                | `./claude-flow sparc run devops "k8s deployment"`     |
 
 ### **Memory & Coordination**
-| Command | Description | Example |
-|---------|-------------|---------|
-| `memory store` | Store information in knowledge bank | `./claude-flow memory store key "value"` |
-| `memory query` | Search stored information | `./claude-flow memory query "authentication"` |
-| `task create` | Create and manage tasks | `./claude-flow task create research "AI trends"` |
-| `monitor` | Real-time system monitoring | `./claude-flow monitor --dashboard` |
+
+| Command        | Description                         | Example                                          |
+| -------------- | ----------------------------------- | ------------------------------------------------ |
+| `memory store` | Store information in knowledge bank | `./claude-flow memory store key "value"`         |
+| `memory query` | Search stored information           | `./claude-flow memory query "authentication"`    |
+| `task create`  | Create and manage tasks             | `./claude-flow task create research "AI trends"` |
+| `monitor`      | Real-time system monitoring         | `./claude-flow monitor --dashboard`              |
 
 ### **Enterprise Commands**
-| Command | Description | Example |
-|---------|-------------|---------|
-| `project` | Project lifecycle management | `./claude-flow project create "API Project" --type web-app` |
-| `deploy` | Deployment automation & strategies | `./claude-flow deploy create "v1.2.0" --strategy blue-green` |
-| `cloud` | Multi-cloud infrastructure management | `./claude-flow cloud resources create "web-server" compute` |
-| `security` | Security scanning & compliance | `./claude-flow security scan "Vulnerability Check" ./src` |
-| `analytics` | Performance analytics & insights | `./claude-flow analytics insights --timerange 7d` |
-| `audit` | Enterprise audit logging | `./claude-flow audit report compliance --framework SOC2` |
+
+| Command     | Description                           | Example                                                      |
+| ----------- | ------------------------------------- | ------------------------------------------------------------ |
+| `project`   | Project lifecycle management          | `./claude-flow project create "API Project" --type web-app`  |
+| `deploy`    | Deployment automation & strategies    | `./claude-flow deploy create "v1.2.0" --strategy blue-green` |
+| `cloud`     | Multi-cloud infrastructure management | `./claude-flow cloud resources create "web-server" compute`  |
+| `security`  | Security scanning & compliance        | `./claude-flow security scan "Vulnerability Check" ./src`    |
+| `analytics` | Performance analytics & insights      | `./claude-flow analytics insights --timerange 7d`            |
+| `audit`     | Enterprise audit logging              | `./claude-flow audit report compliance --framework SOC2`     |
 
 ---
 
 ## 🏗️ **Architecture Overview**
 
 ### **Multi-Layer Agent System**
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                 BatchTool Orchestrator                  │
@@ -284,6 +304,7 @@ batchtool run --parallel \
 ```
 
 ### **Key Components**
+
 - **🎛️ Orchestrator**: Central coordination and task distribution
 - **🤖 Agent Pool**: Specialized AI agents for different domains
 - **🧠 Memory Bank**: Persistent knowledge sharing across agents
@@ -295,6 +316,7 @@ batchtool run --parallel \
 ## 🧪 **Testing & Quality Assurance**
 
 ### **Comprehensive Test Coverage**
+
 ```bash
 # Run full test suite
 npm test
@@ -313,6 +335,7 @@ npm run typecheck
 ```
 
 ### **Quality Metrics (v1.0.70)**
+
 - **✅ Project-Focused**: CLAUDE.md explicitly guides building user applications
 - **✅ Clear Instructions**: No confusion about modifying claude-flow itself
 - **✅ Real Examples**: All documentation shows building actual applications
@@ -324,18 +347,21 @@ npm run typecheck
 ## 📚 **Documentation & Resources**
 
 ### **Getting Started**
+
 - [🚀 Quick Start Guide](./docs/quick-start.md)
 - [⚙️ Configuration Options](./docs/configuration.md)
 - [🤖 Agent Management](./docs/agents.md)
 - [🧠 SPARC Development](./docs/sparc-modes.md)
 
 ### **Advanced Topics**
+
 - [🔧 BatchTool Integration](./docs/batchtool.md)
 - [📊 Monitoring & Analytics](./docs/monitoring.md)
 - [🔗 MCP Server Setup](./docs/mcp-integration.md)
 - [🔒 Security Best Practices](./docs/security.md)
 
 ### **API Reference**
+
 - [📖 Command Reference](./docs/commands.md)
 - [🎛️ Configuration Schema](./docs/config-schema.md)
 - [🔌 Plugin Development](./docs/plugins.md)
@@ -347,7 +373,36 @@ npm run typecheck
 
 We welcome contributions! Here's how to get started:
 
-### **Development Setup**
+### **Prerequisites**
+
+- Deno 1.40+ (Install: https://deno.land/#installation)
+- Node.js 16+ (for npm wrapper)
+- Git
+- mise (optional, for development tool management)
+
+### **Development Environment Setup**
+
+#### **Using mise (Recommended)**
+
+[mise](https://mise.jdx.dev/) is a polyglot tool version manager that ensures consistent development environments. This project includes a `mise.toml` configuration file.
+
+```bash
+# Install mise (if not already installed)
+curl https://mise.jdx.dev/install.sh | sh
+
+# Clone the repository
+git clone https://github.com/ruvnet/claude-code-flow.git
+cd claude-code-flow
+
+# Install configured tools (Deno and Node.js)
+mise install
+
+# Verify installation
+./bin/claude-flow --version
+```
+
+#### **Manual Setup**
+
 ```bash
 # Clone the repository
 git clone https://github.com/ruvnet/claude-code-flow.git
@@ -367,6 +422,7 @@ npm link
 ```
 
 ### **Contributing Guidelines**
+
 - 🐛 **Bug Reports**: Use GitHub issues with detailed reproduction steps
 - 💡 **Feature Requests**: Propose new features with use cases
 - 🔧 **Pull Requests**: Follow our coding standards and include tests
@@ -408,3 +464,4 @@ npx claude-flow@latest init --sparc
 **Built with ❤️ by [rUv](https://github.com/ruvnet) | Powered by Claude AI**
 
 </div>
+

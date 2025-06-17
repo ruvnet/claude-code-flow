@@ -1,9 +1,37 @@
 // claude-flow-commands.js - Claude-Flow specific slash commands
 
+// Helper function to check file existence (simplified for this module)
+async function checkFileExists(filePath) {
+  try {
+    await Deno.stat(filePath);
+    return true;
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      return false;
+    }
+    throw error; // Re-throw other errors
+  }
+}
+
 // Create Claude-Flow specific commands
-export async function createClaudeFlowCommands(workingDir) {
+export async function createClaudeFlowCommands(workingDir, force = false, merge = false) {
+  // Helper for consistent logging and file writing
+  const writeFile = async (filePath, content, commandName) => {
+    const fileExists = await checkFileExists(filePath);
+    if (fileExists && !force) {
+      // If merge were true for these, specific merge logic would be needed.
+      // For now, these command files are typically overwritten or skipped.
+      console.warn(`⚠️  Warning: ${commandName} command file (${filePath}) already exists. Use --force to overwrite.`);
+      return;
+    }
+    await Deno.writeTextFile(filePath, content);
+    console.log(`  ✓ ${fileExists && force ? 'Overwrote' : 'Created'} slash command: /${commandName} at ${filePath}`);
+  };
+
+  const commandsToCreate = [];
+
   // Help command
-  const helpCommand = `---
+  const helpCommandContent = `---
 name: claude-flow-help
 description: Show Claude-Flow commands and usage
 ---
@@ -107,12 +135,14 @@ npx -y claude-flow@latest init --sparc
 - Examples: https://github.com/ruvnet/claude-code-flow/examples
 - Issues: https://github.com/ruvnet/claude-code-flow/issues
 `;
-  
-  await Deno.writeTextFile(`${workingDir}/.claude/commands/claude-flow-help.md`, helpCommand);
-  console.log('  ✓ Created slash command: /claude-flow-help');
-  
+  commandsToCreate.push({
+    filePath: `${workingDir}/.claude/commands/claude-flow-help.md`,
+    content: helpCommandContent,
+    name: 'claude-flow-help'
+  });
+
   // Memory command
-  const memoryCommand = `---
+  const memoryCommandContent = `---
 name: claude-flow-memory
 description: Interact with Claude-Flow memory system
 ---
@@ -220,12 +250,14 @@ The memory system provides persistent storage for cross-session and cross-agent 
 ./claude-flow memory export project-$(date +%Y%m%d).json --namespace project
 \`\`\`
 `;
-  
-  await Deno.writeTextFile(`${workingDir}/.claude/commands/claude-flow-memory.md`, memoryCommand);
-  console.log('  ✓ Created slash command: /claude-flow-memory');
+  commandsToCreate.push({
+    filePath: `${workingDir}/.claude/commands/claude-flow-memory.md`,
+    content: memoryCommandContent,
+    name: 'claude-flow-memory'
+  });
   
   // Swarm command
-  const swarmCommand = `---
+  const swarmCommandContent = `---
 name: claude-flow-swarm
 description: Coordinate multi-agent swarms for complex tasks
 ---
@@ -431,7 +463,13 @@ Swarms automatically use distributed memory for collaboration:
 
 For detailed documentation, see: https://github.com/ruvnet/claude-code-flow/docs/swarm-system.md
 `;
-  
-  await Deno.writeTextFile(`${workingDir}/.claude/commands/claude-flow-swarm.md`, swarmCommand);
-  console.log('  ✓ Created slash command: /claude-flow-swarm');
+  commandsToCreate.push({
+    filePath: `${workingDir}/.claude/commands/claude-flow-swarm.md`,
+    content: swarmCommandContent,
+    name: 'claude-flow-swarm'
+  });
+
+  for (const cmd of commandsToCreate) {
+    await writeFile(cmd.filePath, cmd.content, cmd.name);
+  }
 }

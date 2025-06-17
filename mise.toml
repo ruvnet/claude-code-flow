@@ -1,0 +1,3 @@
+[tools]
+deno = "latest"
+node = "16"

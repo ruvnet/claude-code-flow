@@ -89,6 +89,10 @@ npx claude-flow@latest init --sparc
 
 ## 🛠️ **Installation & Setup**
 
+> **📋 Prerequisites**: Node.js 18+ or Deno 2.0+  
+> **⚠️ Deno Compile Note**: For Deno 2.1.7+, use `RUST_MIN_STACK=8388608 deno compile` to avoid stack overflow  
+> **📦 Version Note**: npm package (v1.0.65+) may be newer than this source (v1.0.50). See [npm](https://www.npmjs.com/package/claude-flow)
+
 ### **Method 1: Quick Start (Recommended)**
 ```bash
 # Initialize with full SPARC environment
@@ -118,6 +122,12 @@ git clone https://github.com/ruvnet/claude-code-flow.git
 cd claude-code-flow
 deno task build
 ```
+
+> ⚠️ **Deno Compile Workaround**: If using Deno 2.1.7+, set the stack size to avoid compilation errors:
+> ```bash
+> RUST_MIN_STACK=8388608 deno task build
+> # Or directly: RUST_MIN_STACK=8388608 deno compile --allow-all --no-check --output bin/claude-flow src/cli/main.ts
+> ```
 
 ---
 

@@ -6,7 +6,7 @@
 import { CLI } from "./cli-core.ts";
 import { setupCommands } from "./commands/index.ts";
 
-const VERSION = "1.0.49";
+const VERSION = "1.0.50";
 
 async function main() {
   const cli = new CLI("claude-flow", "Advanced AI Agent Orchestration System");

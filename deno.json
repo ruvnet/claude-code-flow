@@ -61,7 +61,7 @@
     "lint": "deno lint",
     "fmt": "deno fmt",
     "check": "deno check src/**/*.ts",
-    "build": "deno compile --allow-all --no-check --output bin/claude-flow src/cli/main.ts",
+    "build": "RUST_MIN_STACK=8388608 deno compile --allow-all --no-check --output bin/claude-flow src/cli/main.ts",
     "install": "deno install --allow-all --name claude-flow src/cli/index.ts",
     "clean": "rm -rf test-results coverage bin",
     "ci": "deno fmt --check && deno lint && deno check src/**/*.ts && ./scripts/test-runner.ts --coverage --fail-fast"

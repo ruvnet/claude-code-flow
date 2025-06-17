@@ -1,64 +1,51 @@
 #!/usr/bin/env node
-// note to AI never remove this script from the repository bin directory
 
-import { spawn } from 'child_process';
-import path from 'path';
-import fs from 'fs';
-import os from 'os';
-import { execSync } from 'child_process';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+/**
+ * Claude-Flow CLI wrapper
+ * This wrapper script loads and executes the TypeScript CLI using Deno runtime
+ */
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const { spawn } = require('child_process');
+const path = require('path');
 
-// Check if Deno is installed
-function checkDeno() {
-  try {
-    const denoPath = process.env.PATH.includes('.deno/bin') ? 'deno' : path.join(os.homedir(), '.deno', 'bin', 'deno');
-    execSync(`${denoPath} --version`, { stdio: 'ignore' });
-    return denoPath;
-  } catch {
-    try {
-      execSync('deno --version', { stdio: 'ignore' });
-      return 'deno';
-    } catch {
-      return null;
-    }
-  }
-}
+// Get the directory where this script is located
+const binDir = __dirname;
+const projectRoot = path.join(binDir, '..');
+const mainFile = path.join(projectRoot, 'src', 'cli', 'main.ts');
 
-const denoPath = checkDeno();
+// Pass through all arguments to Deno
+const args = [
+  'run',
+  '--allow-all',
+  '--no-check',
+  mainFile,
+  ...process.argv.slice(2)
+];
 
-if (!denoPath) {
-  console.error('Error: Deno is not installed.');
-  console.error('');
-  console.error('Please install Deno first:');
-  console.error('  curl -fsSL https://deno.land/x/install/install.sh | sh');
-  console.error('');
-  console.error('Or on Windows:');
-  console.error('  irm https://deno.land/install.ps1 | iex');
-  process.exit(1);
-}
+// Check if Deno is available
+const denoPath = process.env.DENO_PATH || '/home/vscode/.deno/bin/deno' || 'deno';
 
-// Use the simple CLI JavaScript file which works well
-const cliPath = path.join(__dirname, '..', 'src', 'cli', 'simple-cli.js');
-
-// Run the CLI with Deno
-const deno = spawn(denoPath, ['run', '--allow-all', '--no-check', cliPath, ...process.argv.slice(2)], {
+// Spawn Deno process
+const deno = spawn(denoPath, args, {
   stdio: 'inherit',
-  // Don't change cwd - stay in the current directory
   env: {
     ...process.env,
-    PWD: process.cwd()
+    DENO_DIR: process.env.DENO_DIR || path.join(process.env.HOME, '.deno')
   }
 });
 
+// Handle process exit
 deno.on('error', (err) => {
-  console.error('Failed to start Claude-Flow:', err.message);
-  process.exit(1);
+  if (err.code === 'ENOENT') {
+    console.error('Error: Deno is not installed or not in PATH');
+    console.error('Please install Deno: https://deno.land/manual/getting_started/installation');
+    process.exit(1);
+  } else {
+    console.error('Error spawning Deno:', err);
+    process.exit(1);
+  }
 });
 
-deno.on('close', (code) => {
+deno.on('exit', (code) => {
   process.exit(code || 0);
 });

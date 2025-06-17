@@ -2,8 +2,8 @@
  * Test suite for SystemMonitor
  */
 
-import { assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { beforeEach, describe, it } from 'https://deno.land/std@0.224.0/testing/bdd.ts';
+import { assertEquals, assertExists } from '@std/assert';
+import { beforeEach, describe, it } from '@std/testing/bdd';
 import { SystemMonitor } from '../../../../src/cli/commands/start/system-monitor.ts';
 import { ProcessManager } from '../../../../src/cli/commands/start/process-manager.ts';
 import { eventBus } from '../../../../src/core/event-bus.ts';

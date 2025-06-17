@@ -1,6 +1,7 @@
 import { success, error, warning, info } from "../cli-core.ts";
 import type { CommandContext } from "../cli-core.ts";
-import { blue, yellow, green, magenta, cyan } from "https://deno.land/std@0.224.0/fmt/colors.ts";
+import { colors } from "@cliffy/ansi/colors";
+const { blue, yellow, green, magenta, cyan } = colors;
 
 interface SparcMode {
   slug: string;

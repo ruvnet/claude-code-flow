@@ -2,8 +2,8 @@
  * Progress Reporter - Provides visual feedback during migration
  */
 
-import * as chalk from 'chalk';
-import { MigrationProgress } from './types';
+import chalk from "npm:chalk@^4.1.2";
+import { MigrationProgress } from './types.ts';
 
 export class ProgressReporter {
   private progress: MigrationProgress;

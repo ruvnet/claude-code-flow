@@ -2,8 +2,8 @@
  * Unit tests for MCP Server
  */
 
-import { describe, it, beforeEach, afterEach } from 'https://deno.land/std@0.220.0/testing/bdd.ts';
-import { assertEquals, assertExists } from 'https://deno.land/std@0.220.0/assert/mod.ts';
+import { describe, it, beforeEach, afterEach } from '@std/testing/bdd';
+import { assertEquals, assertExists } from '@std/assert';
 
 import { MCPServer } from '../../../src/mcp/server.ts';
 import { MCPConfig, MCPTool } from '../../../src/utils/types.ts';

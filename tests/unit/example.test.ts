@@ -1,6 +1,6 @@
-import { describe, it, beforeEach, afterEach } from "https://deno.land/std@0.220.0/testing/bdd.ts";
-import { assertEquals, assertExists, assertThrows } from "https://deno.land/std@0.220.0/assert/mod.ts";
-import { spy, stub } from "https://deno.land/std@0.220.0/testing/mock.ts";
+import { describe, it, beforeEach, afterEach } from "@std/testing/bdd";
+import { assertEquals, assertExists, assertThrows } from "@std/assert";
+import { spy, stub } from "@std/testing/mock";
 
 // Example calculator class to test
 class Calculator {

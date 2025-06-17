@@ -1,24 +1,24 @@
 {
-  "timestamp": "2025-06-16T21:54:16.793Z",
+  "timestamp": "2025-06-16T23:59:40.063Z",
   "total": 3,
   "passed": 0,
   "failed": 3,
-  "duration": 5905,
+  "duration": 6875,
   "suites": [
     {
       "suite": "unit",
       "passed": false,
-      "duration": 2616
+      "duration": 2786
     },
     {
       "suite": "integration",
       "passed": false,
-      "duration": 2262
+      "duration": 2963
     },
     {
       "suite": "e2e",
       "passed": false,
-      "duration": 1027
+      "duration": 1126
     }
   ],
   "environment": {

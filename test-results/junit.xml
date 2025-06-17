@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="Claude-Flow" tests="3" errors="3" failures="3" time="5.905">
-    <testsuite name="unit" tests="1" errors="1" failures="1" time="2.616">
-      <testcase name="unit-tests" classname="Claude-Flow.unit" time="2.616">
+<testsuites name="Claude-Flow" tests="3" errors="3" failures="3" time="6.875">
+    <testsuite name="unit" tests="1" errors="1" failures="1" time="2.786">
+      <testcase name="unit-tests" classname="Claude-Flow.unit" time="2.786">
         <failure message="Test suite failed" type="TestFailure">Test suite execution failed</failure>
       </testcase>
     </testsuite>
-    <testsuite name="integration" tests="1" errors="1" failures="1" time="2.262">
-      <testcase name="integration-tests" classname="Claude-Flow.integration" time="2.262">
+    <testsuite name="integration" tests="1" errors="1" failures="1" time="2.963">
+      <testcase name="integration-tests" classname="Claude-Flow.integration" time="2.963">
         <failure message="Test suite failed" type="TestFailure">Test suite execution failed</failure>
       </testcase>
     </testsuite>
-    <testsuite name="e2e" tests="1" errors="1" failures="1" time="1.027">
-      <testcase name="e2e-tests" classname="Claude-Flow.e2e" time="1.027">
+    <testsuite name="e2e" tests="1" errors="1" failures="1" time="1.126">
+      <testcase name="e2e-tests" classname="Claude-Flow.e2e" time="1.126">
         <failure message="Test suite failed" type="TestFailure">Test suite execution failed</failure>
       </testcase>
     </testsuite>

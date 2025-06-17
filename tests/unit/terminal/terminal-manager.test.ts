@@ -2,10 +2,10 @@
  * Comprehensive unit tests for Terminal Manager
  */
 
-import { describe, it, beforeEach, afterEach } from "https://deno.land/std@0.220.0/testing/bdd.ts";
-import { assertEquals, assertExists, assertRejects, assertThrows } from "https://deno.land/std@0.220.0/assert/mod.ts";
-import { FakeTime } from "https://deno.land/std@0.220.0/testing/time.ts";
-import { spy, stub } from "https://deno.land/std@0.220.0/testing/mock.ts";
+import { describe, it, beforeEach, afterEach } from "@std/testing/bdd";
+import { assertEquals, assertExists, assertRejects, assertThrows } from "@std/assert";
+import { FakeTime } from "@std/testing/time";
+import { spy, stub } from "@std/testing/mock";
 
 import { TerminalManager } from '../../../src/terminal/manager.ts';
 import { TerminalPool } from '../../../src/terminal/pool.ts';

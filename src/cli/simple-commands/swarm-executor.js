@@ -3,8 +3,8 @@
  * Actual swarm executor that creates files
  */
 
-import { ensureDir } from "https://deno.land/std@0.208.0/fs/mod.ts";
-import { join } from "https://deno.land/std@0.208.0/path/mod.ts";
+import { ensureDir } from "@std/fs";
+import { join } from "@std/path";
 
 export async function executeSwarm(objective, options = {}) {
   const swarmId = `swarm_${Math.random().toString(36).substring(2, 11)}_${Math.random().toString(36).substring(2, 11)}`;

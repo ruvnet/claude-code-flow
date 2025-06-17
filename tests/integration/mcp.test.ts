@@ -2,8 +2,8 @@
  * Integration tests for MCP (Model Context Protocol) implementation
  */
 
-import { describe, it, beforeEach, afterEach, expect } from 'https://deno.land/std@0.208.0/testing/bdd.ts';
-import { delay } from 'https://deno.land/std@0.208.0/async/delay.ts';
+import { describe, it, beforeEach, afterEach, expect } from '@std/testing/bdd';
+import { delay } from '@std/async';
 
 import { MCPServer } from '../../src/mcp/server.ts';
 import { StdioTransport } from '../../src/mcp/transports/stdio.ts';

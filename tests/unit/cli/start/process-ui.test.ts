@@ -2,8 +2,8 @@
  * Test suite for ProcessUI
  */
 
-import { assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { beforeEach, describe, it } from 'https://deno.land/std@0.224.0/testing/bdd.ts';
+import { assertEquals, assertExists } from '@std/assert';
+import { beforeEach, describe, it } from '@std/testing/bdd';
 import { ProcessUI } from '../../../../src/cli/commands/start/process-ui.ts';
 import { ProcessManager } from '../../../../src/cli/commands/start/process-manager.ts';
 import { ProcessStatus } from '../../../../src/cli/commands/start/types.ts';

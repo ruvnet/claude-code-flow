@@ -2,13 +2,13 @@
  * Migration Analyzer - Analyzes existing projects for migration readiness
  */
 
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as crypto from 'crypto';
-import { MigrationAnalysis, MigrationRisk } from './types';
-import { logger } from './logger';
-import * as chalk from 'chalk';
-import { glob } from 'glob';
+import fs from "npm:fs-extra@^11.0.0";
+import * as path from 'node:path';
+import * as crypto from 'node:crypto';
+import { MigrationAnalysis, MigrationRisk } from './types.ts';
+import { logger } from './logger.ts';
+import chalk from "npm:chalk@^4.1.2";
+import { glob } from "npm:glob@^10.0.0";
 
 export class MigrationAnalyzer {
   private optimizedCommands = [

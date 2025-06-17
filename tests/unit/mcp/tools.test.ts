@@ -2,8 +2,8 @@
  * Unit tests for Tool Registry
  */
 
-import { describe, it, beforeEach } from 'https://deno.land/std@0.220.0/testing/bdd.ts';
-import { assertEquals, assertExists } from 'https://deno.land/std@0.220.0/assert/mod.ts';
+import { describe, it, beforeEach } from '@std/testing/bdd';
+import { assertEquals, assertExists } from '@std/assert';
 
 import { ToolRegistry } from '../../../src/mcp/tools.ts';
 import { MCPTool } from '../../../src/utils/types.ts';

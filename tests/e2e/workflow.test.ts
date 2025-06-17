@@ -2,7 +2,7 @@
  * End-to-end workflow tests
  */
 
-import { assertEquals } from 'https://deno.land/std@0.208.0/testing/asserts.ts';
+import { assertEquals } from '@std/assert';
 import { delay } from '../../src/utils/helpers.ts';
 
 Deno.test('E2E - CLI should show help', async () => {

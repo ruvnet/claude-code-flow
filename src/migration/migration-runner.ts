@@ -2,9 +2,9 @@
  * Migration Runner - Executes migration strategies
  */
 
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as crypto from 'crypto';
+import fs from "npm:fs-extra@^11.0.0";
+import * as path from 'node:path';
+import * as crypto from 'node:crypto';
 import { 
   MigrationOptions, 
   MigrationResult, 
@@ -13,14 +13,14 @@ import {
   ValidationResult,
   MigrationProgress,
   MigrationManifest
-} from './types';
-import { MigrationAnalyzer } from './migration-analyzer';
-import { logger } from './logger';
-import { ProgressReporter } from './progress-reporter';
-import { MigrationValidator } from './migration-validator';
-import { glob } from 'glob';
-import * as inquirer from 'inquirer';
-import * as chalk from 'chalk';
+} from './types.ts';
+import { MigrationAnalyzer } from './migration-analyzer.ts';
+import { logger } from './logger.ts';
+import { ProgressReporter } from './progress-reporter.ts';
+import { MigrationValidator } from './migration-validator.ts';
+import { glob } from "npm:glob@^10.0.0";
+import inquirer from "npm:inquirer@^9.0.0";
+import chalk from "npm:chalk@^4.1.2";
 
 export class MigrationRunner {
   private options: MigrationOptions;

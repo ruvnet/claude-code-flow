@@ -2,10 +2,10 @@
  * Test utilities for Claude-Flow
  */
 
-import { assertEquals, assertExists, assertRejects, assertThrows } from 'https://deno.land/std@0.220.0/assert/mod.ts';
-import { describe, it, beforeEach, afterEach, beforeAll, afterAll } from 'https://deno.land/std@0.220.0/testing/bdd.ts';
-import { spy, stub, assertSpyCall, assertSpyCalls } from 'https://deno.land/std@0.220.0/testing/mock.ts';
-import { FakeTime } from 'https://deno.land/std@0.220.0/testing/time.ts';
+import { assertEquals, assertExists, assertRejects, assertThrows } from '@std/assert';
+import { describe, it, beforeEach, afterEach, beforeAll, afterAll } from '@std/testing/bdd';
+import { spy, stub, assertSpyCall, assertSpyCalls } from '@std/testing/mock';
+import { FakeTime } from '@std/testing/time';
 
 export {
   assertEquals,

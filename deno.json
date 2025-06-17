@@ -64,15 +64,28 @@
     "build": "deno compile --allow-all --no-check --output bin/claude-flow src/cli/main.ts",
     "install": "deno install --allow-all --name claude-flow src/cli/index.ts",
     "clean": "rm -rf test-results coverage bin",
-    "ci": "deno fmt --check && deno lint && deno check src/**/*.ts && ./scripts/test-runner.ts --coverage --fail-fast"
+    "ci": "deno fmt --check && deno lint && deno check src/**/*.ts && ./scripts/test-runner.ts --coverage --fail-fast",
+    "fix-imports": "deno run --allow-read --allow-write scripts/fix-imports.ts"
   },
   "imports": {
     "@std/": "https://deno.land/std@0.224.0/",
+    "@std/assert": "https://deno.land/std@0.224.0/assert/mod.ts",
+    "@std/async": "https://deno.land/std@0.224.0/async/mod.ts",
+    "@std/cli": "https://deno.land/std@0.224.0/cli/mod.ts",
+    "@std/flags": "https://deno.land/std@0.224.0/flags/mod.ts",
+    "@std/fmt": "https://deno.land/std@0.224.0/fmt/mod.ts",
+    "@std/fs": "https://deno.land/std@0.224.0/fs/mod.ts",
+    "@std/path": "https://deno.land/std@0.224.0/path/mod.ts",
+    "@std/testing": "https://deno.land/std@0.224.0/testing/mod.ts",
+    "@std/testing/bdd": "https://deno.land/std@0.224.0/testing/bdd.ts",
+    "@std/testing/mock": "https://deno.land/std@0.224.0/testing/mock.ts",
+    "@std/testing/time": "https://deno.land/std@0.224.0/testing/time.ts",
     "@cliffy/command": "https://deno.land/x/cliffy@v0.22.2/command/mod.ts",
     "@cliffy/ansi/colors": "https://deno.land/x/cliffy@v0.22.2/ansi/colors.ts",
     "@cliffy/ansi": "https://deno.land/x/cliffy@v0.22.2/ansi/mod.ts",
     "@cliffy/prompt": "https://deno.land/x/cliffy@v0.22.2/prompt/mod.ts",
-    "@cliffy/table": "https://deno.land/x/cliffy@v0.22.2/table/mod.ts"
+    "@cliffy/table": "https://deno.land/x/cliffy@v0.22.2/table/mod.ts",
+    "@sqlite": "https://deno.land/x/sqlite@v3.8/mod.ts"
   },
   "exclude": [
     "node_modules/",

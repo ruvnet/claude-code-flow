@@ -1,0 +1,16 @@
+#!/usr/bin/env node
+
+/**
+ * Claude-Flow Simple CLI
+ * JavaScript-based CLI that doesn't require Deno
+ */
+
+// Set up the environment to find our modules
+const path = require('path');
+const projectRoot = path.join(__dirname, '..');
+
+// Change to project directory
+process.chdir(projectRoot);
+
+// Load and run the simple CLI
+require(path.join(projectRoot, 'src', 'cli', 'simple-cli.js'));

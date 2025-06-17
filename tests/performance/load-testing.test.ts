@@ -2,8 +2,8 @@
  * Comprehensive performance and load testing suite
  */
 
-import { describe, it, beforeEach, afterEach } from "https://deno.land/std@0.220.0/testing/bdd.ts";
-import { assertEquals, assertExists } from "https://deno.land/std@0.220.0/assert/mod.ts";
+import { describe, it, beforeEach, afterEach } from "@std/testing/bdd";
+import { assertEquals, assertExists } from "@std/assert";
 
 import { 
   PerformanceTestUtils, 

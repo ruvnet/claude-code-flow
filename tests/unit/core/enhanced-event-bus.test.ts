@@ -2,10 +2,10 @@
  * Enhanced comprehensive unit tests for EventBus
  */
 
-import { describe, it, beforeEach, afterEach } from "https://deno.land/std@0.220.0/testing/bdd.ts";
-import { assertEquals, assertExists, assertThrows } from "https://deno.land/std@0.220.0/assert/mod.ts";
-import { FakeTime } from "https://deno.land/std@0.220.0/testing/time.ts";
-import { spy } from "https://deno.land/std@0.220.0/testing/mock.ts";
+import { describe, it, beforeEach, afterEach } from "@std/testing/bdd";
+import { assertEquals, assertExists, assertThrows } from "@std/assert";
+import { FakeTime } from "@std/testing/time";
+import { spy } from "@std/testing/mock";
 
 import { EventBus } from '../../../src/core/event-bus.ts';
 import { 

@@ -3,10 +3,10 @@
  * Advanced coverage analysis and reporting
  */
 
-import { parseArgs } from "https://deno.land/std@0.220.0/cli/parse_args.ts";
-import { exists } from "https://deno.land/std@0.220.0/fs/exists.ts";
-import { ensureDir } from "https://deno.land/std@0.220.0/fs/ensure_dir.ts";
-import { walk } from "https://deno.land/std@0.220.0/fs/walk.ts";
+import { parseArgs } from "@std/cli";
+import { exists } from "@std/fs";
+import { ensureDir } from "@std/fs";
+import { walk } from "@std/fs";
 
 interface CoverageData {
   url: string;

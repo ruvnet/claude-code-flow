@@ -14,8 +14,8 @@
 import { copyPrompts, copyPromptsEnhanced } from '../src/swarm/prompt-copier-enhanced.ts';
 import { PromptManager } from '../src/swarm/prompt-manager.ts';
 import { PromptConfigManager, PromptValidator, createProgressBar } from '../src/swarm/prompt-utils.ts';
-import * as path from 'https://deno.land/std@0.208.0/path/mod.ts';
-import { ensureDir } from 'https://deno.land/std@0.208.0/fs/mod.ts';
+import * as path from '@std/path';
+import { ensureDir } from '@std/fs';
 
 async function createDemoData() {
   console.log('🔧 Setting up demo data...');

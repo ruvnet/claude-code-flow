@@ -3,7 +3,7 @@
  * Test script for Claude Swarm Mode functionality
  */
 
-import { colors } from 'https://deno.land/x/cliffy@v1.0.0-rc.3/ansi/colors.ts';
+import { colors } from '@cliffy/ansi/colors';
 
 async function runTest(name: string, command: string[], expectedPatterns: string[]): Promise<boolean> {
   console.log(colors.blue(`\nTesting: ${name}`));

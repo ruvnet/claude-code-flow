@@ -2,8 +2,8 @@
  * Tests to ensure backward compatibility with existing start command functionality
  */
 
-import { assertEquals, assertExists } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { describe, it } from 'https://deno.land/std@0.224.0/testing/bdd.ts';
+import { assertEquals, assertExists } from '@std/assert';
+import { describe, it } from '@std/testing/bdd';
 
 describe('Start Command Backward Compatibility', () => {
   describe('CLI imports', () => {

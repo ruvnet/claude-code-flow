@@ -4,9 +4,9 @@
  * Runs all tests with coverage and generates reports
  */
 
-import { parseArgs } from "https://deno.land/std@0.220.0/cli/parse_args.ts";
-import { exists } from "https://deno.land/std@0.220.0/fs/exists.ts";
-import { ensureDir } from "https://deno.land/std@0.220.0/fs/ensure_dir.ts";
+import { parseArgs } from "@std/cli";
+import { exists } from "@std/fs";
+import { ensureDir } from "@std/fs";
 
 interface TestSuite {
   name: string;

@@ -3,10 +3,11 @@
  * Claude-Flow CLI - Core implementation without external dependencies
  */
 
-import { parse } from "https://deno.land/std@0.224.0/flags/mod.ts";
-import { red, green, yellow, blue, bold, cyan } from "https://deno.land/std@0.224.0/fmt/colors.ts";
-import { ensureDir } from "https://deno.land/std@0.224.0/fs/mod.ts";
-import { join } from "https://deno.land/std@0.224.0/path/mod.ts";
+import { parse } from "@std/flags";
+import { colors } from "@cliffy/ansi/colors";
+const { red, green, yellow, blue, bold, cyan } = colors;
+import { ensureDir } from "@std/fs";
+import { join } from "@std/path";
 
 export const VERSION = "1.0.43";
 
@@ -225,7 +226,7 @@ Created by rUv - Built with ❤️ for the Claude community
   private formatCommands(): string {
     const commands = Array.from(new Set(this.commands.values()));
     return commands
-      .map(cmd => `  ${cmd.name.padEnd(20)} ${cmd.description}`)
+      .map(cmd => `  ${String(cmd.name || '').padEnd(20)} ${cmd.description || ''}`)
       .join("\n");
   }
 

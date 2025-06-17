@@ -1,133 +1,133 @@
-[0m[32mCheck[0m file:///workspaces/claude-code-flow/tests/e2e/cli-commands.test.ts
-[0m[32mCheck[0m file:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts
-[0m[32mCheck[0m file:///workspaces/claude-code-flow/tests/e2e/full-workflow.test.ts
-[0m[32mCheck[0m file:///workspaces/claude-code-flow/tests/e2e/start-command-e2e.test.ts
-[0m[32mCheck[0m file:///workspaces/claude-code-flow/tests/e2e/workflow.test.ts
-[0m[1mTS2305 [0m[ERROR]: Module '"file:///workspaces/claude-code-flow/tests/test.utils.ts"' has no exported member 'assertStringIncludes'.
+[0m[32mCheck[0m file:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/cli-commands.test.ts
+[0m[32mCheck[0m file:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts
+[0m[32mCheck[0m file:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-workflow.test.ts
+[0m[32mCheck[0m file:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/start-command-e2e.test.ts
+[0m[32mCheck[0m file:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/workflow.test.ts
+[0m[1mTS2305 [0m[ERROR]: Module '"file:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/test.utils.ts"' has no exported member 'assertStringIncludes'.
   assertStringIncludes,
 [0m[31m  ~~~~~~~~~~~~~~~~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/cli-commands.test.ts[0m:[0m[33m12[0m:[0m[33m3[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/cli-commands.test.ts[0m:[0m[33m12[0m:[0m[33m3[0m
 
 [0m[1mTS2339 [0m[ERROR]: Property 'delay' does not exist on type 'typeof AsyncTestUtils'.
         await AsyncTestUtils.delay(100);
 [0m[31m                             ~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m137[0m:[0m[33m30[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m137[0m:[0m[33m30[0m
 
 [0m[1mTS2339 [0m[ERROR]: Property 'delay' does not exist on type 'typeof AsyncTestUtils'.
         const shutdownPromise = AsyncTestUtils.delay(200).then(() => 'shutdown complete');
 [0m[31m                                               ~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m140[0m:[0m[33m48[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m140[0m:[0m[33m48[0m
 
 [0m[1mTS2339 [0m[ERROR]: Property 'delay' does not exist on type 'typeof AsyncTestUtils'.
             await AsyncTestUtils.delay(50);
 [0m[31m                                 ~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m158[0m:[0m[33m34[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m158[0m:[0m[33m34[0m
 
 [0m[1mTS2339 [0m[ERROR]: Property 'delay' does not exist on type 'typeof AsyncTestUtils'.
             await AsyncTestUtils.delay(100);
 [0m[31m                                 ~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m168[0m:[0m[33m34[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m168[0m:[0m[33m34[0m
 
 [0m[1mTS2339 [0m[ERROR]: Property 'delay' does not exist on type 'typeof AsyncTestUtils'.
           await AsyncTestUtils.delay(50); // Simulate task execution time
 [0m[31m                               ~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m219[0m:[0m[33m32[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m219[0m:[0m[33m32[0m
 
 [0m[1mTS2322 [0m[ERROR]: Type 'string' is not assignable to type 'null'.
             task.assignedAgent = agent.id;
 [0m[31m            ~~~~~~~~~~~~~~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m267[0m:[0m[33m13[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m267[0m:[0m[33m13[0m
 
 [0m[1mTS2339 [0m[ERROR]: Property 'delay' does not exist on type 'typeof AsyncTestUtils'.
             await AsyncTestUtils.delay(Math.random() * 100); // Variable execution time
 [0m[31m                                 ~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m319[0m:[0m[33m34[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m319[0m:[0m[33m34[0m
 
 [0m[1mTS7006 [0m[ERROR]: Parameter 'value' implicitly has an 'any' type.
           data.forEach((value, key) => {
 [0m[31m                        ~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m468[0m:[0m[33m25[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m468[0m:[0m[33m25[0m
 
 [0m[1mTS7006 [0m[ERROR]: Parameter 'key' implicitly has an 'any' type.
           data.forEach((value, key) => {
 [0m[31m                               ~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m468[0m:[0m[33m32[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m468[0m:[0m[33m32[0m
 
 [0m[1mTS2345 [0m[ERROR]: Argument of type '{ command: string; result: string; timestamp: number; }' is not assignable to parameter of type 'never'.
             session.commands.push({
 [0m[31m                                  ^[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m518[0m:[0m[33m35[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m518[0m:[0m[33m35[0m
 
 [0m[1mTS18046 [0m[ERROR]: 'error' is of type 'unknown'.
               error: error.message,
 [0m[31m                     ~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m534[0m:[0m[33m22[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m534[0m:[0m[33m22[0m
 
 [0m[1mTS18046 [0m[ERROR]: 'error' is of type 'unknown'.
               error: error.message,
 [0m[31m                     ~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m592[0m:[0m[33m22[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m592[0m:[0m[33m22[0m
 
 [0m[1mTS18048 [0m[ERROR]: 'listToolsResponse.response' is possibly 'undefined'.
       assertEquals(listToolsResponse?.response.result?.tools.length, 3);
 [0m[31m                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m680[0m:[0m[33m20[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m680[0m:[0m[33m20[0m
 
 [0m[1mTS18048 [0m[ERROR]: 'listToolsResponse.response.result.tools' is possibly 'undefined'.
       assertEquals(listToolsResponse?.response.result?.tools.length, 3);
 [0m[31m                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m680[0m:[0m[33m20[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m680[0m:[0m[33m20[0m
 
 [0m[1mTS18048 [0m[ERROR]: 'calculatorResponse.response' is possibly 'undefined'.
       assertStringIncludes(calculatorResponse?.response.result?.content[0].text, '5 + 3 = 8');
 [0m[31m                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m683[0m:[0m[33m28[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m683[0m:[0m[33m28[0m
 
 [0m[1mTS18048 [0m[ERROR]: 'calculatorResponse.response.result.content' is possibly 'undefined'.
       assertStringIncludes(calculatorResponse?.response.result?.content[0].text, '5 + 3 = 8');
 [0m[31m                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m683[0m:[0m[33m28[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m683[0m:[0m[33m28[0m
 
 [0m[1mTS2345 [0m[ERROR]: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
   Type 'undefined' is not assignable to type 'string'.
       assertStringIncludes(calculatorResponse?.response.result?.content[0].text, '5 + 3 = 8');
 [0m[31m                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m683[0m:[0m[33m28[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m683[0m:[0m[33m28[0m
 
 [0m[1mTS2339 [0m[ERROR]: Property 'delay' does not exist on type 'typeof AsyncTestUtils'.
           await AsyncTestUtils.delay(Math.random() * 20);
 [0m[31m                               ~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m758[0m:[0m[33m32[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m758[0m:[0m[33m32[0m
 
 [0m[1mTS2551 [0m[ERROR]: Property 'processedAt' does not exist on type '{ timestamp: number; processed: boolean; }'. Did you mean 'processed'?
               item.metadata.processedAt = Date.now();
 [0m[31m                            ~~~~~~~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m798[0m:[0m[33m29[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m798[0m:[0m[33m29[0m
 
     'processed' is declared here.
                   processed: false,
     [0m[36m              ~~~~~~~~~~~~~~~~[0m
-        at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m788[0m:[0m[33m15[0m
+        at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m788[0m:[0m[33m15[0m
 
 [0m[1mTS2339 [0m[ERROR]: Property 'delay' does not exist on type 'typeof AsyncTestUtils'.
               await AsyncTestUtils.delay(scenario.duration * 0.5);
 [0m[31m                                   ~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m928[0m:[0m[33m36[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m928[0m:[0m[33m36[0m
 
 [0m[1mTS2339 [0m[ERROR]: Property 'delay' does not exist on type 'typeof AsyncTestUtils'.
         await AsyncTestUtils.delay(6000);
 [0m[31m                             ~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m942[0m:[0m[33m30[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m942[0m:[0m[33m30[0m
 
 [0m[1mTS18046 [0m[ERROR]: 'error' is of type 'unknown'.
     throw new Error(`Failed to execute command "${command}": ${error.message}`);
 [0m[31m                                                               ~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m1065[0m:[0m[33m64[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-system-integration.test.ts[0m:[0m[33m1065[0m:[0m[33m64[0m
 
-[0m[1mTS2305 [0m[ERROR]: Module '"file:///workspaces/claude-code-flow/tests/test.utils.ts"' has no exported member 'assertStringIncludes'.
+[0m[1mTS2305 [0m[ERROR]: Module '"file:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/test.utils.ts"' has no exported member 'assertStringIncludes'.
   assertStringIncludes,
 [0m[31m  ~~~~~~~~~~~~~~~~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/e2e/full-workflow.test.ts[0m:[0m[33m13[0m:[0m[33m3[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/e2e/full-workflow.test.ts[0m:[0m[33m13[0m:[0m[33m3[0m
 
 [0m[1mTS2379 [0m[ERROR]: Argument of type '{ suffix: string; dir: string | undefined; }' is not assignable to parameter of type 'MakeTempOptions' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
   Types of property 'dir' are incompatible.
@@ -135,7 +135,7 @@
       Type 'undefined' is not assignable to type 'string'.
     const tempFile = await Deno.makeTempFile({ suffix, dir });
 [0m[31m                                             ~~~~~~~~~~~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m423[0m:[0m[33m46[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m423[0m:[0m[33m46[0m
 
 [0m[1mTS2344 [0m[ERROR]: Type 'K' does not satisfy the constraint 'unknown[]'.
   Type 'keyof T' is not assignable to type 'unknown[]'.
@@ -143,50 +143,50 @@
       Type 'string' is not assignable to type 'unknown[]'.
   ): T & { [K in keyof T]: T[K] extends (...args: any[]) => any ? Spy<T, K> : T[K] } {
 [0m[31m                                                                         ^[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m479[0m:[0m[33m74[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m479[0m:[0m[33m74[0m
 
 [0m[1mTS2862 [0m[ERROR]: Type 'T & Partial<T>' is generic and can only be indexed for reading.
         mock[key] = stub(mock, key as keyof T, value);
 [0m[31m        ~~~~~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m484[0m:[0m[33m9[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m484[0m:[0m[33m9[0m
 
 [0m[1mTS7053 [0m[ERROR]: Element implicitly has an 'any' type because expression of type '"method"' can't be used to index type '{}'.
   Property 'method' does not exist on type '{}'.
       obj[methodName] = implementation;
 [0m[31m      ~~~~~~~~~~~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m501[0m:[0m[33m7[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m501[0m:[0m[33m7[0m
 
 [0m[1mTS7053 [0m[ERROR]: Element implicitly has an 'any' type because expression of type '"method"' can't be used to index type '{}'.
   Property 'method' does not exist on type '{}'.
       obj[methodName] = () => {};
 [0m[31m      ~~~~~~~~~~~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m503[0m:[0m[33m7[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m503[0m:[0m[33m7[0m
 
 [0m[1mTS2345 [0m[ERROR]: Argument of type '"method"' is not assignable to parameter of type 'never'.
     return stub(obj, methodName) as any;
 [0m[31m                     ~~~~~~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m506[0m:[0m[33m22[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m506[0m:[0m[33m22[0m
 
 [0m[1mTS2322 [0m[ERROR]: Type 'Stub<T, GetParametersFromProp<T, keyof T>, GetReturnFromProp<T, keyof T>>' is not assignable to type 'T[keyof T]'.
   'Stub<T, GetParametersFromProp<T, keyof T>, GetReturnFromProp<T, keyof T>>' is assignable to the constraint of type 'T[keyof T]', but 'T[keyof T]' could be instantiated with a different subtype of constraint 'any'.
         mock[method] = stub(mock, method, () => {
 [0m[31m        ~~~~~~~~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m521[0m:[0m[33m9[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m521[0m:[0m[33m9[0m
 
 [0m[1mTS18046 [0m[ERROR]: 'error' is of type 'unknown'.
           `Expected error of type ${ErrorClass.name}, but got ${error.constructor.name}`
 [0m[31m                                                                ~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m626[0m:[0m[33m65[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m626[0m:[0m[33m65[0m
 
 [0m[1mTS18046 [0m[ERROR]: 'error' is of type 'unknown'.
       if (msgIncludes && !error.message.includes(msgIncludes)) {
 [0m[31m                          ~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m630[0m:[0m[33m27[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m630[0m:[0m[33m27[0m
 
 [0m[1mTS18046 [0m[ERROR]: 'error' is of type 'unknown'.
           `Expected error message to include "${msgIncludes}", but got: ${error.message}`
 [0m[31m                                                                          ~~~~~[0m
-    at [0m[36mfile:///workspaces/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m632[0m:[0m[33m75[0m
+    at [0m[36mfile:///workspaces/claude-flow-1-0-50/claude-code-flow/tests/utils/test-utils.ts[0m:[0m[33m632[0m:[0m[33m75[0m
 
 Found 34 errors.
 

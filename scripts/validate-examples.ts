@@ -5,7 +5,7 @@
  * Validates all example configuration files for correctness
  */
 
-import { walk } from "https://deno.land/std@0.220.0/fs/mod.ts";
+import { walk } from "@std/fs";
 
 interface ValidationResult {
   file: string;

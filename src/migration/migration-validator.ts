@@ -2,12 +2,12 @@
  * Migration Validator - Validates successful migration
  */
 
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import { ValidationResult, ValidationCheck } from './types';
-import { logger } from './logger';
-import * as chalk from 'chalk';
-import { glob } from 'glob';
+import fs from "npm:fs-extra@^11.0.0";
+import * as path from 'node:path';
+import { ValidationResult, ValidationCheck } from './types.ts';
+import { logger } from './logger.ts';
+import chalk from "npm:chalk@^4.1.2";
+import { glob } from "npm:glob@^10.0.0";
 
 export class MigrationValidator {
   private requiredFiles = [

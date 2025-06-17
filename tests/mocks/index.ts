@@ -2,8 +2,8 @@
  * Comprehensive mock implementations for testing
  */
 
-import { stub, spy } from "https://deno.land/std@0.220.0/testing/mock.ts";
-import type { Spy } from "https://deno.land/std@0.220.0/testing/mock.ts";
+import { stub, spy } from "@std/testing/mock";
+import type { Spy } from "@std/testing/mock";
 import type { AgentProfile, Task } from "../../src/utils/types.ts";
 
 // Since we can't import the actual interfaces yet, we'll define minimal interfaces

@@ -1,6 +1,7 @@
 import { CLI, success, error, warning, info, VERSION } from "../cli-core.ts";
 import type { Command, CommandContext } from "../cli-core.ts";
-import { bold, blue, yellow } from "https://deno.land/std@0.224.0/fmt/colors.ts";
+import { colors } from "@cliffy/ansi/colors";
+const { bold, blue, yellow } = colors;
 import { Orchestrator } from "../../core/orchestrator-fixed.ts";
 import { ConfigManager } from "../../core/config.ts";
 import { MemoryManager } from "../../memory/manager.ts";
@@ -1399,8 +1400,15 @@ Now, please proceed with the task: ${task}`;
   });
 
   // Migration command
-  const migrateCmd = createMigrateCommand();
-  cli.command(migrateCmd);
+  cli.command({
+    name: "migrate",
+    description: "Migrate from other AI agent frameworks",
+    action: async (ctx) => {
+      // For now, just show a message since the migration command uses Cliffy
+      console.log("Migration command is not yet integrated with the simple CLI.");
+      console.log("Please use the TypeScript version directly.");
+    }
+  });
 
   // Swarm UI command (convenience wrapper)
   cli.command({

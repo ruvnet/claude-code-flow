@@ -3,9 +3,9 @@
  * Tests complete workflows and system integration
  */
 
-import { describe, it, beforeEach, afterEach } from "https://deno.land/std@0.220.0/testing/bdd.ts";
-import { assertEquals, assertExists, assertStringIncludes } from "https://deno.land/std@0.220.0/assert/mod.ts";
-import { FakeTime } from "https://deno.land/std@0.220.0/testing/time.ts";
+import { describe, it, beforeEach, afterEach } from "@std/testing/bdd";
+import { assertEquals, assertExists, assertStringIncludes } from "@std/assert";
+import { FakeTime } from "@std/testing/time";
 
 import { 
   AsyncTestUtils, 

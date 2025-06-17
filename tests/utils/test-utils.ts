@@ -2,10 +2,10 @@
  * Comprehensive test utilities for Claude-Flow
  */
 
-import { assertEquals, assertExists, assertRejects, assertThrows } from "https://deno.land/std@0.220.0/assert/mod.ts";
-import { delay } from "https://deno.land/std@0.220.0/async/delay.ts";
-import { stub, Spy } from "https://deno.land/std@0.220.0/testing/mock.ts";
-import { FakeTime } from "https://deno.land/std@0.220.0/testing/time.ts";
+import { assertEquals, assertExists, assertRejects, assertThrows } from "@std/assert";
+import { delay } from "@std/async";
+import { stub, Spy } from "@std/testing/mock";
+import { FakeTime } from "@std/testing/time";
 
 export { assertEquals, assertExists, assertRejects, assertThrows, stub, delay, FakeTime };
 export type { Spy };
@@ -420,7 +420,7 @@ export class FileSystemTestUtils {
     options: { suffix?: string; dir?: string } = {}
   ): Promise<string> {
     const { suffix = '.tmp', dir } = options;
-    const tempFile = await Deno.makeTempFile({ suffix, dir });
+    const tempFile = await Deno.makeTempFile({ suffix, ...(dir !== undefined && { dir }) });
     await Deno.writeTextFile(tempFile, content);
     return tempFile;
   }

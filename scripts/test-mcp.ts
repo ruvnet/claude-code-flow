@@ -5,8 +5,8 @@
  * Comprehensive test suite for the MCP implementation
  */
 
-import { parseArgs } from 'https://deno.land/std@0.208.0/cli/parse_args.ts';
-import { join } from 'https://deno.land/std@0.208.0/path/mod.ts';
+import { parseArgs } from '@std/cli';
+import { join } from '@std/path';
 
 interface TestConfig {
   unit: boolean;

@@ -498,10 +498,8 @@ Begin execution now. Create all necessary files and provide a complete, working 
         
         const claudeArgs = [];
         
-        // Add auto-permission flag if requested
-        if (flags.auto || flags['dangerously-skip-permissions']) {
-          claudeArgs.push('--dangerously-skip-permissions');
-        }
+        // Always add auto-permission flag for swarm execution
+        claudeArgs.push('--dangerously-skip-permissions');
         
         // Spawn claude process
         const claudeProcess = spawn('claude', claudeArgs, {

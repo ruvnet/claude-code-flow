@@ -5,7 +5,7 @@
  * Runs all unit, integration, and performance tests for the init command
  */
 
-import { parseArgs } from "https://deno.land/std@0.224.0/cli/parse_args.ts";
+import { parseArgs } from "@std/cli";
 import { join } from "@std/path/mod.ts";
 import { exists } from "@std/fs/mod.ts";
 

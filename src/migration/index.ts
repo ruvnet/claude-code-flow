@@ -4,13 +4,13 @@
  * Helps existing projects migrate to optimized prompts and configurations
  */
 
-import { Command } from 'commander';
-import { MigrationRunner } from './migration-runner';
-import { MigrationAnalyzer } from './migration-analyzer';
-import { MigrationStrategy } from './types';
-import { logger } from './logger';
-import * as chalk from 'chalk';
-import * as path from 'path';
+import { Command } from "npm:commander@^11.0.0";
+import { MigrationRunner } from './migration-runner.ts';
+import { MigrationAnalyzer } from './migration-analyzer.ts';
+import { MigrationStrategy } from './types.ts';
+import { logger } from './logger.ts';
+import chalk from "npm:chalk@^4.1.2";
+import * as path from 'node:path';
 
 const program = new Command();
 

@@ -2,7 +2,7 @@
  * Integration tests for terminal functionality
  */
 
-import { assertEquals, assertExists, assertRejects } from 'https://deno.land/std@0.220.0/assert/mod.ts';
+import { assertEquals, assertExists, assertRejects } from '@std/assert';
 import { TerminalManager } from '../../src/terminal/manager.ts';
 import { NativeAdapter } from '../../src/terminal/adapters/native.ts';
 import { VSCodeAdapter } from '../../src/terminal/adapters/vscode.ts';

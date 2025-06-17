@@ -5,7 +5,7 @@
  * Scans documentation files for broken links
  */
 
-import { walk } from "https://deno.land/std@0.220.0/fs/mod.ts";
+import { walk } from "@std/fs";
 
 interface LinkCheckResult {
   file: string;

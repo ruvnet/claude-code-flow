@@ -386,7 +386,8 @@ export class ResourceManager extends EventEmitter {
     });
 
     this.eventBus.on('resource:usage-update', (data) => {
-      this.updateResourceUsage(data.resourceId, data.usage);
+      const typedData = data as { resourceId: string; usage: ResourceUsage };
+      this.updateResourceUsage(typedData.resourceId, typedData.usage);
     });
 
     this.eventBus.on('resource:failure', (data) => {
@@ -431,9 +432,9 @@ export class ResourceManager extends EventEmitter {
     this.logger.info('Shutting down resource manager');
 
     // Stop intervals
-    if (this.monitoringInterval) clearInterval(this.monitoringInterval);
-    if (this.cleanupInterval) clearInterval(this.cleanupInterval);
-    if (this.scalingInterval) clearInterval(this.scalingInterval);
+    if (this.monitoringInterval) clearInterval(this.monitoringInterval as unknown as number);
+    if (this.cleanupInterval) clearInterval(this.cleanupInterval as unknown as number);
+    if (this.scalingInterval) clearInterval(this.scalingInterval as unknown as number);
 
     // Release all active allocations
     await this.releaseAllAllocations();

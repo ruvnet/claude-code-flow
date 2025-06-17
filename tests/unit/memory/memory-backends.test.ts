@@ -2,9 +2,9 @@
  * Comprehensive unit tests for Memory Backends (SQLite and Markdown)
  */
 
-import { describe, it, beforeEach, afterEach } from "https://deno.land/std@0.220.0/testing/bdd.ts";
-import { assertEquals, assertExists, assertRejects, assertThrows } from "https://deno.land/std@0.220.0/assert/mod.ts";
-import { FakeTime } from "https://deno.land/std@0.220.0/testing/time.ts";
+import { describe, it, beforeEach, afterEach } from "@std/testing/bdd";
+import { assertEquals, assertExists, assertRejects, assertThrows } from "@std/assert";
+import { FakeTime } from "@std/testing/time";
 
 import { SQLiteMemoryBackend } from '../../../src/memory/backends/sqlite.ts';
 import { MarkdownMemoryBackend } from '../../../src/memory/backends/markdown.ts';

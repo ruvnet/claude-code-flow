@@ -21,8 +21,8 @@ import { ICoordinationManager } from '../coordination/manager.ts';
 import { IMCPServer } from '../mcp/server.ts';
 import { SystemError, InitializationError, ShutdownError } from '../utils/errors.ts';
 import { delay, retry, circuitBreaker, CircuitBreaker } from '../utils/helpers.ts';
-import { ensureDir, exists } from 'https://deno.land/std@0.208.0/fs/mod.ts';
-import { join, dirname } from 'https://deno.land/std@0.208.0/path/mod.ts';
+import { ensureDir, exists } from '@std/fs';
+import { join, dirname } from '@std/path';
 
 export interface ISessionManager {
   createSession(profile: AgentProfile): Promise<AgentSession>;

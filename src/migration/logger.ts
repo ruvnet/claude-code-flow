@@ -2,9 +2,9 @@
  * Migration Logger - Structured logging for migration operations
  */
 
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as chalk from 'chalk';
+import fs from "npm:fs-extra@^11.0.0";
+import * as path from 'node:path';
+import chalk from "npm:chalk@^4.1.2";
 
 export interface LogEntry {
   timestamp: Date;

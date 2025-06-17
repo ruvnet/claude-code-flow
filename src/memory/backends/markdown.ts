@@ -6,7 +6,7 @@ import { IMemoryBackend } from './base.ts';
 import { MemoryEntry, MemoryQuery } from '../../utils/types.ts';
 import { ILogger } from '../../core/logger.ts';
 import { MemoryBackendError } from '../../utils/errors.ts';
-import { ensureDir } from 'https://deno.land/std@0.208.0/fs/mod.ts';
+import { ensureDir } from '@std/fs';
 
 /**
  * Markdown-based memory backend

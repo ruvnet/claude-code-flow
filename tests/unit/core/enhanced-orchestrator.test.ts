@@ -2,10 +2,10 @@
  * Enhanced comprehensive unit tests for Orchestrator
  */
 
-import { describe, it, beforeEach, afterEach } from "https://deno.land/std@0.220.0/testing/bdd.ts";
-import { assertEquals, assertExists, assertRejects, assertThrows } from "https://deno.land/std@0.220.0/assert/mod.ts";
-import { FakeTime } from "https://deno.land/std@0.220.0/testing/time.ts";
-import { stub, spy } from "https://deno.land/std@0.220.0/testing/mock.ts";
+import { describe, it, beforeEach, afterEach } from "@std/testing/bdd";
+import { assertEquals, assertExists, assertRejects, assertThrows } from "@std/assert";
+import { FakeTime } from "@std/testing/time";
+import { stub, spy } from "@std/testing/mock";
 
 import { Orchestrator } from '../../../src/core/orchestrator.ts';
 import { 

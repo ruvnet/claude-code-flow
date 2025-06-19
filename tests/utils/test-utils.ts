@@ -420,7 +420,7 @@ export class FileSystemTestUtils {
     options: { suffix?: string; dir?: string } = {}
   ): Promise<string> {
     const { suffix = '.tmp', dir } = options;
-    const tempFile = await Deno.makeTempFile({ suffix, dir });
+    const tempFile = await Deno.makeTempFile({ suffix, ...(dir && { dir }) });
     await Deno.writeTextFile(tempFile, content);
     return tempFile;
   }
@@ -623,13 +623,13 @@ export class TestAssertions {
     } catch (error) {
       if (ErrorClass && !(error instanceof ErrorClass)) {
         throw new Error(
-          `Expected error of type ${ErrorClass.name}, but got ${error.constructor.name}`
+          `Expected error of type ${ErrorClass.name}, but got ${(error as any).constructor.name}`
         );
       }
       
-      if (msgIncludes && !error.message.includes(msgIncludes)) {
+      if (msgIncludes && !(error as any).message.includes(msgIncludes)) {
         throw new Error(
-          `Expected error message to include "${msgIncludes}", but got: ${error.message}`
+          `Expected error message to include "${msgIncludes}", but got: ${(error as any).message}`
         );
       }
 

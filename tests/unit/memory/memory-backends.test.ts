@@ -7,7 +7,7 @@ import { assertEquals, assertExists, assertRejects, assertThrows } from "https:/
 import { FakeTime } from "https://deno.land/std@0.220.0/testing/time.ts";
 
 import { SQLiteMemoryBackend } from '../../../src/memory/backends/sqlite.ts';
-import { MarkdownMemoryBackend } from '../../../src/memory/backends/markdown.ts';
+import { MarkdownBackend } from '../../../src/memory/backends/markdown.ts';
 import { 
   AsyncTestUtils, 
   MemoryTestUtils, 
@@ -486,10 +486,10 @@ describe('Memory Backends - Comprehensive Tests', () => {
   });
 
   describe('Markdown Memory Backend', () => {
-    let backend: MarkdownMemoryBackend;
+    let backend: MarkdownBackend;
 
     beforeEach(async () => {
-      backend = new MarkdownMemoryBackend({
+      backend = new MarkdownBackend({
         baseDir: `${tempDir}/markdown-memory`,
         enableGitHistory: false, // Disable for tests
         enableSearch: true,
@@ -800,7 +800,7 @@ function hello() {
     describe('Error Handling and Edge Cases', () => {
       it('should handle filesystem errors gracefully', async () => {
         // Try to write to read-only location (if possible to simulate)
-        const readOnlyBackend = new MarkdownMemoryBackend({
+        const readOnlyBackend = new MarkdownBackend({
           baseDir: '/read-only-path-that-does-not-exist',
         });
 
@@ -852,14 +852,14 @@ function hello() {
 
   describe('Backend Comparison and Compatibility', () => {
     let sqliteBackend: SQLiteMemoryBackend;
-    let markdownBackend: MarkdownMemoryBackend;
+    let markdownBackend: MarkdownBackend;
 
     beforeEach(async () => {
       sqliteBackend = new SQLiteMemoryBackend({
         dbPath: `${tempDir}/comparison.db`,
       });
       
-      markdownBackend = new MarkdownMemoryBackend({
+      markdownBackend = new MarkdownBackend({
         baseDir: `${tempDir}/comparison-md`,
       });
 

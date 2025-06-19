@@ -307,4 +307,4 @@ export class Logger implements ILogger {
 }
 
 // Export singleton instance with lazy initialization
-export const logger = Logger.getInstance();
+// export const logger = Logger.getInstance();

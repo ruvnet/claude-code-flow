@@ -7,7 +7,7 @@ import { assertEquals, assertExists, assert } from "https://deno.land/std@0.220.
 import { FakeTime } from "https://deno.land/std@0.220.0/testing/time.ts";
 
 import { MemoryManager } from '../../src/memory/manager.ts';
-import { MemoryBackendFactory } from '../../src/memory/backend.ts';
+import { SQLiteMemoryBackend } from '../../src/memory/backends/sqlite.ts';
 import { SwarmMemory } from '../../src/swarm/memory.ts';
 import { ConfigurationManager } from '../../src/core/config.ts';
 import { deepMerge } from '../../src/utils/helpers.ts';
@@ -37,7 +37,8 @@ describe('Incremental Updates Test Suite', () => {
     let memoryManager: MemoryManager;
 
     beforeEach(async () => {
-      const backend = MemoryBackendFactory.create('local', { directory: tempDir });
+      const backend = new SQLiteMemoryBackend({ dbPath: `${tempDir}/test-memory.db` });
+      await backend.initialize();
       memoryManager = new MemoryManager({ backend });
       await memoryManager.initialize();
     });
@@ -338,7 +339,8 @@ describe('Incremental Updates Test Suite', () => {
 
   describe('Batch Incremental Updates', () => {
     it('should handle batch memory updates efficiently', async () => {
-      const backend = MemoryBackendFactory.create('local', { directory: tempDir });
+      const backend = new SQLiteMemoryBackend({ dbPath: `${tempDir}/test-memory-batch.db` });
+      await backend.initialize();
       const memoryManager = new MemoryManager({ backend });
       await memoryManager.initialize();
 
@@ -405,7 +407,8 @@ describe('Incremental Updates Test Suite', () => {
 
   describe('Event-Driven Updates', () => {
     it('should emit events on incremental updates', async () => {
-      const backend = MemoryBackendFactory.create('local', { directory: tempDir });
+      const backend = new SQLiteMemoryBackend({ dbPath: `${tempDir}/test-memory-events.db` });
+      await backend.initialize();
       const memoryManager = new MemoryManager({ backend });
       await memoryManager.initialize();
 

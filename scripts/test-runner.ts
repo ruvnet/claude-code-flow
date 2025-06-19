@@ -112,6 +112,13 @@ class TestRunner {
       "--unstable-temporal",
     ];
 
+    // Add no-check if enabled
+    if (this.options.noCheck) {
+      args.push("--no-check");
+    }
+
+    // Note: Sanitizer options need to be set as test annotations in the test files
+
     // Add coverage if enabled
     if (this.options.coverage) {
       args.push("--coverage", `${this.options.outputDir}/coverage`);
@@ -525,6 +532,7 @@ EXAMPLES:
     outputDir: args["output-dir"],
     failFast: args["fail-fast"],
     updateSnapshots: args["update-snapshots"],
+    noCheck: args["no-check"],
   };
 
   // Validate suites

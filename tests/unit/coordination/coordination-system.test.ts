@@ -15,7 +15,7 @@ import { ConflictResolver } from '../../../src/coordination/conflict-resolution.
 import { CircuitBreaker } from '../../../src/coordination/circuit-breaker.ts';
 import { WorkStealingScheduler } from '../../../src/coordination/work-stealing.ts';
 import { DependencyGraph } from '../../../src/coordination/dependency-graph.ts';
-import { AdvancedScheduler } from '../../../src/coordination/advanced-scheduler.ts';
+import { AdvancedTaskScheduler } from '../../../src/coordination/advanced-scheduler.ts';
 import { 
   AsyncTestUtils, 
   MemoryTestUtils, 

@@ -325,9 +325,9 @@ export class ResourceManager extends EventEmitter {
   private optimizer: ResourceOptimizer;
 
   // Scheduling and cleanup
-  private monitoringInterval?: NodeJS.Timeout;
-  private cleanupInterval?: NodeJS.Timeout;
-  private scalingInterval?: NodeJS.Timeout;
+  private monitoringInterval?: number;
+  private cleanupInterval?: number;
+  private scalingInterval?: number;
 
   // Performance tracking
   private metrics: ResourceManagerMetrics;
@@ -385,7 +385,7 @@ export class ResourceManager extends EventEmitter {
       this.handleResourceRelease(data);
     });
 
-    this.eventBus.on('resource:usage-update', (data) => {
+    this.eventBus.on('resource:usage-update', (data: any) => {
       this.updateResourceUsage(data.resourceId, data.usage);
     });
 
@@ -535,7 +535,7 @@ export class ResourceManager extends EventEmitter {
       id: reservationId,
       resourceId: '', // Will be set when resource is found
       agentId,
-      taskId: options.taskId,
+      ...(options.taskId && { taskId: options.taskId }),
       requirements,
       status: 'pending',
       priority: options.priority || 'normal',
@@ -617,7 +617,7 @@ export class ResourceManager extends EventEmitter {
       reservationId,
       resourceId: resource.id,
       agentId: reservation.agentId,
-      taskId: reservation.taskId,
+      ...(reservation.taskId && { taskId: reservation.taskId }),
       allocated: this.calculateAllocation(reservation.requirements, resource),
       actualUsage: this.createEmptyUsage(),
       efficiency: 1.0,

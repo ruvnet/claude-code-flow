@@ -253,7 +253,7 @@ export class SwarmMemoryManager extends EventEmitter {
       accessLevel: options.accessLevel || 'team',
       createdAt: now,
       updatedAt: now,
-      expiresAt: options.ttl ? new Date(now.getTime() + options.ttl) : undefined,
+      ...(options.ttl && { expiresAt: new Date(now.getTime() + options.ttl) }),
       version: 1,
       references: [],
       dependencies: []

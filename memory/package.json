@@ -33,7 +33,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.8",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^20.10.5",
+    "@types/node": "^24.0.2",
     "@types/uuid": "^9.0.7",
     "typescript": "^5.3.3",
     "vitest": "^1.1.0",

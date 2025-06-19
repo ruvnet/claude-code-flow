@@ -26,7 +26,7 @@
   "license": "MIT",
   "dependencies": {
     "better-sqlite3": "^9.2.2",
-    "uuid": "^9.0.1",
+    "uuid": "^11.1.0",
     "js-yaml": "^4.1.0",
     "axios": "^1.6.2"
   },

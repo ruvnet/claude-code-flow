@@ -25,7 +25,7 @@
   "author": "rUv",
   "license": "MIT",
   "dependencies": {
-    "better-sqlite3": "^9.2.2",
+    "better-sqlite3": "^11.10.0",
     "uuid": "^9.0.1",
     "js-yaml": "^4.1.0",
     "axios": "^1.6.2"

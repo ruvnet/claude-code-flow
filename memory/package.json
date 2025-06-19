@@ -28,7 +28,7 @@
     "better-sqlite3": "^9.2.2",
     "uuid": "^9.0.1",
     "js-yaml": "^4.1.0",
-    "axios": "^1.6.2"
+    "axios": "^1.10.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.8",

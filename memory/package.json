@@ -36,7 +36,7 @@
     "@types/node": "^20.10.5",
     "@types/uuid": "^9.0.7",
     "typescript": "^5.3.3",
-    "vitest": "^1.1.0",
+    "vitest": "^3.2.3",
     "@vitest/coverage-v8": "^1.1.0",
     "eslint": "^8.56.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",

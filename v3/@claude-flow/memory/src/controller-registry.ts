@@ -1179,7 +1179,11 @@ export class ControllerRegistry extends EventEmitter {
     const usable = db && typeof db.prepare === 'function' && typeof db.exec === 'function'
       ? db
       : null;
-    return new TieredMemoryStore({ db: usable });
+    // Operator configuration only. It is persisted in the database; subsequent
+    // processes without this environment variable still honor the stored policy.
+    const retention = process.env.RUFLO_HIERARCHICAL_PROTECTED_RETENTION;
+    return new TieredMemoryStore({ db: usable,
+      ...(retention === undefined ? {} : { protectedRetention: JSON.parse(retention) }) });
   }
 
   /** Build the tiered fallback and record/emit why the native one was skipped. */

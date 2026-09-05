@@ -355,7 +355,9 @@ export async function authorizeMcpTool(
       resource: toolName,
       tool: toolName,
       server: typeof context.serverId === 'string' ? context.serverId : 'ruflo',
-      namespace: typeof input.namespace === 'string' ? input.namespace : undefined,
+      namespace: toolName === 'agentdb_hierarchical-create'
+        ? `hierarchical:${typeof input.tier === 'string' ? input.tier : 'invalid'}`
+        : typeof input.namespace === 'string' ? input.namespace : undefined,
       environment: typeof context.environment === 'string' ? context.environment : undefined,
       costUsd: attributes.costUsd,
       tokens: attributes.tokens,
@@ -385,7 +387,7 @@ export function classifyMcpTool(toolName: string): {
   const policyAdmin = normalized.startsWith('policy_')
     && !['policy_evaluate', 'policy_status'].includes(normalized);
   const memoryRead = /^(?:memory|agentdb)_(?:pattern-)?(?:search|query|get|retrieve|list|status|stats)/.test(normalized);
-  const memoryWrite = /^(?:memory|agentdb)_(?:pattern-)?(?:store|insert|update|delete|clear|purge|init)/.test(normalized);
+  const memoryWrite = normalized === 'agentdb_hierarchical-create' || /^(?:memory|agentdb)_(?:pattern-)?(?:store|insert|update|delete|clear|purge|init)/.test(normalized);
   const terminal = /^(?:terminal_execute|bash|shell|exec)/.test(normalized);
   const destructive = policyAdmin
     || terminal

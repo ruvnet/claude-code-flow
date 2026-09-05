@@ -92,3 +92,80 @@ Total estimated: **3 days**.
 - OWASP ASI06:2026 — Memory & Context Poisoning
 - OWASP ASI07:2026 — Insecure Inter-Agent Communication
 - Dream Cycle gist: v3/docs/research/dream-cycle-2026-06-06-security.md
+
+## 2026-09-05 addendum: protected canonical hierarchical records
+
+**Status:** Implemented structural storage/tool prerequisite; this does not mark
+this broader ADR implemented or establish a production identity authority.
+
+The durable tiered fallback previously evicted the oldest active row after
+5,000 entries per tier, and simultaneous stores could create ambiguous active
+rows for the same key/tier. Exact getter commit
+`b3290655f3db010706c1c10efa2c0ba35082e88f` detects ambiguity and reads the current
+row, but cannot restore evicted authority or atomically create a missing member.
+
+An operator may now configure the fallback before serving requests:
+
+```sh
+export RUFLO_HIERARCHICAL_PROTECTED_RETENTION='{"prefixes":[{"tier":"semantic","keyPrefix":"ruclip:company:cognitum:"}],"maxEntries":1000}'
+```
+
+This protects both `ruclip:company:<company>:org-member:<member>` and
+`ruclip:company:<company>:goal:<goal>:issue:<issue>` under that reviewed company
+prefix. The option is server-owned; MCP callers cannot set protection flags,
+change the bound, or claim arbitrary protected namespaces. The policy persists
+in the same SQLite database and remains effective when a later process omits
+the environment variable. A conflicting supplied policy fails closed. Changing
+or removing a persisted policy requires a separately reviewed migration; there
+is no automatic downgrade or public policy-edit tool.
+
+`maxEntries` is a global bound of 1–5,000 active protected rows, with at most
+64 nonempty tier-qualified prefixes. A new protected row at capacity fails with
+`protected_capacity_exceeded`; existing records remain readable/updateable and
+idempotent creates still return the original row. Values exceeding 100,000
+UTF-16 code units are rejected, never truncated. Unprotected rows retain the
+existing 5,000-per-tier FIFO behavior. Hydrated recall remains bounded and is
+not an authoritative complete listing; exact reads bypass that cache.
+
+SQLite triggers prevent deletion, archival/rekeying and duplicate active
+protected keys, including attempts by older processes with stale hydrated
+maps. Ordinary protected stores update the current durable row in one
+transaction; supersede/temporal operations and hard deletion are explicitly
+refused. Deactivation belongs in the canonical record value, so its durable
+identity remains reserved. Initial adoption refuses ambiguous protected keys
+or a preexisting protected population over the bound, without deleting rows.
+Protection cannot recover authority already evicted before adoption.
+
+The additive MCP tool is:
+
+```text
+agentdb_hierarchical-create({key, tier, value})
+  -> {success:true, status:'created'|'existing', entry,
+      durable:true, persistence:'sqlite', retention:'protected'}
+  -> {success:false, status:'unsupported'|'error', error}
+```
+
+There is no lookup-then-store/native/volatile fallback. Creation requires a
+configured protected prefix and serializes the exact key/tier existence check
+and insert under `BEGIN IMMEDIATE`. An existing row is returned unchanged even
+if its value says inactive or its temporal window has expired. The caller must
+verify canonical ID, company, identity and active status; creation is never
+permission to reactivate or grant authority. Conflicting concurrent creates
+observe one winner and its stored bytes. The new tool passes the existing
+policy chokepoint as `memory.write`, with its trusted namespace derived as
+`hierarchical:<tier>` so caller input cannot bypass namespace envelopes.
+Existing tool classification and supported envelope behavior are unchanged.
+
+This is not a transaction across the separate ruClip identity locator
+(`memory_store`, namespace `ruclip-identity-v1`) and canonical member record.
+Joining still requires deterministic canonical IDs, safe retry/reconciliation
+and active-record validation; readiness must stay blocked where those service
+adapters are missing. Nor does this provide compare-and-swap authority updates,
+network-filesystem durability, federation, or deployment authorization.
+
+Validation covers real independent processes racing same-key and different-key
+creates, capacity enforcement, stale-process updates, more than 5,000 ordinary
+writes, reopening without configuration, protected SQL deletion/archival
+attempts, expired/inactive existing records, policy namespace denial and strict
+MCP input. Native persistent SQLite is the supported operational adapter;
+volatile/in-memory fixtures are not release evidence.

@@ -673,6 +673,25 @@ export const agentdbHierarchicalStore: MCPTool = {
   },
 };
 
+/** No caller-supplied protection/retention or temporal override is accepted. */
+export const agentdbHierarchicalCreate: MCPTool = {
+  name:'agentdb_hierarchical-create',
+  description:'Atomically create an exact durable entry in an operator-configured protected hierarchical scope. Existing entries are returned unchanged, including inactive/expired records. Never overwrites or reactivates; capacity errors never evict authority. Does not grant authorization.',
+  inputSchema:{type:'object',additionalProperties:false,properties:{
+    key:{type:'string',minLength:1,maxLength:1000},
+    tier:{type:'string',enum:['working','episodic','semantic']},
+    value:{type:'string',minLength:1,maxLength:100000},
+  },required:['key','tier','value']},
+  handler:async(params:Record<string,unknown>)=>{
+    const fail=(error:string)=>({success:false,status:'error',error});
+    const key=validateString(params.key,'key',1000),tier=validateString(params.tier,'tier',20),value=validateString(params.value,'value',100000);
+    if(!key || key.includes('\0') || !tier || !['working','episodic','semantic'].includes(tier) || !value || Object.keys(params).some(k=>!['key','tier','value'].includes(k)))return fail('invalid_request');
+    if(!validateIdentifier(key,'key').valid || !validateText(value,'value').valid)return fail('invalid_request');
+    try {return await (await getBridge()).bridgeHierarchicalCreate({key,tier,value});}
+    catch(error){return fail(sanitizeError(error));}
+  },
+};
+
 // ===== agentdb_hierarchical_get — Current exact durable read =====
 
 export const agentdbHierarchicalGet: MCPTool = {
@@ -1491,6 +1510,7 @@ export const agentdbTools: MCPTool[] = [
   agentdbSessionEnd,
   agentdbHierarchicalStore,
   agentdbHierarchicalGet,
+  agentdbHierarchicalCreate,
   agentdbHierarchicalRecall,
   agentdbHierarchicalDelete,
   agentdbConsolidate,

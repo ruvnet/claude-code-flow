@@ -6,6 +6,7 @@ import { createHash, createHmac } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import {
   autoMigratePolicyStateIfNeeded,
+  authorizeMcpTool,
   classifyMcpTool,
   evaluatePolicyRequest,
   issuePolicyApproval,
@@ -54,6 +55,24 @@ describe('policy runtime compatibility and transactions', () => {
       actionType: 'policy.admin.rule_upsert',
       destructive: true,
     });
+  });
+
+  it('binds protected hierarchical creation to its derived tier namespace despite caller overrides', async () => {
+    const root = project();
+    await autoMigratePolicyStateIfNeeded(root);
+    await upsertPolicyRule({ id: 'allow-create', effect: 'allow', actions: ['memory.write'] }, root);
+    await setPolicyMode('enforce', root);
+    const attributes = { ...classifyMcpTool('agentdb_hierarchical-create'),
+      envelope: { actions: ['memory.write'], writeNamespaces: ['hierarchical:working'] } };
+    const denied = await authorizeMcpTool('agentdb_hierarchical-create', {
+      key: 'ruclip:member', tier: 'semantic', value: 'inactive', namespace: 'hierarchical:working',
+    }, { projectRoot: root }, attributes);
+    expect(denied.enforcedOutcome).toBe('denied');
+    expect(denied.reason).toContain('namespace-outside-envelope');
+    const allowed = await authorizeMcpTool('agentdb_hierarchical-create', {
+      key: 'ruclip:member', tier: 'working', value: 'inactive',
+    }, { projectRoot: root }, attributes);
+    expect(allowed.enforcedOutcome).toBe('allowed');
   });
 
   it('does not exempt policy administration from the MCP chokepoint', async () => {

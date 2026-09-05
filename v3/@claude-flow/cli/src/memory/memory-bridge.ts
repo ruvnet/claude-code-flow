@@ -2954,6 +2954,23 @@ export function readHierarchicalExact(hm: any, params: { key: string; tier: stri
   }
 }
 
+/** Atomic creation has no native/volatile/lookup-then-store compatibility fallback. */
+export function createHierarchicalExact(hm:any,params:{key:string;tier:string;value:string}):any {
+  try {
+    if(!hm || typeof hm.createIfAbsent!=='function' || typeof hm.isDurable!=='function' || hm.isDurable()!==true)return {success:false,status:'unsupported',error:'durable_atomic_create_unsupported'};
+    const result=hm.createIfAbsent(params.key,params.value,params.tier);
+    if(['created','existing'].includes(result?.status) && result.entry?.key===params.key && result.entry?.tier===params.tier && result.durable===true && result.retention==='protected')return {...result,success:true};
+    if(['unsupported','error'].includes(result?.status))return {...result,success:false};
+    return {success:false,status:'error',error:'invalid_atomic_create_result'};
+  }catch{return {success:false,status:'error',error:'atomic_create_failed'};}
+}
+export async function bridgeHierarchicalCreate(params:{key:string;tier:string;value:string}):Promise<any> {
+  try {
+    const registry=await getRegistry();
+    return createHierarchicalExact(registry?.get('hierarchicalMemory'),params);
+  }catch{return {success:false,status:'error',error:'atomic_create_failed'};}
+}
+
 export async function bridgeHierarchicalGet(params: { key: string; tier: string }): Promise<any> {
   try {
     const registry = await getRegistry();

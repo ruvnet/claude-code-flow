@@ -2932,6 +2932,38 @@ function getHierarchicalFallback(registry: any): { reason: string } | null {
     : null;
 }
 
+/** Exact-get dispatch is exported so the supported controller contract can be
+ * tested without initializing unrelated embedding/learning controllers. */
+export function readHierarchicalExact(hm: any, params: { key: string; tier: string }, fallback: { reason: string } | null = null): any {
+  try {
+    if (!hm || typeof hm.getExact !== 'function' || typeof hm.isDurable !== 'function' || hm.isDurable() !== true) {
+      return { success: false, found: false, status: 'unsupported', error: 'durable_exact_get_unsupported' };
+    }
+    const result = hm.getExact(params.key, params.tier);
+    const info = describeHierarchicalStore(hm, fallback);
+    if (result?.status === 'found' && result.entry?.key === params.key && result.entry?.tier === params.tier) {
+      return { ...info, success: true, found: true, status: 'found', entry: result.entry };
+    }
+    if (result?.status === 'missing') return { ...info, success: true, found: false, status: 'missing' };
+    if (result?.status === 'error' || result?.status === 'unsupported') {
+      return { ...info, success: false, found: false, status: result.status, error: result.error };
+    }
+    return { ...info, success: false, found: false, status: 'error', error: 'invalid_exact_get_result' };
+  } catch {
+    return { success: false, found: false, status: 'error', error: 'exact_get_failed' };
+  }
+}
+
+export async function bridgeHierarchicalGet(params: { key: string; tier: string }): Promise<any> {
+  try {
+    const registry = await getRegistry();
+    if (!registry) return { success: false, found: false, status: 'unsupported', error: 'agentdb_bridge_unavailable' };
+    return readHierarchicalExact(registry.get('hierarchicalMemory'), params, getHierarchicalFallback(registry));
+  } catch {
+    return { success: false, found: false, status: 'error', error: 'exact_get_failed' };
+  }
+}
+
 export async function bridgeHierarchicalStore(params: {
   key: string; value: string; tier?: string; importance?: number;
   validFrom?: string; validUntil?: string; supersedes?: string;

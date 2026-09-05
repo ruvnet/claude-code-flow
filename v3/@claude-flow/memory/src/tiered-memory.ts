@@ -85,6 +85,14 @@ export interface TieredStoreResult {
 /** Durability mode of a {@link TieredMemoryStore}. */
 export type TieredPersistence = 'sqlite' | 'volatile';
 
+/** Exact reads deliberately require durable storage; a hydrated map can lag
+ * another process's membership update. Missing is distinct from read failure. */
+export type TieredExactGetResult =
+  | { status: 'found'; entry: TieredMemoryEntry }
+  | { status: 'missing' }
+  | { status: 'unsupported'; error: 'durable_storage_required' }
+  | { status: 'error'; error: 'invalid_request' | 'storage_error' | 'ambiguous_key' | 'invalid_temporal_metadata' };
+
 /**
  * Minimal better-sqlite3-shaped handle. Only the calls this store makes are
  * required, so any driver exposing the same synchronous surface works.
@@ -235,6 +243,44 @@ export class TieredMemoryStore {
       return Number(row?.n ?? 0);
     } catch {
       return null;
+    }
+  }
+
+  /**
+   * Current exact (key, tier) read from the durable backend, without recall,
+   * cache, or hydration limits. Archived/expired/future facts are not returned.
+   * Multiple unarchived rows are an integrity error, never "newest wins": a
+   * partial or competing write must not resurrect an active membership.
+   *
+   * This does not change the existing 5,000-entry write eviction policy and
+   * cannot recover entries already evicted. It is not a transactional grant.
+   */
+  getExact(key: string, tier: string): TieredExactGetResult {
+    if (typeof key !== 'string' || key.length === 0 || key.length > 1_000 || key.includes('\0')
+      || !(VALID_TIERS as readonly string[]).includes(tier)) {
+      return { status: 'error', error: 'invalid_request' };
+    }
+    if (!this.db) return { status: 'unsupported', error: 'durable_storage_required' };
+    try {
+      // LIMIT 2 bounds work and detects ambiguity. The key index makes this
+      // independent of semantic topK, value matches and unrelated records.
+      const rows = this.db.prepare(
+        'SELECT * FROM tiered_memory WHERE key = ? AND tier = ? AND archived = 0 LIMIT 2',
+      ).all(key, tier) as TieredMemoryRow[];
+      if (rows.length > 1) return { status: 'error', error: 'ambiguous_key' };
+      const row = rows[0];
+      if (!row) return { status: 'missing' };
+      const entry = rowToEntry(row);
+      // Legacy recall ignores malformed validity strings. An authority-facing
+      // exact read must not silently interpret corrupt expiry as always valid.
+      if ([row.valid_from, row.valid_until].some((value) => value !== null
+        && (typeof value !== 'string' || value.length === 0 || !Number.isFinite(Date.parse(value))))) {
+        return { status: 'error', error: 'invalid_temporal_metadata' };
+      }
+      if (entry.supersededBy || !isTemporallyValid(entry)) return { status: 'missing' };
+      return { status: 'found', entry };
+    } catch {
+      return { status: 'error', error: 'storage_error' };
     }
   }
 

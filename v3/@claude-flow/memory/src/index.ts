@@ -185,6 +185,7 @@ export type {
   TieredRecallOptions,
   TieredMemoryEntry,
   TieredStoreResult,
+  TieredExactGetResult,
 } from './tiered-memory.js';
 
 // ===== Core Components =====

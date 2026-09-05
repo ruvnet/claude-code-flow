@@ -673,6 +673,36 @@ export const agentdbHierarchicalStore: MCPTool = {
   },
 };
 
+// ===== agentdb_hierarchical_get — Current exact durable read =====
+
+export const agentdbHierarchicalGet: MCPTool = {
+  name: 'agentdb_hierarchical-get',
+  description: 'Read a current hierarchical entry by exact key and tier from durable storage. No semantic search or cached fallback. Distinguishes missing, unsupported backend and error. Does not recover evicted records or grant authorization.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      key: { type: 'string', minLength: 1, maxLength: 1000, description: 'Exact case-sensitive hierarchical entry key' },
+      tier: { type: 'string', enum: ['working', 'episodic', 'semantic'], description: 'Exact tier; required' },
+    },
+    required: ['key', 'tier'],
+  },
+  handler: async (params: Record<string, unknown>) => {
+    const fail = (error: string) => ({ success: false, found: false, status: 'error', error });
+    const key = validateString(params.key, 'key', 1000);
+    const tier = validateString(params.tier, 'tier', 20);
+    if (!key || key.includes('\0') || !tier || !['working', 'episodic', 'semantic'].includes(tier)
+      || Object.keys(params).some((name) => name !== 'key' && name !== 'tier')) return fail('invalid_request');
+    const valid = validateIdentifier(key, 'key');
+    if (!valid.valid) return fail('invalid_request');
+    try {
+      const bridge = await getBridge();
+      return await bridge.bridgeHierarchicalGet({ key, tier });
+    } catch (error) {
+      return fail(sanitizeError(error));
+    }
+  },
+};
+
 // ===== agentdb_hierarchical_recall — Recall from hierarchical memory =====
 
 export const agentdbHierarchicalRecall: MCPTool = {
@@ -1460,6 +1490,7 @@ export const agentdbTools: MCPTool[] = [
   agentdbSessionStart,
   agentdbSessionEnd,
   agentdbHierarchicalStore,
+  agentdbHierarchicalGet,
   agentdbHierarchicalRecall,
   agentdbHierarchicalDelete,
   agentdbConsolidate,

@@ -673,15 +673,21 @@ export const agentdbHierarchicalStore: MCPTool = {
   },
 };
 
+// cli-core's shared schema type predates additionalProperties. Preserve the
+// strict wire schema with a structural extension without changing that package.
+const hierarchicalCreateSchema: MCPTool['inputSchema'] & { additionalProperties: false } = {
+  type: 'object', additionalProperties: false, properties: {
+    key: { type: 'string', minLength: 1, maxLength: 1000 },
+    tier: { type: 'string', enum: ['working', 'episodic', 'semantic'] },
+    value: { type: 'string', minLength: 1, maxLength: 100000 },
+  }, required: ['key', 'tier', 'value'],
+};
+
 /** No caller-supplied protection/retention or temporal override is accepted. */
 export const agentdbHierarchicalCreate: MCPTool = {
   name:'agentdb_hierarchical-create',
   description:'Atomically create an exact durable entry in an operator-configured protected hierarchical scope. Existing entries are returned unchanged, including inactive/expired records. Never overwrites or reactivates; capacity errors never evict authority. Does not grant authorization.',
-  inputSchema:{type:'object',additionalProperties:false,properties:{
-    key:{type:'string',minLength:1,maxLength:1000},
-    tier:{type:'string',enum:['working','episodic','semantic']},
-    value:{type:'string',minLength:1,maxLength:100000},
-  },required:['key','tier','value']},
+  inputSchema: hierarchicalCreateSchema,
   handler:async(params:Record<string,unknown>)=>{
     const fail=(error:string)=>({success:false,status:'error',error});
     const key=validateString(params.key,'key',1000),tier=validateString(params.tier,'tier',20),value=validateString(params.value,'value',100000);

@@ -2838,6 +2838,11 @@ export async function bridgeHealthCheck(
     /** Real row count in the backing table — null when nothing is on disk. */
     persistedRows: number | null;
     fallbackFrom?: string;
+    /** Effective protected-connection checks, separate from ordinary row persistence. */
+    protectedSqlite?: {
+      required: boolean; fullSynchronization: boolean; sqliteVersion: string | null;
+      journalMode: string | null; walResetFixed: boolean | null; ready: boolean; reason?: string;
+    };
   };
 } | null> {
   const registry = await getRegistry(dbPath);
@@ -2870,6 +2875,8 @@ export async function bridgeHealthCheck(
       hierarchicalMemory = {
         ...describeHierarchicalStore(hm, getHierarchicalFallback(registry)),
         persistedRows: typeof hm.countPersisted === 'function' ? hm.countPersisted() : null,
+        ...(typeof hm.getProtectedDurability === 'function'
+          ? { protectedSqlite: hm.getProtectedDurability() } : {}),
       };
     }
 

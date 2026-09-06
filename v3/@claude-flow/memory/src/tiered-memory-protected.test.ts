@@ -21,7 +21,9 @@ const child=promisify(execFile);
 const sourceUrl=new URL('./tiered-memory.ts',import.meta.url).href;
 const databaseModule=createRequire(import.meta.url).resolve('better-sqlite3');
 function childCreate(file:string,key:string,value:string,start:number) {
-  const script=`import {createRequire} from 'node:module'; import {TieredMemoryStore} from ${JSON.stringify(sourceUrl)};
+  const script=`import {createRequire,registerHooks} from 'node:module';
+    registerHooks({resolve(specifier,context,next){return next(specifier==='./protected-sqlite-durability.js'&&context.parentURL===${JSON.stringify(sourceUrl)}?new URL('./protected-sqlite-durability.ts',context.parentURL).href:specifier,context)}});
+    const {TieredMemoryStore}=await import(${JSON.stringify(sourceUrl)});
     const require=createRequire(import.meta.url),Database=require(${JSON.stringify(databaseModule)}),db=new Database(process.argv[1]);
     const store=new TieredMemoryStore({db});await new Promise(r=>setTimeout(r,Math.max(0,Number(process.argv[4])-Date.now())));
     console.log(JSON.stringify(store.createIfAbsent(process.argv[2],process.argv[3],'semantic')));db.close();`;
@@ -80,7 +82,8 @@ describe('protected canonical tiered records',()=>{
     expect(db.prepare('SELECT COUNT(*) n FROM tiered_memory').get()).toEqual({n:3});
   });
   it('honors protection configured after an existing process hydrated and sees current updates',()=>{
-    const db=new Database(':memory:');connections.push(db);
+    const dir=mkdtempSync(join(tmpdir(),'tiered-protected-adopt-'));dirs.push(dir);
+    const db=new Database(join(dir,'memory.sqlite'));connections.push(db);
     const stale=new TieredMemoryStore({db});stale.store(member,'active','semantic');
     const configured=new TieredMemoryStore({db,protectedRetention:config(1)});
     configured.store(member,'inactive','semantic');stale.store(member,'disabled','semantic');
@@ -94,7 +97,8 @@ describe('protected canonical tiered records',()=>{
     expect(()=>new TieredMemoryStore({protectedRetention:config()})).toThrow(/requires_durable/);
     expect(()=>new TieredMemoryStore({db,protectedRetention:config(7)})).toThrow(/policy_conflict/);
     for(const maxEntries of [0,-1,5001,NaN,1.5])expect(()=>new TieredMemoryStore({db,protectedRetention:config(maxEntries)})).toThrow(/invalid_protected/);
-    const old=new Database(':memory:');connections.push(old);const a=new TieredMemoryStore({db:old}),b=new TieredMemoryStore({db:old});
+    const dir=mkdtempSync(join(tmpdir(),'tiered-protected-ambiguous-'));dirs.push(dir);
+    const old=new Database(join(dir,'memory.sqlite'));connections.push(old);const a=new TieredMemoryStore({db:old}),b=new TieredMemoryStore({db:old});
     a.store(member,'active','semantic');b.store(member,'inactive','semantic');
     expect(()=>new TieredMemoryStore({db:old,protectedRetention:config()})).toThrow(/protected_ambiguous_key/);
     expect(old.prepare('SELECT COUNT(*) n FROM tiered_memory').get()).toEqual({n:2});

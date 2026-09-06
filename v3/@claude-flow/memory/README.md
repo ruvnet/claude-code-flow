@@ -841,6 +841,24 @@ import type {
 
 ## Dependencies
 
+Protected `TieredMemoryStore` retention requires a native, file-backed synchronous
+SQLite connection. Configured or persisted protection adopts `synchronous=FULL`
+before protected initialization, verifies the effective setting independently,
+and rejects later drift before returning protected reads or committing writes.
+An ordinary unconfigured store retains its existing synchronization setting.
+Ordinary writes recheck namespace protection under a SQLite writer lock, while
+preserving an existing native caller-owned transaction. If protection appears
+during such a transaction, the caller must end it before retrying adoption.
+
+`getProtectedDurability()` and the CLI bridge health response expose metadata
+for effective synchronization, journal mode, SQLite version and the known
+[SQLite WAL-reset fix](https://www.sqlite.org/wal.html#walreset). A successful
+FULL check alone does not prove deployment durability: release validation must
+also verify the exact engine, same-host storage, exclusive ownership and recovery.
+The sql.js fallback remains available for ordinary memory; it cannot attest
+native protected commits. The readiness diagnostic does not replace an
+independent deployment gate or upgrade an installed SQLite dependency.
+
 - `agentdb` `^3.0.0-alpha.14` — Vector database engine
 - `sql.js` — SQLite driver via WASM (always available; no native build required)
 - `better-sqlite3` — **Optional** native SQLite driver for higher throughput. The package works without it (sql.js fallback), so installs succeed on Node 24/26 even when the native build can't compile ([#1867](https://github.com/ruvnet/ruflo/issues/1867))

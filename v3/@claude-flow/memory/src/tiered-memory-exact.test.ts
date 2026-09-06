@@ -66,8 +66,9 @@ describe('TieredMemoryStore.getExact durable current read', () => {
     const sourceUrl = new URL('./tiered-memory.ts', import.meta.url).href;
     const databaseModule = createRequire(import.meta.url).resolve('better-sqlite3');
     const script = `
-      import { createRequire } from 'node:module';
-      import { TieredMemoryStore } from ${JSON.stringify(sourceUrl)};
+      import { createRequire, registerHooks } from 'node:module';
+      registerHooks({resolve(specifier,context,next){return next(specifier==='./protected-sqlite-durability.js'&&context.parentURL===${JSON.stringify(sourceUrl)}?new URL('./protected-sqlite-durability.ts',context.parentURL).href:specifier,context)}});
+      const { TieredMemoryStore } = await import(${JSON.stringify(sourceUrl)});
       const require = createRequire(import.meta.url);
       const Database = require(${JSON.stringify(databaseModule)});
       const db = new Database(process.argv[1]);

@@ -35,6 +35,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import { ProtectedSqliteDurability, hasPersistedProtection, type ProtectedSqliteReadiness } from './protected-sqlite-durability.js';
 
 /** Temporal options accepted by {@link TieredMemoryStore.store}. */
 export interface TemporalStoreOptions {
@@ -93,7 +94,7 @@ export type TieredExactGetResult =
   | { status: 'found'; entry: TieredMemoryEntry }
   | { status: 'missing' }
   | { status: 'unsupported'; error: 'durable_storage_required' }
-  | { status: 'error'; error: 'invalid_request' | 'storage_error' | 'ambiguous_key' | 'invalid_temporal_metadata' };
+  | { status: 'error'; error: 'invalid_request' | 'storage_error' | 'ambiguous_key' | 'invalid_temporal_metadata' | 'protected_durability_required' };
 
 export type TieredCreateResult =
   | {status:'created'|'existing'|'updated';entry:TieredMemoryEntry;durable:true;persistence:'sqlite';retention:'protected'}
@@ -220,6 +221,13 @@ export class TieredMemoryStore {
       if(options?.protectedRetention)throw new Error('protected_retention_requires_durable_storage');
       return;
     }
+    const durability = new ProtectedSqliteDurability(db);
+    // Before any protected constructor mutation; malformed policy is rejected
+    // before changing even the connection's synchronization setting.
+    if (options?.protectedRetention !== undefined) {
+      normalize(options.protectedRetention);
+      durability.enable();
+    } else if (hasPersistedProtection(db)) durability.enable();
     try {
       db.exec(TABLE_DDL);
       this.db = db;
@@ -229,7 +237,7 @@ export class TieredMemoryStore {
       // isDurable() rather than pretending the handle works.
       this.db = null;
     }
-    if(this.db)this.retention = new TieredRetention(this.db, options?.protectedRetention);
+    if(this.db)this.retention = new TieredRetention(this.db, durability, options?.protectedRetention);
     else if(options?.protectedRetention)throw new Error('protected_retention_requires_durable_storage');
   }
 
@@ -241,6 +249,10 @@ export class TieredMemoryStore {
   /** Durability mode, for surfacing to MCP callers. */
   getPersistence(): TieredPersistence {
     return this.db ? 'sqlite' : 'volatile';
+  }
+
+  getProtectedDurability(): ProtectedSqliteReadiness {
+    return this.retention?.inspect() ?? { required: false, fullSynchronization: false, sqliteVersion: null, journalMode: null, walResetFixed: null, ready: false, reason: 'durable_storage_unavailable' };
   }
 
   /**
@@ -274,6 +286,7 @@ export class TieredMemoryStore {
     }
     if (!this.db) return { status: 'unsupported', error: 'durable_storage_required' };
     try {
+      if (this.retention?.matches(key, tier)) this.retention.assertFull();
       // LIMIT 2 bounds work and detects ambiguity. The key index makes this
       // independent of semantic topK, value matches and unrelated records.
       const rows = this.db.prepare(
@@ -291,8 +304,8 @@ export class TieredMemoryStore {
       }
       if (entry.supersededBy || !isTemporallyValid(entry)) return { status: 'missing' };
       return { status: 'found', entry };
-    } catch {
-      return { status: 'error', error: 'storage_error' };
+    } catch (error) {
+      return { status: 'error', error: error instanceof Error && error.message.startsWith('protected_durability_') ? 'protected_durability_required' : 'storage_error' };
     }
   }
 
@@ -304,16 +317,18 @@ export class TieredMemoryStore {
   private storeProtected(key:string,value:string,tier:string,createOnly:boolean):TieredCreateResult {
     if(typeof key!=='string' || key.length<1 || key.length>1000 || key.includes('\0') || typeof value!=='string' || value.length<1 || value.length>MAX_VALUE_LENGTH || !(VALID_TIERS as readonly string[]).includes(tier))return {status:'error',error:'invalid_request'};
     if(!this.db || !this.retention)return {status:'unsupported',error:'durable_storage_required'};
-    if(!this.retention.matches(key,tier))return {status:'unsupported',error:'protected_namespace_required'};
     let began=false;
     try {
+      if(!this.retention.matches(key,tier))return {status:'unsupported',error:'protected_namespace_required'};
       this.db.exec('BEGIN IMMEDIATE');began=true;
+      this.retention.assertFull();
       const rows=this.db.prepare('SELECT * FROM tiered_memory WHERE key=? AND tier=? AND archived=0 LIMIT 2').all(key,tier) as TieredMemoryRow[];
       if(rows.length>1)throw new Error('protected_ambiguous_key');
       const old=rows[0];
-      if(old && createOnly){this.db.exec('COMMIT');began=false;return {status:'existing',entry:rowToEntry(old),durable:true,persistence:'sqlite',retention:'protected'};}
+      if(old && createOnly){this.retention.assertFull();this.db.exec('COMMIT');began=false;return {status:'existing',entry:rowToEntry(old),durable:true,persistence:'sqlite',retention:'protected'};}
       const entry:TieredMemoryEntry=old?{...rowToEntry(old),value,ts:Date.now()}:{id:`tm_${randomUUID()}`,key,value,tier,ts:Date.now()};
-      this.persist(entry,false);
+      this.persist(entry,false,true);
+      this.retention.assertFull();
       this.db.exec('COMMIT');began=false;
       const map=this.tiers[tier];
       if(map.has(key) || map.size<MAX_PER_TIER)map.set(key,entry);
@@ -321,7 +336,7 @@ export class TieredMemoryStore {
     } catch(error) {
       if(began)try{this.db.exec('ROLLBACK');}catch{}
       const message=error instanceof Error?error.message:'';
-      return {status:'error',error:['protected_capacity_exceeded','protected_ambiguous_key','protected_key_conflict'].find(code=>message.includes(code)) ?? 'storage_error'};
+      return {status:'error',error:message.startsWith('protected_durability_') ? 'protected_durability_required' : ['protected_capacity_exceeded','protected_ambiguous_key','protected_key_conflict'].find(code=>message.includes(code)) ?? 'storage_error'};
     }
   }
 
@@ -348,9 +363,19 @@ export class TieredMemoryStore {
    * Write-through. Throws on failure so a store that cannot be persisted
    * fails loudly instead of reporting success for a lost write.
    */
-  private persist(entry: TieredMemoryEntry, archived: boolean): void {
+  private persist(entry: TieredMemoryEntry, archived: boolean, protectedTransaction = false): void {
     if (!this.db) return;
-    this.db
+    // The ordinary/protected routing decision and the write must share a
+    // SQLite writer lock. Otherwise another connection can install protection
+    // after store() saw no matching prefix but before its NORMAL-mode INSERT.
+    // Preserve a native caller's existing transaction; only the owner commits
+    // or rolls it back. Its read/write snapshot still excludes installation
+    // between the namespace decision and successful insertion.
+    const ownsTransaction = !protectedTransaction && (this.db as TieredMemoryDb & { inTransaction?: boolean }).inTransaction !== true;
+    if (ownsTransaction) this.db.exec('BEGIN IMMEDIATE');
+    try {
+      if (!protectedTransaction && this.retention?.matches(entry.key, entry.tier)) throw new Error('protected_durability_namespace_changed');
+      this.db
       .prepare(
         `INSERT INTO tiered_memory (id, key, value, tier, ts, valid_from, valid_until, superseded_by, archived)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -364,6 +389,14 @@ export class TieredMemoryStore {
         entry.validFrom ?? null, entry.validUntil ?? null,
         entry.supersededBy ?? null, archived ? 1 : 0,
       );
+      if (!protectedTransaction) {
+        if (this.retention?.matches(entry.key, entry.tier)) throw new Error('protected_durability_namespace_changed');
+        if (ownsTransaction) this.db.exec('COMMIT');
+      }
+    } catch (error) {
+      if (ownsTransaction) try { this.db.exec('ROLLBACK'); } catch {}
+      throw error;
+    }
   }
 
   /** Drop a persisted row (used by eviction and remove()). */
@@ -554,14 +587,23 @@ const matchNew = `EXISTS (SELECT 1 FROM tiered_memory_protected_prefix p WHERE p
 const matchOld = `EXISTS (SELECT 1 FROM tiered_memory_protected_prefix p WHERE p.tier=OLD.tier AND substr(OLD.key,1,length(p.prefix))=p.prefix)`;
 class TieredRetention {
   private readonly db: TieredMemoryDb;
-  constructor(db: TieredMemoryDb, configured?: ProtectedTieredRetention) {
+  private readonly durability: ProtectedSqliteDurability;
+  private activated = false;
+  constructor(db: TieredMemoryDb, durability: ProtectedSqliteDurability, configured?: ProtectedTieredRetention) {
     this.db=db;
+    this.durability=durability;
     const normalized = configured === undefined ? undefined : normalize(configured);
+    if (normalized || hasPersistedProtection(db)) { this.durability.enable(); this.activated = true; }
     db.exec('BEGIN IMMEDIATE');
     try {
       db.exec(`CREATE TABLE IF NOT EXISTS tiered_memory_protected_config (singleton INTEGER PRIMARY KEY CHECK(singleton=1), max_entries INTEGER NOT NULL CHECK(max_entries BETWEEN 1 AND 5000), policy TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS tiered_memory_protected_prefix (tier TEXT NOT NULL,prefix TEXT NOT NULL,PRIMARY KEY(tier,prefix));`);
       const old=db.prepare('SELECT policy FROM tiered_memory_protected_config WHERE singleton=1').get() as {policy:string}|undefined;
+      // Another connection may have installed protection after preflight. It
+      // cannot be adopted from inside this transaction: fail and let the caller
+      // reopen with fresh state, rather than applying a PRAGMA mid-transaction.
+      if ((old || normalized) && !this.activated) throw new Error('protected_durability_policy_changed');
+      if (old || normalized) this.durability.assertFull();
       if(normalized && old && old.policy!==JSON.stringify(normalized))throw new Error('protected_retention_policy_conflict');
       if(normalized && !old) {
         db.prepare('INSERT INTO tiered_memory_protected_config VALUES(1,?,?)').run(normalized.maxEntries,JSON.stringify(normalized));
@@ -586,11 +628,22 @@ class TieredRetention {
         CREATE TRIGGER IF NOT EXISTS tiered_protected_no_move_in BEFORE UPDATE ON tiered_memory
         WHEN NEW.archived=0 AND ${matchNew} AND (NEW.key<>OLD.key OR NEW.tier<>OLD.tier OR OLD.archived<>0)
         BEGIN SELECT RAISE(ABORT,'protected_entry_move_forbidden'); END;`);
+      if (this.activated) this.durability.assertFull();
       db.exec('COMMIT');
     } catch(error) {db.exec('ROLLBACK');throw error;}
   }
   matches(key:string,tier:string):boolean {
+    if (!this.activated && hasPersistedProtection(this.db)) {
+      this.durability.enable(); this.activated = true;
+    }
+    if (this.activated) this.durability.assertFull();
     return !!this.db.prepare('SELECT 1 FROM tiered_memory_protected_prefix WHERE tier=? AND substr(?,1,length(prefix))=prefix LIMIT 1').get(tier,key);
+  }
+  assertFull(): void { this.durability.assertFull(); }
+  inspect(): ProtectedSqliteReadiness {
+    try { if (!this.activated && hasPersistedProtection(this.db)) { this.durability.enable(); this.activated = true; } }
+    catch { return { required: true, fullSynchronization: false, sqliteVersion: null, journalMode: null, walResetFixed: null, ready: false, reason: 'effective_full_unverified' }; }
+    return this.durability.inspect();
   }
 }
 function normalize(value:ProtectedTieredRetention):ProtectedTieredRetention {

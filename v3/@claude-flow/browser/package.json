@@ -22,7 +22,7 @@
     "postinstall": "node -e \"const{execSync}=require('child_process');try{execSync('agent-browser --version',{stdio:'ignore'});}catch{console.log('\\n📦 Installing agent-browser globally...');try{execSync('npm install -g agent-browser@latest',{stdio:'inherit'});console.log('✅ agent-browser installed successfully!');}catch(e){console.log('⚠️  Could not install agent-browser globally. Run manually:\\n   npm install -g agent-browser@latest');}}\""
   },
   "dependencies": {
-    "agent-browser": "^0.27.0",
+    "agent-browser": "^0.36.0",
     "agentic-flow": "^2.0.13",
     "zod": "^3.22.4"
   },

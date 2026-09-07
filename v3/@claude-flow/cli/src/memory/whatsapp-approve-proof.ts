@@ -100,3 +100,8 @@ export function verifyRequestPublishedService(raw:string,seal:string,d:Obj,c:Rev
  const key=`ruclip:whatsapp-group-send-approval-request:${encodeURIComponent(d.companyId)}:${encodeURIComponent(d.groupId)}:${encodeURIComponent(d.intent.reservationId)}`;
  return service(raw,seal,d,c,now,'whatsapp.approval-request.published',key);
 }
+
+/** Fixed owner settings operation; no human approval signature is invented. */
+export function verifyAgentSettingsService(raw:string,seal:string,d:Obj,c:ReviewedConfig,now:number):void {
+ service(raw,seal,d,c,now,'agent-settings.patch',`ruclip:agent-settings:${d.companyId}:${d.agentMemberId}`);
+}

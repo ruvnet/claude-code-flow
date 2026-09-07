@@ -10,13 +10,14 @@ import {exact,requireThat as need} from '../memory/whatsapp-approve-proof.js';
 import {createPrivateWhatsAppApprovalTools} from './private-whatsapp-approval.js';
 import {createPrivateWhatsAppConsumeTools} from './private-whatsapp-consume.js';
 import {createPrivateWhatsAppRequestTools} from './private-whatsapp-request.js';
+import {createPrivateAgentSettingsTools} from './private-agent-settings.js';
 import type {MCPTool} from './types.js';
 const ORDINARY=Object.freeze(['memory_list','agentdb_graph-query','agentdb_hierarchical-recall','agentdb_pattern-search','claims_list','federation_bbs_watch',
  'agentdb_hierarchical-delete','claims_board','agentdb_hierarchical-store','agentdb_pattern-store','federation_bbs_publish','claims_accept-handoff',
  'memory_retrieve','federation_bbs_human_join','claims_handoff','agentdb_graph-pathfinder','federation_bbs_register','agentdb_causal-edge','agentdb_health',
  'claims_claim','agentdb_hierarchical-create','memory_store','agentdb_hierarchical-get']);
 const PRIVATE=Object.freeze(['whatsapp_approve_prepare','whatsapp_approve_apply','whatsapp_consume_prepare','whatsapp_consume_apply',
- 'whatsapp_request_claim_prepare','whatsapp_request_claim_apply','whatsapp_request_published_prepare','whatsapp_request_published_apply']);
+ 'whatsapp_request_claim_prepare','whatsapp_request_claim_apply','whatsapp_request_published_prepare','whatsapp_request_published_apply','agent_settings_patch_prepare','agent_settings_patch_apply']);
 // Fixed conservative envelope covers every owner/executive branch before any
 // native transaction. Requiring unused executive scope may deny an owner call;
 // it never expands policy. Input cannot select or replace these namespaces.
@@ -31,11 +32,11 @@ export type ProtectedWhatsAppHostOptions={port:number;tools:readonly string[]};
  */
 export function createProtectedWhatsAppHttpHost(registry:unknown,loadCurrentConfig:()=>unknown,options:ProtectedWhatsAppHostOptions){
  need(exact(options,['port','tools']) && Number.isInteger(options.port) && options.port>=1024 && options.port<=65535
-  && Array.isArray(options.tools) && options.tools.length>0 && options.tools.length<=31 && new Set(options.tools).size===options.tools.length
+  && Array.isArray(options.tools) && options.tools.length>0 && options.tools.length<=33 && new Set(options.tools).size===options.tools.length
   && options.tools.every(n=>typeof n==='string' && [...ORDINARY,...PRIVATE].includes(n)),'invalid_host_scope');
  const ownedRegistry=registry as {getAgentDB?:()=>{database?:unknown}};
  assertAuthorityNativeReady(ownedRegistry?.getAgentDB?.()?.database);
- const ordinary=listMCPTools(),privateTools=[...createPrivateWhatsAppApprovalTools(registry,loadCurrentConfig),...createPrivateWhatsAppConsumeTools(registry,loadCurrentConfig),...createPrivateWhatsAppRequestTools(registry,loadCurrentConfig)];
+ const ordinary=listMCPTools(),privateTools=[...createPrivateWhatsAppApprovalTools(registry,loadCurrentConfig),...createPrivateWhatsAppConsumeTools(registry,loadCurrentConfig),...createPrivateWhatsAppRequestTools(registry,loadCurrentConfig),...createPrivateAgentSettingsTools(registry,loadCurrentConfig)];
  need(!ordinary.some(t=>PRIVATE.includes(t.name)) && new Set(ordinary.map(t=>t.name)).size===ordinary.length,'tool_collision');
  const projectRoot=process.cwd();
  const tools:MCPTool[]=options.tools.map(name=>{
@@ -44,11 +45,12 @@ export function createProtectedWhatsAppHttpHost(registry:unknown,loadCurrentConf
    return {...privateTool,cacheable:false,handler:async(input:Record<string,unknown>)=>{
     // Never forward caller params/context into policy identity/root/namespace.
     for(const access of ['read','write'] as const){
+     const settings=name==='agent_settings_patch_prepare'||name==='agent_settings_patch_apply';
      const requests=name.startsWith('whatsapp_request_');
      const consumes=name==='whatsapp_consume_prepare'||name==='whatsapp_consume_apply';
      const namespaces=access==='read'
-      ? requests?READ_NAMESPACES.filter(ns=>ns!=='ruclip-api-whatsapp-human-approval-jti'):consumes?READ_NAMESPACES.filter(ns=>ns!=='ruclip-api-whatsapp-group-send-approval-requests'):READ_NAMESPACES
-      : requests&&name.endsWith('_apply')?['ruclip-api-whatsapp-group-send-approval-requests']:name==='whatsapp_approve_apply'?WRITE_NAMESPACES:name==='whatsapp_consume_apply'?[WRITE_NAMESPACES[0]]:[];
+      ? settings?['hierarchical:semantic','ruclip-api-agent-settings']:requests?READ_NAMESPACES.filter(ns=>ns!=='ruclip-api-whatsapp-human-approval-jti'):consumes?READ_NAMESPACES.filter(ns=>ns!=='ruclip-api-whatsapp-group-send-approval-requests'):READ_NAMESPACES
+      : settings?(name.endsWith('_apply')?['ruclip-api-agent-settings']:[]):requests&&name.endsWith('_apply')?['ruclip-api-whatsapp-group-send-approval-requests']:name==='whatsapp_approve_apply'?WRITE_NAMESPACES:name==='whatsapp_consume_apply'?[WRITE_NAMESPACES[0]]:[];
      for(const namespace of namespaces){
       const decision=await authorizeMcpTool(name,{namespace},{projectRoot,serverId:'protected-whatsapp-native'},
        {actionType:access==='read'?'memory.read':'memory.write',namespaceAccess:access,network:false,destructive:false});

@@ -46,6 +46,9 @@ function plan(input: unknown): { companyId: string; count: number; tuples: Tuple
       if (s.kind === 'member') add('tiered_memory', 'semantic', `ruclip:company:${companyId}:org-member:${s.memberId}`);
       else if (s.kind === 'executive') add('memory_entries', 'ruclip-api-authority', `ruclip:executive:${companyId}:${s.memberId}`);
       else add('memory_entries', 'ruclip-api-agent-settings', `ruclip:agent-settings:${companyId}:${s.memberId}`);
+    } else if (s.kind === 'settings-patch' && fields(s, ['kind', 'memberId']) && id(s.memberId)) {
+      // Only this fixed patch scope can prove absence for initialization.
+      add('memory_entries', 'ruclip-api-agent-settings', `ruclip:agent-settings:${companyId}:${s.memberId}`, true);
     } else if (['assignment', 'spend'].includes(String(s.kind)) && fields(s, ['kind', 'groupId']) && group(s.groupId)) {
       const family = s.kind === 'assignment' ? 'assignment' : 'spend';
       add('memory_entries', `ruclip-api-whatsapp-group-${family === 'assignment' ? 'assignments' : 'spend'}`,

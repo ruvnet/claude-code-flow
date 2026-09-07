@@ -54,7 +54,7 @@ jobs:
         uses: ./.github/actions/npm-ci-retry
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             node_modules
@@ -79,7 +79,7 @@ jobs:
           cache: 'npm'
 
       - name: Restore dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             node_modules
@@ -132,7 +132,7 @@ jobs:
           cache: 'npm'
 
       - name: Restore dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             node_modules

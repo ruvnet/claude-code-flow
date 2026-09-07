@@ -81,10 +81,10 @@
     "chalk": "^5.3.0",
     "commander": "^12.0.0",
     "cors": "^2.8.5",
-    "fs-extra": "^11.2.0",
     "express": ">=4.22.2",
     "express-rate-limit": ">=8.4.1",
-    "fast-uri": "3.1.5",
+    "fast-uri": "^3.1.6",
+    "fs-extra": "^11.2.0",
     "helmet": "^7.2.0",
     "inquirer": "^9.2.0",
     "semver": "7.7.3",
@@ -94,8 +94,8 @@
     "zod": "3.25.76"
   },
   "optionalDependencies": {
-    "@napi-rs/keyring": "1.3.0",
     "@claude-flow/plugin-gastown-bridge": "^0.1.3",
+    "@napi-rs/keyring": "1.3.0",
     "@ruvector/attention": "^0.1.3",
     "@ruvector/core": "^0.1.30",
     "@ruvector/router": "^0.1.30",

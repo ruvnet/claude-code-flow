@@ -50,6 +50,11 @@ function plan(input: unknown): { companyId: string; count: number; tuples: Tuple
       const family = s.kind === 'assignment' ? 'assignment' : 'spend';
       add('memory_entries', `ruclip-api-whatsapp-group-${family === 'assignment' ? 'assignments' : 'spend'}`,
         `ruclip:whatsapp-group-${family}:${encodeURIComponent(companyId)}:${encodeURIComponent(s.groupId)}`);
+    } else if (s.kind === 'request-claim' && fields(s, ['kind','groupId','reservationId']) && group(s.groupId) && group(s.reservationId)) {
+      // Only fixed claim preparation permits this exact request row to be absent.
+      // The original 'request' selector still requires a present published row.
+      add('memory_entries', 'ruclip-api-whatsapp-group-send-approval-requests',
+        `ruclip:whatsapp-group-send-approval-request:${encodeURIComponent(companyId)}:${encodeURIComponent(s.groupId)}:${encodeURIComponent(s.reservationId)}`, true);
     } else if (['request', 'approval'].includes(String(s.kind))
       && fields(s, s.kind === 'approval' ? ['kind', 'groupId', 'reservationId', 'allowAbsent'] : ['kind', 'groupId', 'reservationId'])
       && group(s.groupId) && group(s.reservationId) && (s.kind !== 'approval' || typeof s.allowAbsent === 'boolean')) {

@@ -8,7 +8,8 @@ explicit application seam. It requires the already initialized native registry a
 SQLite readiness before constructing the private approval descriptors. Ordinary
 selected tools retain `callMCPTool`, including the existing policy and content guards.
 The exact finite selection accepts the existing 23 bridge tools, two private approval names and two private
-consume names; it rejects broad prefixes, duplicates, unknown names and collisions.
+consume names plus four fixed request claim/publication names (31 total); it rejects
+broad prefixes, duplicates, unknown names and collisions.
 After registration the instance refuses additional registration, including the
 pinned MCP server's startup system tools. A mandatory name authorizer independently
 limits dispatch. No CLI loader, arbitrary module or environment activation was added.
@@ -76,3 +77,7 @@ The consume continuation is specified in
 [private consume adapter](ADR-private-whatsapp-consume-adapter.md). It preserves
 this host's loader, ordinary policy path, compact result contract and registration
 lock; consume checks its own exact seven-read/approval-write envelope.
+
+## 2026-09-07 fixed request compatibility
+
+The explicit private instance can now select four fixed request claim/publication tools in addition to its previous27 names (31 finite total). It checks seven fixed read namespaces (the prior envelope without human-JTI) and only the request namespace for either write. Ordinary tool policy and startup builtin exclusion are unchanged; request tools never enter the global registry. See [fixed request ADR](ADR-native-whatsapp-request-prerequisite.md) for current-authority, transient publication opportunity, strict INSERT/conditional UPDATE, counts and uncertainty limitations. No hosted configuration is enabled by this source extension.

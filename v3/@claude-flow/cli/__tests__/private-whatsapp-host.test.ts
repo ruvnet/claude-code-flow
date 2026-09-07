@@ -6,6 +6,7 @@ vi.mock('../src/services/policy-runtime.js',()=>({authorizeMcpTool:policy}));
 vi.mock('../src/memory/authority-snapshot.js',()=>({assertAuthorityNativeReady:vi.fn()}));
 vi.mock('../src/mcp-tools/private-whatsapp-approval.js',()=>({createPrivateWhatsAppApprovalTools:()=>['whatsapp_approve_prepare','whatsapp_approve_apply'].map(name=>({name,description:'private',inputSchema:{type:'object'},cacheable:false,handler:privateCall}))}));
 vi.mock('../src/mcp-tools/private-whatsapp-consume.js',()=>({createPrivateWhatsAppConsumeTools:()=>['whatsapp_consume_prepare','whatsapp_consume_apply'].map(name=>({name,description:'private',inputSchema:{type:'object'},cacheable:false,handler:privateCall}))}));
+vi.mock('../src/mcp-tools/private-whatsapp-request.js',()=>({createPrivateWhatsAppRequestTools:()=>['whatsapp_request_claim_prepare','whatsapp_request_claim_apply','whatsapp_request_published_prepare','whatsapp_request_published_apply'].map(name=>({name,description:'private',inputSchema:{type:'object'},cacheable:false,handler:privateCall}))}));
 import {createProtectedWhatsAppHttpHost} from '../src/mcp-tools/private-whatsapp-host.js';
 beforeEach(()=>{vi.clearAllMocks();register.mockImplementation(t=>({registered:t.length,failed:[]}));policy.mockResolvedValue({enforcedOutcome:'allowed'});privateCall.mockResolvedValue({outcome:'unknown',error:'commit_unknown'});});
 it('uses exact selection and fixed private policy namespace/classification without caller authority',async()=>{
@@ -54,5 +55,22 @@ for(const namespace of ['hierarchical:semantic','ruclip-api-whatsapp-group-assig
 it('consume denied approval write prevents native entry',async()=>{
  policy.mockImplementation((_n,_i,_c,action)=>({enforcedOutcome:action.namespaceAccess==='write'?'denied':'allowed'}));
  createProtectedWhatsAppHttpHost({},()=>({}),{port:8081,tools:['whatsapp_consume_apply']});
+ expect(JSON.parse(await register.mock.calls[0][0][0].handler({}))).toEqual({outcome:'denied',error:'policy_denied'});expect(privateCall).not.toHaveBeenCalled();
+});
+
+it('request operations check every fixed read and only request writes, with no ordinary admission',async()=>{
+ createProtectedWhatsAppHttpHost({},()=>({}),{port:8081,tools:['whatsapp_request_claim_prepare','whatsapp_request_claim_apply','whatsapp_request_published_apply','memory_store']});const tools=register.mock.calls[0][0];
+ for(const t of tools.slice(0,3))await t.handler({requestJson:'raw',serviceSeal:'seal'});
+ expect(policy).toHaveBeenCalledTimes(23);expect(policy.mock.calls.filter(c=>c[3].namespaceAccess==='write').map(c=>c[1].namespace)).toEqual(['ruclip-api-whatsapp-group-send-approval-requests','ruclip-api-whatsapp-group-send-approval-requests']);
+ expect(policy.mock.calls.some(c=>c[1].namespace==='ruclip-api-whatsapp-human-approval-jti')).toBe(false);
+ await tools[3].handler({key:'plain'});expect(privateCall).toHaveBeenCalledTimes(3);expect(ordinary).toHaveBeenCalledOnce();
+});
+for(const namespace of ['hierarchical:semantic','ruclip-api-whatsapp-group-assignments','ruclip-api-agent-settings','ruclip-api-whatsapp-group-spend','ruclip-api-whatsapp-group-send-approval-requests','ruclip-api-whatsapp-group-send-approvals','ruclip-api-authority'])it(`request denied read ${namespace} prevents native work`,async()=>{
+ policy.mockImplementation((_n,input,_c,action)=>({enforcedOutcome:input.namespace===namespace&&action.namespaceAccess==='read'?'denied':'allowed'}));
+ createProtectedWhatsAppHttpHost({},()=>({}),{port:8081,tools:['whatsapp_request_claim_apply']});
+ expect(JSON.parse(await register.mock.calls[0][0][0].handler({}))).toEqual({outcome:'denied',error:'policy_denied'});expect(privateCall).not.toHaveBeenCalled();
+});
+it('request publication write denial prevents native work',async()=>{
+ policy.mockImplementation((_n,_i,_c,action)=>({enforcedOutcome:action.namespaceAccess==='write'?'denied':'allowed'}));createProtectedWhatsAppHttpHost({},()=>({}),{port:8081,tools:['whatsapp_request_published_apply']});
  expect(JSON.parse(await register.mock.calls[0][0][0].handler({}))).toEqual({outcome:'denied',error:'policy_denied'});expect(privateCall).not.toHaveBeenCalled();
 });

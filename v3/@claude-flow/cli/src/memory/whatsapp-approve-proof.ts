@@ -69,7 +69,7 @@ export function request(raw: string, prepare: boolean): Obj {
     && identifier(d.approvedByMemberId) && (prepare ? d.expectedSnapshotDigest === null : hash(d.expectedSnapshotDigest)), 'invalid_request');
   assertion(d.assertion); requireThat(d.assertion.companyId === d.companyId && d.assertion.groupId === d.groupId, 'invalid_request'); return d;
 }
-function service(raw: string, seal: string, d: Obj, c: ReviewedConfig, now: number, action: string, expectedTarget: string): void {
+function service(raw: string, seal: string, d: Obj, c: ReviewedConfig, now: number, action: string, expectedTarget: string): Obj {
   requireThat(typeof seal === 'string' && seal.length <= 16384 && /^[a-f0-9]+\.[a-f0-9]{128}$/.test(seal), 'service_denied');
   const [hex,sig] = seal.split('.'); requireThat(hex.length % 2 === 0, 'service_denied');
   const bytes = Buffer.from(hex,'hex'); const op = strict(bytes.toString('utf8'));
@@ -79,6 +79,7 @@ function service(raw: string, seal: string, d: Obj, c: ReviewedConfig, now: numb
     && op.action === action && op.companyId === d.companyId && op.target === expectedTarget && op.bodySha256 === sha(raw)
     && identifier(op.nonce) && integer(op.issuedAt) && integer(op.expiresAt) && op.issuedAt <= now && op.expiresAt > now
     && op.expiresAt > op.issuedAt && op.expiresAt - op.issuedAt <= 10000, 'service_denied');
+  return op;
 }
 
 /** Fixed verification entry points; action/target never come from caller authority. */
@@ -88,4 +89,14 @@ export function verifyService(raw: string, seal: string, d: Obj, c: ReviewedConf
 export function verifyConsumeService(raw: string, seal: string, d: Obj, c: ReviewedConfig, now: number): void {
   const key=`ruclip:whatsapp-group-send-approval:${encodeURIComponent(d.companyId)}:${encodeURIComponent(d.groupId)}:${encodeURIComponent(d.intent.reservationId)}`;
   service(raw,seal,d,c,now,'whatsapp.send.consume',key);
+}
+
+/** Fixed request actions, neither carries original human approval authority. */
+export function verifyRequestClaimService(raw:string,seal:string,d:Obj,c:ReviewedConfig,now:number):Obj {
+ const key=`ruclip:whatsapp-group-send-approval-request:${encodeURIComponent(d.companyId)}:${encodeURIComponent(d.groupId)}:${encodeURIComponent(d.intent.reservationId)}`;
+ return service(raw,seal,d,c,now,'whatsapp.approval-request.claim',key);
+}
+export function verifyRequestPublishedService(raw:string,seal:string,d:Obj,c:ReviewedConfig,now:number):Obj {
+ const key=`ruclip:whatsapp-group-send-approval-request:${encodeURIComponent(d.companyId)}:${encodeURIComponent(d.groupId)}:${encodeURIComponent(d.intent.reservationId)}`;
+ return service(raw,seal,d,c,now,'whatsapp.approval-request.published',key);
 }

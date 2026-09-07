@@ -52,7 +52,7 @@ jobs:
       rollback-session-id: ${{ steps.detect.outputs.rollback-session-id }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 50
 
@@ -173,7 +173,7 @@ jobs:
       backup-created: ${{ steps.validate.outputs.backup-created }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 100
 
@@ -290,7 +290,7 @@ jobs:
       rollback-commit: ${{ steps.rollback.outputs.rollback-commit }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 100
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -413,7 +413,7 @@ jobs:
     if: needs.execute-rollback.outputs.rollback-executed == 'true'
     steps:
       - name: Checkout rolled back code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.execute-rollback.outputs.rollback-commit }}
 
@@ -516,7 +516,7 @@ jobs:
     if: needs.execute-rollback.outputs.rollback-executed == 'true'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Monitor system stability
         run: |

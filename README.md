@@ -21,12 +21,6 @@
 
 **An agent meta-harness for Claude Code and Codex.**
 
-<!-- Showcase: governed agent authority applied outside a codebase -->
-[![Watch: Cognitum Media — a broadcast master produced end to end by AI, which the models were never allowed to publish](docs/assets/media/cognitum-media-v2-poster.png)](docs/showcase/cognitum-media.md)
-
-**[▶ Cognitum Media — governed authority outside of code](docs/showcase/cognitum-media.md)**
-A two-minute broadcast master, produced end to end by AI, that the creative models were never allowed to publish. The same separation that stops an agent from self-merging a PR.
-
 </div>
 
 > **Agent = Model + Harness.** The model writes; the harness gives it tools, memory, loops, sandboxes, and controls so it can actually work. **Ruflo is the harness** — the execution layer around Claude Code and Codex that adds 100+ specialized agents, coordinated swarms, self-learning memory, federated comms across machines, and enterprise security guardrails. So agents don't just run, they collaborate.

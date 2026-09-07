@@ -22,11 +22,12 @@ await wait('ready');
 const {createReviewedWhatsAppConfigLoader}=await import(base+'mcp-tools/private-whatsapp-config.js');
 const load=createReviewedWhatsAppConfigLoader('/private-config/current.json');assert.deepEqual(JSON.parse(JSON.stringify(load())),f.config);
 const {createProtectedWhatsAppHttpHost}=await import(base+'mcp-tools/private-whatsapp-host.js');
-const {listMCPTools}=await import(base+'mcp-client.js');assert(!listMCPTools().some(t=>t.name.startsWith('whatsapp_approve_')));
-const host=createProtectedWhatsAppHttpHost(registry,load,{port:8081,tools:['memory_store','memory_retrieve','agentdb_health','whatsapp_approve_prepare','whatsapp_approve_apply']});
+const {listMCPTools}=await import(base+'mcp-client.js');assert(!listMCPTools().some(t=>t.name.startsWith('whatsapp_approve_')||t.name.startsWith('whatsapp_consume_')));
+const consuming=process.env.PRIVATE_HOST_CONSUME==='1';
+const host=createProtectedWhatsAppHttpHost(registry,load,{port:8081,tools:['memory_store','memory_retrieve','agentdb_health','whatsapp_approve_prepare','whatsapp_approve_apply',...(consuming?['whatsapp_consume_prepare','whatsapp_consume_apply']:[])]});
 await host.start();let id=0;const timings={};
 async function rpc(method,params){const t=performance.now();const r=await fetch('http://127.0.0.1:8081/mcp',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:++id,method,params}),signal:AbortSignal.timeout(12000)});assert.equal(r.status,200);const x=await r.json();timings[method]=(timings[method]??0)+performance.now()-t;return x;}
-async function tool(name,args){const x=await rpc('tools/call',{name,arguments:args});assert(!x.error,JSON.stringify(x.error));if(name.startsWith('whatsapp_approve_'))assert.equal(x.result.content[0].text,JSON.stringify(JSON.parse(x.result.content[0].text)));return x.result.content?JSON.parse(x.result.content[0].text):x.result;}
+async function tool(name,args){const x=await rpc('tools/call',{name,arguments:args});assert(!x.error,JSON.stringify(x.error));if(name.startsWith('whatsapp_approve_')||name.startsWith('whatsapp_consume_'))assert.equal(x.result.content[0].text,JSON.stringify(JSON.parse(x.result.content[0].text)));return x.result.content?JSON.parse(x.result.content[0].text):x.result;}
 assert((await rpc('initialize',{protocolVersion:'2024-11-05',capabilities:{},clientInfo:{name:'synthetic',version:'1'}})).result);
 const listed=await rpc('tools/list',{});assert.deepEqual(listed.result.tools.map(t=>t.name).sort(),[...host.tools].sort());
 for(const name of ['terminal_execute','system/info','system/health','system/metrics','tools/list-detailed']){const unknown=await rpc('tools/call',{name,arguments:{}});assert(unknown.error || unknown.result?.isError);}
@@ -39,9 +40,34 @@ const raw=JSON.stringify({...f.d,expectedSnapshotDigest:p.digest}),args={request
 const invalid=await rpc('tools/call',{name:'whatsapp_approve_apply',arguments:{...args,namespace:'wide'}});assert(invalid.error || invalid.result?.isError || JSON.parse(invalid.result.content[0].text).outcome==='denied');assert.equal(rows(),0);
 const start=performance.now();const result=await tool('whatsapp_approve_apply',args);timings.applyMs=performance.now()-start;assert.equal(result.outcome,'committed',JSON.stringify(result));assert.equal(hash(Buffer.from(JSON.stringify(result.approval))),result.digest);assert.equal(rows(),2);
 assert.equal((await tool('whatsapp_approve_apply',args)).error,'approval_replayed');
+if(consuming){
+ const original=result.approval,approvalNs='ruclip-api-whatsapp-group-send-approvals';
+ const current=()=>JSON.parse(db.prepare('SELECT content FROM memory_entries WHERE namespace=?').get(approvalNs).content);
+ const restore=()=>db.prepare('UPDATE memory_entries SET content=? WHERE namespace=?').run(JSON.stringify(original),approvalNs);
+ const delta={version:1,kind:'cognitum.whatsapp.consume.v1',companyId:f.d.companyId,groupId:f.d.groupId,intent:original.intent,dispatchId:'dispatch-http',expectedSnapshotDigest:null};
+ const prepareConsume=()=>tool('whatsapp_consume_prepare',{requestJson:JSON.stringify(delta)});
+ const consume=async()=>{const cp=await prepareConsume();assert.equal(cp.outcome,'prepared',JSON.stringify(cp));assert.equal(cp.counts.logicalRecords,8);assert.equal(cp.counts.totalStatements,30);const text=JSON.stringify({...delta,expectedSnapshotDigest:cp.digest});return {requestJson:text,serviceSeal:f.seal(text)};};
+ let ca=await consume();const bad={...ca,requestJson:JSON.stringify({...JSON.parse(ca.requestJson),dispatchId:'wrong-dispatch'})};
+ assert.equal((await tool('whatsapp_consume_apply',bad)).error,'service_denied');assert.equal(current().status,'approved');
+ const spent=f.ledger;spent.reservations[0].status='released';spent.reservedUsd=0;
+ db.prepare("UPDATE memory_entries SET content=? WHERE namespace='ruclip-api-whatsapp-group-spend'").run(JSON.stringify(spent));
+ assert.equal((await prepareConsume()).error,'authority_denied');assert.equal(current().status,'approved');
+ spent.reservations[0].status='reserved';spent.reservedUsd=1;db.prepare("UPDATE memory_entries SET content=? WHERE namespace='ruclip-api-whatsapp-group-spend'").run(JSON.stringify(spent));
+ ca=await consume();const cr=await tool('whatsapp_consume_apply',ca);assert.equal(cr.outcome,'committed',JSON.stringify(cr));assert.equal(cr.approval.status,'consumed');assert.equal(cr.approval.dispatchId,delta.dispatchId);assert.equal(hash(Buffer.from(JSON.stringify(cr.approval))),cr.digest);assert.equal(cr.counts.recordUpdates,1);assert.equal(cr.counts.totalStatements,31);assert.deepEqual(cr.approval.originalHumanApproval,original.originalHumanApproval);assert.equal(rows(),2);
+ assert.equal((await tool('whatsapp_consume_apply',ca)).error,'approval_replayed');
+ // Restore only disposable fixture content to test loss after the actual COMMIT.
+ restore();ca=await consume();const exec=db.exec.bind(db);let commits=0;
+ db.exec=sql=>{const r=exec(sql);if(sql==='COMMIT'){commits++;throw Error('fixture lost acknowledgement');}return r;};
+ assert.deepEqual(await tool('whatsapp_consume_apply',ca),{outcome:'unknown',error:'commit_unknown'});db.exec=exec;assert.equal(commits,1);assert.equal(current().status,'consumed');
+ restore();ca=await consume();commits=0;
+ db.exec=sql=>{const r=exec(sql);if(sql==='COMMIT'){commits++;Date.now=()=>NOW+10000;}return r;};
+ const held=await tool('whatsapp_consume_apply',ca);db.exec=exec;Date.now=()=>NOW;assert.equal(held.outcome,'committed-held');assert.equal(Object.hasOwn(held,'approval'),false);assert.equal(commits,1);assert.equal(current().status,'consumed');
+ restore();
+}
 writeFileSync('/control/rotate','ready');await wait('rotated');assert.equal(load().revision,'rotated');
 assert.equal((await tool('whatsapp_approve_prepare',{requestJson:JSON.stringify(f.d)})).error,'configuration_changed');assert.equal(rows(),2);
+if(consuming)assert.equal((await tool('whatsapp_consume_prepare',{requestJson:JSON.stringify({version:1,kind:'cognitum.whatsapp.consume.v1',companyId:f.d.companyId,groupId:f.d.groupId,intent:result.approval.intent,dispatchId:'dispatch-http',expectedSnapshotDigest:null})})).error,'configuration_changed');
 await host.stop();
 assert.equal(db.prepare('SELECT sqlite_version() v').get().v,'3.51.3');assert.equal(db.pragma('journal_mode',{simple:true}),'wal');assert.equal(db.pragma('synchronous',{simple:true}),2);
-const modules=['mcp-tools/private-whatsapp-host.js','mcp-tools/private-whatsapp-config.js','mcp-tools/private-whatsapp-approval.js','memory/whatsapp-approve.js','memory/whatsapp-approve-proof.js','memory/whatsapp-approve-state.js','memory/authority-snapshot.js'];
-console.log(JSON.stringify({schema:'private-whatsapp-host-native.v1',success:true,actualPinnedHttp:true,sameRegistry:true,ordinaryPolicyPath:true,privatePolicyChecks:{prepare:8,apply:10},readOnlyDirectoryRotationObserved:true,rotationDenied:true,noGlobalRegistration:true,sqlite:'3.51.3',journal:'wal',synchronous:'FULL',timings,modules:Object.fromEntries(modules.map(p=>[p,hash(readFileSync(base+p))])),authenticatedIngress:false,coldStartProven:false,providerCalls:0,sharedDeployment:false}));process.exit(0);
+const modules=['mcp-tools/private-whatsapp-host.js','mcp-tools/private-whatsapp-config.js','mcp-tools/private-whatsapp-approval.js','memory/whatsapp-approve.js','memory/whatsapp-approve-proof.js','memory/whatsapp-approve-state.js','memory/authority-snapshot.js',...(consuming?['mcp-tools/private-whatsapp-consume.js','memory/whatsapp-consume.js','memory/whatsapp-consume-state.js']:[])];
+console.log(JSON.stringify({schema:'private-whatsapp-host-native.v1',success:true,consumeVerified:consuming,consumeCommitUnknownVerified:consuming,consumeCommittedHeldVerified:consuming,actualPinnedHttp:true,sameRegistry:true,ordinaryPolicyPath:true,privatePolicyChecks:{prepare:8,apply:10,...(consuming?{consumePrepare:7,consumeApply:8}:{})},readOnlyDirectoryRotationObserved:true,rotationDenied:true,noGlobalRegistration:true,sqlite:'3.51.3',journal:'wal',synchronous:'FULL',timings,modules:Object.fromEntries(modules.map(p=>[p,hash(readFileSync(base+p))])),authenticatedIngress:false,coldStartProven:false,providerCalls:0,sharedDeployment:false}));process.exit(0);

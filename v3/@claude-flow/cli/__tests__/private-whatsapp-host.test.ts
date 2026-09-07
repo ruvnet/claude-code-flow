@@ -5,6 +5,7 @@ vi.mock('../src/mcp-client.js',()=>({listMCPTools:()=>[{name:'memory_store',inpu
 vi.mock('../src/services/policy-runtime.js',()=>({authorizeMcpTool:policy}));
 vi.mock('../src/memory/authority-snapshot.js',()=>({assertAuthorityNativeReady:vi.fn()}));
 vi.mock('../src/mcp-tools/private-whatsapp-approval.js',()=>({createPrivateWhatsAppApprovalTools:()=>['whatsapp_approve_prepare','whatsapp_approve_apply'].map(name=>({name,description:'private',inputSchema:{type:'object'},cacheable:false,handler:privateCall}))}));
+vi.mock('../src/mcp-tools/private-whatsapp-consume.js',()=>({createPrivateWhatsAppConsumeTools:()=>['whatsapp_consume_prepare','whatsapp_consume_apply'].map(name=>({name,description:'private',inputSchema:{type:'object'},cacheable:false,handler:privateCall}))}));
 import {createProtectedWhatsAppHttpHost} from '../src/mcp-tools/private-whatsapp-host.js';
 beforeEach(()=>{vi.clearAllMocks();register.mockImplementation(t=>({registered:t.length,failed:[]}));policy.mockResolvedValue({enforcedOutcome:'allowed'});privateCall.mockResolvedValue({outcome:'unknown',error:'commit_unknown'});});
 it('uses exact selection and fixed private policy namespace/classification without caller authority',async()=>{
@@ -32,5 +33,26 @@ for(const namespace of ['hierarchical:semantic','ruclip-api-whatsapp-group-assig
 for(const namespace of ['ruclip-api-whatsapp-group-send-approvals','ruclip-api-whatsapp-human-approval-jti'])it(`denied write scope ${namespace} prevents all native work`,async()=>{
  policy.mockImplementation((_n,input, _c, action)=>({enforcedOutcome:input.namespace===namespace && action.namespaceAccess==='write'?'denied':'allowed'}));
  createProtectedWhatsAppHttpHost({},()=>({}),{port:8081,tools:['whatsapp_approve_apply']});
+ expect(JSON.parse(await register.mock.calls[0][0][0].handler({}))).toEqual({outcome:'denied',error:'policy_denied'});expect(privateCall).not.toHaveBeenCalled();
+});
+
+it('consume uses seven fixed reads and only approval writes; ordinary dispatch does not borrow consume admission',async()=>{
+ createProtectedWhatsAppHttpHost({},()=>({}),{port:8081,tools:['whatsapp_consume_prepare','whatsapp_consume_apply','memory_store']});const tools=register.mock.calls[0][0];
+ await tools[0].handler({requestJson:'raw'});expect(policy).toHaveBeenCalledTimes(7);
+ expect(policy.mock.calls.map(c=>c[1].namespace)).not.toContain('ruclip-api-whatsapp-group-send-approval-requests');
+ await tools[1].handler({requestJson:'raw',serviceSeal:'seal'});expect(policy).toHaveBeenCalledTimes(15);
+ expect(policy.mock.calls.filter(c=>c[3].namespaceAccess==='write').map(c=>c[1].namespace)).toEqual(['ruclip-api-whatsapp-group-send-approvals']);
+ expect(policy.mock.calls.filter(c=>c[1].namespace==='ruclip-api-whatsapp-human-approval-jti').every(c=>c[3].namespaceAccess==='read')).toBe(true);
+ expect(tools[0].cacheable).toBe(false);expect(tools[1].cacheable).toBe(false);
+ await tools[2].handler({key:'x'});expect(policy).toHaveBeenCalledTimes(15);expect(privateCall).toHaveBeenCalledTimes(2);expect(ordinary).toHaveBeenCalledOnce();
+});
+for(const namespace of ['hierarchical:semantic','ruclip-api-whatsapp-group-assignments','ruclip-api-agent-settings','ruclip-api-whatsapp-group-spend','ruclip-api-whatsapp-group-send-approvals','ruclip-api-whatsapp-human-approval-jti','ruclip-api-authority'])it(`consume denied read ${namespace} prevents native entry`,async()=>{
+ policy.mockImplementation((_n,input,_c,action)=>({enforcedOutcome:input.namespace===namespace&&action.namespaceAccess==='read'?'denied':'allowed'}));
+ createProtectedWhatsAppHttpHost({},()=>({}),{port:8081,tools:['whatsapp_consume_apply']});
+ expect(JSON.parse(await register.mock.calls[0][0][0].handler({}))).toEqual({outcome:'denied',error:'policy_denied'});expect(privateCall).not.toHaveBeenCalled();
+});
+it('consume denied approval write prevents native entry',async()=>{
+ policy.mockImplementation((_n,_i,_c,action)=>({enforcedOutcome:action.namespaceAccess==='write'?'denied':'allowed'}));
+ createProtectedWhatsAppHttpHost({},()=>({}),{port:8081,tools:['whatsapp_consume_apply']});
  expect(JSON.parse(await register.mock.calls[0][0][0].handler({}))).toEqual({outcome:'denied',error:'policy_denied'});expect(privateCall).not.toHaveBeenCalled();
 });

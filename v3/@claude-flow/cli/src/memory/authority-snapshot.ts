@@ -71,7 +71,7 @@ function plan(input: unknown): { companyId: string; count: number; tuples: Tuple
 
 // These properties distinguish the already-open native file handle from sql.js
 // and in-memory substitutes. Callers are internal; this is not a remote adapter API.
-function ready(db: any): void {
+export function assertAuthorityNativeReady(db: any): void {
   if (!db || db.open !== true || db.memory !== false || db.readonly !== false
     || typeof db.inTransaction !== 'boolean' || typeof db.pragma !== 'function'
     || typeof db.prepare !== 'function' || typeof db.exec !== 'function') fail('native_unavailable');
@@ -85,7 +85,7 @@ function ready(db: any): void {
     || Number(v[2]) > 51)) fail('durability_required');
 }
 
-function timestamp(v: unknown): number {
+export function authorityTimestamp(v: unknown): number {
   const parts = typeof v === 'string'
     ? /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-](\d{2}):(\d{2}))$/.exec(v) : null;
   if (!parts) fail('malformed_record');
@@ -101,8 +101,8 @@ function value(row: ObjectValue, tuple: Tuple, observedAt: number): string {
     || typeof row.id !== 'string' || !row.id) fail('malformed_record');
   if (tuple.table === 'tiered_memory') {
     if (row.archived !== 0 || row.superseded_by !== null) fail('expired_record');
-    if (row.valid_from !== null && timestamp(row.valid_from) > observedAt) fail('expired_record');
-    if (row.valid_until !== null && timestamp(row.valid_until) <= observedAt) fail('expired_record');
+    if (row.valid_from !== null && authorityTimestamp(row.valid_from) > observedAt) fail('expired_record');
+    if (row.valid_until !== null && authorityTimestamp(row.valid_until) <= observedAt) fail('expired_record');
   } else {
     if (row.status !== null && row.status !== 'active') fail('expired_record');
     if (row.expires_at !== null && (!Number.isSafeInteger(row.expires_at) || Number(row.expires_at) <= 0)) fail('malformed_record');
@@ -119,20 +119,11 @@ function value(row: ObjectValue, tuple: Tuple, observedAt: number): string {
   return text;
 }
 
-/** Does not initialize a registry, open a database, mutate schema or register a tool. */
-export function readAuthoritySnapshot(registry: any, input: unknown): SnapshotResult {
-  let db: any; let began = false;
-  const started = performance.now();
-  const checkTime = () => { if (performance.now() - started > MAX_MS) fail('deadline'); };
-  try {
-    const p = plan(input);
-    db = registry?.getAgentDB?.()?.database;
-    ready(db);
-    if (db.inTransaction) fail('transaction_active');
-    db.exec('BEGIN'); began = true;
-    ready(db);
-    const observedAt = Date.now();
-    if (!Number.isSafeInteger(observedAt) || observedAt <= 0) fail('clock_unavailable');
+/** @internal Read-only core for fixed native transactions. Caller owns transaction. */
+export function readAuthorityRows(db: any, input: unknown, observedAt: number, checkTime: () => void) {
+  if (db.inTransaction !== true) fail('transaction_active');
+  if (!Number.isSafeInteger(observedAt) || observedAt <= 0) fail('clock_unavailable');
+  const p = plan(input);
     const records: SnapshotRecord[] = [];
     let rowsObserved = 0; let bytes = 0;
     for (const tuple of p.tuples) {
@@ -173,7 +164,25 @@ export function readAuthoritySnapshot(registry: any, input: unknown): SnapshotRe
       const mirrors = records.filter(x => x.mirror === r.mirror);
       if (mirrors.length !== 2 || mirrors[0].value !== mirrors[1].value) fail('mirror_conflict');
     }
-    ready(db); checkTime();
+  return { records, rowsObserved, tuples: p.tuples.length, bytes };
+}
+
+/** Does not initialize a registry, open a database, mutate schema or register a tool. */
+export function readAuthoritySnapshot(registry: any, input: unknown): SnapshotResult {
+  let db: any; let began = false;
+  const started = performance.now();
+  const checkTime = () => { if (performance.now() - started > MAX_MS) fail('deadline'); };
+  try {
+    const p = plan(input);
+    db = registry?.getAgentDB?.()?.database;
+    assertAuthorityNativeReady(db);
+    if (db.inTransaction) fail('transaction_active');
+    db.exec('BEGIN'); began = true;
+    assertAuthorityNativeReady(db);
+    const observedAt = Date.now();
+    if (!Number.isSafeInteger(observedAt) || observedAt <= 0) fail('clock_unavailable');
+    const { records, rowsObserved } = readAuthorityRows(db, input, observedAt, checkTime);
+    assertAuthorityNativeReady(db); checkTime();
     const encoded = JSON.stringify({ companyId: p.companyId, records });
     const recordStatements = p.tuples.length + rowsObserved;
     const counts = { selectors: p.count, logicalRecords: p.tuples.length, rowsObserved,

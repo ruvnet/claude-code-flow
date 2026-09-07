@@ -1,0 +1,49 @@
+{
+  "synthetic": true,
+  "nowMs": 1700000000000,
+  "publicKeys": {
+    "test-ec3602a089b9471f": "t_aYSXJ85Ugk09SsPJ_KhRubabTF1sGxoGa4ghbQjJw"
+  },
+  "expected": {
+    "action": "whatsapp.send.approve",
+    "companyId": "acme",
+    "groupId": "group-a",
+    "intentId": "intent-original",
+    "reservationId": "reserve-original",
+    "agentMemberId": "agent-ops",
+    "agentBbsEnvelopeId": "bbs-original",
+    "payloadSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "humanUserId": "OWNER"
+  },
+  "originalHumanApproval": {
+    "version": 1,
+    "assertion": {
+      "version": 1,
+      "companyId": "acme",
+      "groupId": "group-a",
+      "humanSubject": {
+        "provider": "slack",
+        "userId": "OWNER",
+        "email": "owner@cognitum.one"
+      },
+      "issuedAt": 1700000000000,
+      "expiresAt": 1700000300000,
+      "jti": "test-jti-1",
+      "keyId": "test-ec3602a089b9471f",
+      "signature": "j6IqNLtMdIFEbuSYW_ubGb9ZIkZ91KRIqGUjGjBiBGmIGltj9nGmIve8wBJtBfZHttbvpswvzQcBggYGYGUECQ",
+      "action": "whatsapp.send.approve",
+      "intentId": "intent-original",
+      "reservationId": "reserve-original",
+      "agentMemberId": "agent-ops",
+      "agentBbsEnvelopeId": "bbs-original",
+      "payloadSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "approver": {
+      "memberId": "owner",
+      "identityRef": "slack:OWNER"
+    }
+  },
+  "assertionDigestSha256": "3cb755582d9666665a951880b3210f7bd602350cac38feee5671c8f6e540d3a1",
+  "canonicalUtf8": "[\"cognitum.whatsapp.human-approval.v1\",1,\"whatsapp.send.approve\",\"acme\",\"group-a\",\"intent-original\",\"reserve-original\",\"agent-ops\",\"bbs-original\",\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"slack\",\"OWNER\",\"owner@cognitum.one\",1700000000000,1700000300000,\"test-jti-1\",\"test-ec3602a089b9471f\"]",
+  "canonicalHex": "5b22636f676e6974756d2e77686174736170702e68756d616e2d617070726f76616c2e7631222c312c2277686174736170702e73656e642e617070726f7665222c2261636d65222c2267726f75702d61222c22696e74656e742d6f726967696e616c222c22726573657276652d6f726967696e616c222c226167656e742d6f7073222c226262732d6f726967696e616c222c2261616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161222c22736c61636b222c224f574e4552222c226f776e657240636f676e6974756d2e6f6e65222c313730303030303030303030302c313730303030303330303030302c22746573742d6a74692d31222c22746573742d65633336303261303839623934373166225d"
+}

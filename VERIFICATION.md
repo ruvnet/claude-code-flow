@@ -1,5 +1,16 @@
 # Verification: SKILL.md Name Normalization
 
+## Fix Summary (Review Feedback)
+
+The initial commit (`c0e41c6`) applied a broad find-and-replace that also changed
+`name:` fields inside markdown body content (tutorials, example YAML, GitHub Actions
+workflows, agent definitions). The fix commit (`69b55c8e3`) scoped the change to
+**only** the `name:` field in each file's top-level YAML frontmatter block, restoring
+all accidentally modified body content.
+
+**Diff audit**: Every changed line in the fix commit is either a frontmatter `name:`
+substitution or a harmless `\No newline at end of file` fix. No body content was modified.
+
 ## Test Script Output
 
 ```

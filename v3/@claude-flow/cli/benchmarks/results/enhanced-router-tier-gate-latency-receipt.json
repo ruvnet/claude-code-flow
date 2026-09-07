@@ -1,0 +1,24 @@
+{
+  "iters": 2000000,
+  "runs": 5,
+  "thresholdPct": 20,
+  "oldNsPerCall": [
+    145.7240715,
+    115.34822,
+    135.945202,
+    152.649327,
+    140.179617
+  ],
+  "newNsPerCall": [
+    126.751354,
+    131.0464245,
+    137.7385645,
+    150.194215,
+    128.1049845
+  ],
+  "oldMeanNs": 137.9692875,
+  "newMeanNs": 134.7671085,
+  "deltaPct": -2.3209360996373927,
+  "verdict": "PASS",
+  "note": "Single string-equality check added per branch, in-memory, no I/O. route()'s own AST analysis / file reads / bandit-router call dominate end-to-end latency by 3-6 orders of magnitude (microseconds-to-milliseconds vs. ~100ns here)."
+}

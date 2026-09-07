@@ -156,7 +156,7 @@ jobs:
 
       - name: Upload failure detection results
         if: steps.detect.outputs.rollback-required == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: failure-detection-${{ steps.detect.outputs.rollback-session-id }}
           path: rollback-data/
@@ -271,7 +271,7 @@ jobs:
           echo "✅ Rollback target viability tested successfully"
 
       - name: Upload pre-rollback validation
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pre-rollback-validation-${{ needs.failure-detection.outputs.rollback-session-id || 'manual' }}
           path: rollback-data/
@@ -605,7 +605,7 @@ jobs:
           EOF
 
       - name: Upload rollback reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rollback-reports-${{ needs.failure-detection.outputs.rollback-session-id || 'manual' }}
           path: rollback-reports/

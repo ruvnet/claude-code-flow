@@ -135,7 +135,7 @@ jobs:
           cp ${{ env.INTEGRATION_DB_PATH }} integration-test-data/
 
       - name: Upload integration test setup
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: integration-setup-${{ steps.setup.outputs.test-session-id }}
           path: integration-test-data/
@@ -284,7 +284,7 @@ jobs:
           "
 
       - name: Upload agent coordination results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coordination-results-${{ matrix.type }}-${{ needs.integration-setup.outputs.test-session-id }}
           path: |
@@ -407,7 +407,7 @@ jobs:
           "
 
       - name: Upload memory integration results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: memory-integration-${{ needs.integration-setup.outputs.test-session-id }}
           path: |
@@ -535,7 +535,7 @@ jobs:
           "
 
       - name: Upload fault tolerance results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: fault-tolerance-${{ needs.integration-setup.outputs.test-session-id }}
           path: |
@@ -676,7 +676,7 @@ jobs:
           "
 
       - name: Upload performance integration results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: performance-integration-${{ needs.integration-setup.outputs.test-session-id }}
           path: |
@@ -839,7 +839,7 @@ jobs:
           "
 
       - name: Upload final integration report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: integration-test-final-report-${{ needs.integration-setup.outputs.test-session-id }}
           path: final-report/

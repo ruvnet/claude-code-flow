@@ -462,7 +462,7 @@ npx ruflo@alpha config set verification.threshold 0.98
 
 **GitHub Actions:**
 ```yaml
-name: verification-quality
+name: Quality Verification
 
 on: [push, pull_request]
 

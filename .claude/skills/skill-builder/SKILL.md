@@ -26,7 +26,7 @@ mkdir -p ~/.claude/skills/my-first-skill
 # 2. Create SKILL.md with proper format
 cat > ~/.claude/skills/my-first-skill/SKILL.md << 'EOF'
 ---
-name: skill-builder
+name: "My First Skill"
 description: "Brief description of what this skill does and when Claude should use it. Maximum 1024 characters."
 ---
 
@@ -53,7 +53,7 @@ Every SKILL.md **must** start with YAML frontmatter containing exactly two requi
 
 ```yaml
 ---
-name: skill-builder
+name: "Skill Name"                    # REQUIRED: Max 64 chars
 description: "What this skill does    # REQUIRED: Max 1024 chars
 and when Claude should use it."       # Include BOTH what & when
 ---
@@ -94,22 +94,22 @@ and when Claude should use it."       # Include BOTH what & when
 ```yaml
 ---
 # ✅ CORRECT: Simple string
-name: skill-builder
+name: "API Builder"
 description: "Creates REST APIs with Express and TypeScript."
 
 # ✅ CORRECT: Multi-line description
-name: skill-builder
+name: "Full-Stack Generator"
 description: "Generates full-stack applications with React frontend and Node.js backend. Use when starting new projects or scaffolding applications."
 
 # ✅ CORRECT: Special characters quoted
-name: skill-builder
+name: "JSON:API Builder"
 description: "Creates JSON:API compliant endpoints: pagination, filtering, relationships."
 
 # ❌ WRONG: Missing quotes with special chars
-name: skill-builder
+name: API:Builder  # YAML parse error!
 
 # ❌ WRONG: Extra fields (ignored but discouraged)
-name: skill-builder
+name: "My Skill"
 description: "My description"
 version: "1.0.0"       # NOT part of spec
 author: "Me"           # NOT part of spec
@@ -193,7 +193,7 @@ Claude Code uses a **3-level progressive disclosure system** to scale to 100+ sk
 
 ```yaml
 ---
-name: skill-builder
+name: "API Builder"                   # 11 chars
 description: "Creates REST APIs..."   # ~50 chars
 ---
 # Total: ~61 chars per skill
@@ -244,7 +244,7 @@ Use template: `resources/templates/api-template.js`
 
 ```markdown
 ---
-name: skill-builder
+name: "Your Skill Name"
 description: "What it does and when to use it"
 ---
 
@@ -561,7 +561,7 @@ Before publishing a skill, verify:
 
 ```markdown
 ---
-name: skill-builder
+name: "My Basic Skill"
 description: "One sentence what. One sentence when to use."
 ---
 
@@ -595,7 +595,7 @@ description: "One sentence what. One sentence when to use."
 
 ```markdown
 ---
-name: skill-builder
+name: "My Intermediate Skill"
 description: "Detailed what with key features. When to use with specific triggers: scaffolding, generating, building."
 ---
 
@@ -650,7 +650,7 @@ Edit `config.json`:
 
 ```markdown
 ---
-name: skill-builder
+name: "My Advanced Skill"
 description: "Comprehensive what with all features and integrations. Use when [trigger 1], [trigger 2], or [trigger 3]. Supports [technology stack]."
 ---
 
@@ -812,7 +812,7 @@ Complete API documentation: [API_REFERENCE.md](docs/API_REFERENCE.md)
 
 ```markdown
 ---
-name: skill-builder
+name: "README Generator"
 description: "Generate comprehensive README.md files for GitHub repositories. Use when starting new projects, documenting code, or improving existing READMEs."
 ---
 
@@ -841,7 +841,7 @@ Edit sections in `resources/templates/sections/` before generating.
 
 ```markdown
 ---
-name: skill-builder
+name: "React Component Generator"
 description: "Generate React functional components with TypeScript, hooks, tests, and Storybook stories. Use when creating new components, scaffolding UI, or following component architecture patterns."
 ---
 

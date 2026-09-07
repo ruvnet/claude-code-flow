@@ -382,7 +382,7 @@ done
 ### CI/CD Integration
 ```yaml
 # .github/workflows/performance.yml
-name: performance-analysis
+name: Performance Analysis
 on: [push, pull_request]
 
 jobs:

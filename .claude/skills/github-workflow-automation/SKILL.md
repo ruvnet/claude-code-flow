@@ -159,7 +159,7 @@ npx ruv-swarm actions security \
 #### 1. Intelligent CI with Swarms
 ```yaml
 # .github/workflows/swarm-ci.yml
-name: github-workflow-automation
+name: Intelligent CI with Swarms
 on: [push, pull_request]
 
 jobs:
@@ -185,7 +185,7 @@ jobs:
 #### 2. Multi-Language Detection
 ```yaml
 # .github/workflows/polyglot-swarm.yml
-name: github-workflow-automation
+name: Polyglot Project Handler
 on: push
 
 jobs:
@@ -210,7 +210,7 @@ jobs:
 #### 3. Adaptive Security Scanning
 ```yaml
 # .github/workflows/security-swarm.yml
-name: github-workflow-automation
+name: Intelligent Security Scan
 on:
   schedule:
     - cron: '0 0 * * *'
@@ -240,7 +240,7 @@ jobs:
 #### 4. Self-Healing Pipeline
 ```yaml
 # .github/workflows/self-healing.yml
-name: github-workflow-automation
+name: Self-Healing Pipeline
 on: workflow_run
 
 jobs:
@@ -259,7 +259,7 @@ jobs:
 #### 5. Progressive Deployment
 ```yaml
 # .github/workflows/smart-deployment.yml
-name: github-workflow-automation
+name: Smart Deployment
 on:
   push:
     branches: [main]
@@ -285,7 +285,7 @@ jobs:
 #### 6. Performance Regression Detection
 ```yaml
 # .github/workflows/performance-guard.yml
-name: github-workflow-automation
+name: Performance Guard
 on: pull_request
 
 jobs:
@@ -303,7 +303,7 @@ jobs:
 #### 7. PR Validation Swarm
 ```yaml
 # .github/workflows/pr-validation.yml
-name: github-workflow-automation
+name: PR Validation Swarm
 on: pull_request
 
 jobs:
@@ -326,7 +326,7 @@ jobs:
 #### 8. Intelligent Release
 ```yaml
 # .github/workflows/intelligent-release.yml
-name: github-workflow-automation
+name: Intelligent Release
 on:
   push:
     tags: ['v*']
@@ -482,7 +482,7 @@ npx ruv-swarm actions auto-optimize \
 #### Custom Swarm Action Template
 ```javascript
 // action.yml
-name: github-workflow-automation
+name: 'Swarm Custom Action'
 description: 'Custom swarm-powered action'
 inputs:
   task:
@@ -591,7 +591,7 @@ npx claude-flow@alpha hooks post-task \
 #### 1. Use Reusable Workflows
 ```yaml
 # .github/workflows/reusable-swarm.yml
-name: github-workflow-automation
+name: Reusable Swarm Workflow
 on:
   workflow_call:
     inputs:
@@ -798,7 +798,7 @@ npx ruv-swarm actions analyze-logs \
 
 #### Example 1: Full-Stack Application CI/CD
 ```yaml
-name: github-workflow-automation
+name: Full-Stack CI/CD with Swarms
 on:
   push:
     branches: [main, develop]
@@ -862,7 +862,7 @@ jobs:
 
 #### Example 2: Monorepo Management
 ```yaml
-name: github-workflow-automation
+name: Monorepo Coordination
 on: push
 
 jobs:

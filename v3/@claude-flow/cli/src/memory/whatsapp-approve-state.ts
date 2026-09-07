@@ -11,10 +11,10 @@ function route(p: Obj): void {
     && new Set(p.allowedTools).size === p.allowedTools.length && typeof p.harnessRef === 'string' && /^[A-Za-z0-9][A-Za-z0-9._/-]{0,126}@[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(p.harnessRef)
     && ['low','medium','high'].includes(p.inferenceTier)); amount(p.maxUsdPerInvocation);
 }
-function member(m: Obj,c: string,id: string,kind: string): void {
+export function member(m: Obj,c: string,id: string,kind: string): void {
   need(m && m.id === id && m.companyId === c && m.kind === kind && m.status === 'active' && safe(m.identityRef));
 }
-function ledger(l: Obj,c: string,g: string): Obj[] {
+export function ledger(l: Obj,c: string,g: string): Obj[] {
   need(l && l.companyId === c && l.groupId === g && Array.isArray(l.reservations) && l.reservations.length <= 10000);
   date(l.updatedAt); const ids = new Set(); const receipts = new Set(); let spent=0, reserved=0;
   for (const r of l.reservations) {
@@ -29,11 +29,7 @@ function ledger(l: Obj,c: string,g: string): Obj[] {
   return l.reservations;
 }
 export function intent(d: Obj): Obj { const a=d.assertion; return {intentId:a.intentId,reservationId:a.reservationId,agentMemberId:a.agentMemberId,agentBbsEnvelopeId:a.agentBbsEnvelopeId,payloadSha256:a.payloadSha256}; }
-export function state(db: any,d: Obj,now: number,check: () => void) {
-  const c=d.companyId,g=d.groupId,a=d.assertion;
-  // Bootstrap is a real row read INSIDE this transaction. It is reused, not hidden.
-  const first=readAuthorityRows(db,{companyId:c,selectors:[{kind:'assignment',groupId:g}]},now,check);
-  const assignment=JSON.parse(first.records[0].value!);
+export function validateAssignment(assignment: Obj,c: string,g: string): void {
   need(assignment.companyId === c && assignment.groupId === g && assignment.status === 'active'
     && assignment.managementApprovalMode === 'required' && identifier(assignment.ownerMemberId)
     && Number.isSafeInteger(assignment.memoryRetentionHours) && assignment.memoryRetentionHours >= 0 && assignment.memoryRetentionHours <= 8760);
@@ -42,6 +38,20 @@ export function state(db: any,d: Obj,now: number,check: () => void) {
   const agents=new Set(), commands=new Set();
   for (const p of assignment.agents) { route(p); need(identifier(p.agentMemberId) && !agents.has(p.agentMemberId)); agents.add(p.agentMemberId);
     for (const cmd of p.allowedCommands) { need(!commands.has(cmd)); commands.add(cmd); } }
+}
+export function validateReserved(spend: Obj,assignment: Obj,agentId: string,reservationId: string,c: string,g: string): void {
+  const rows=ledger(spend,c,g); const row=rows.find(r => r.reservationId === reservationId);
+  need(row && row.status === 'reserved' && row.agentMemberId === agentId);
+  const selected=assignment.agents.find((p: Obj) => p.allowedCommands.includes(row.command));
+  need(selected && same(row.routePolicy,selected) && row.assignmentUpdatedAt === assignment.updatedAt
+    && row.budgetCapUsd === assignment.budgetCapUsd && amount(spend.spentUsd)+amount(spend.reservedUsd) <= assignment.budgetCapUsd);
+}
+export function state(db: any,d: Obj,now: number,check: () => void) {
+  const c=d.companyId,g=d.groupId,a=d.assertion;
+  // Bootstrap is a real row read INSIDE this transaction. It is reused, not hidden.
+  const first=readAuthorityRows(db,{companyId:c,selectors:[{kind:'assignment',groupId:g}]},now,check);
+  const assignment=JSON.parse(first.records[0].value!);
+  validateAssignment(assignment,c,g);
   const owner=assignment.ownerMemberId;
   const selectors: Obj[]=[{kind:'company'},{kind:'member',memberId:owner},{kind:'member',memberId:a.agentMemberId},
     {kind:'settings',memberId:a.agentMemberId},{kind:'spend',groupId:g},{kind:'request',groupId:g,reservationId:a.reservationId},
@@ -58,11 +68,7 @@ export function state(db: any,d: Obj,now: number,check: () => void) {
   if (d.approvedByMemberId !== owner) { const e=vals[9]; need(e && e.version === 1 && e.companyId === c && e.memberId === d.approvedByMemberId
     && e.identityRef === approver.identityRef && e.capability === 'executive' && e.status === 'active' && e.source === 'trusted-seed'); }
   need(approval === null && jti === null, 'approval_replayed');
-  const rows=ledger(spend,c,g); const row=rows.find(r => r.reservationId === a.reservationId);
-  need(row && row.status === 'reserved' && row.agentMemberId === a.agentMemberId);
-  const selected=assignment.agents.find((p: Obj) => p.allowedCommands.includes(row.command));
-  need(selected && same(row.routePolicy,selected) && row.assignmentUpdatedAt === assignment.updatedAt
-    && row.budgetCapUsd === assignment.budgetCapUsd && amount(spend.spentUsd)+amount(spend.reservedUsd) <= assignment.budgetCapUsd);
+  validateReserved(spend,assignment,a.agentMemberId,a.reservationId,c,g);
   need(published && published.version === 1 && published.companyId === c && published.groupId === g
     && exact(published.intent,Object.keys(intent(d))) && same(published.intent,intent(d))
     && published.recipientMemberId === d.approvedByMemberId && published.recipient === approver.identityRef

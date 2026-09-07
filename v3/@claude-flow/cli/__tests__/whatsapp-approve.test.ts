@@ -58,7 +58,7 @@ it('rolls back first insert on second failure and cannot resurrect tombstone',()
 });
 it('rejects signature tamper, canonical subject mismatch, seal binding and service expiry',()=>{
  const f=fixture(),p=prepared(f),raw=JSON.stringify({...f.d,expectedSnapshotDigest:p.digest});
- expect(f.api.apply(raw+' ',f.seal(raw))).toMatchObject({outcome:'denied'});expect(f.api.apply(raw,f.seal(raw).slice(0,-2)+'00')).toMatchObject({outcome:'denied'});
+ expect(f.api.apply(raw+' ',f.seal(raw))).toMatchObject({outcome:'denied'});const seal=f.seal(raw);const changed=seal.slice(0,-1)+(seal.endsWith('0')?'1':'0');expect(f.api.apply(raw,changed)).toMatchObject({outcome:'denied'});
  f.assertion.humanSubject.userId='UBOB';expect(f.apply(p.digest)).toMatchObject({error:'invalid_signature'});f.resign();expect(f.apply(p.digest)).toMatchObject({error:'authority_denied'});
  vi.mocked(Date.now).mockReturnValue(NOW+10000);expect(f.apply(p.digest)).toMatchObject({error:'service_denied'});expect(f.count()).toBe(0);
 });

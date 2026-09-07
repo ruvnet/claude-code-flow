@@ -485,17 +485,29 @@ export class EnhancedModelRouter {
     // Step 6: Determine tier based on complexity
     const { haiku, sonnet } = this.config.complexityThresholds;
 
-    // ADR-149 — forward the per-model fields from baseResult onto every
-    // tier-2/3 return. This keeps the cost-optimal pick alive end-to-end:
-    // if the neural backend picked Ling for a cheap task, the enhanced
-    // router surfaces `modelId: 'inclusionai/ling-2.6-flash'` alongside
-    // `model: 'haiku'` so downstream consumers can dispatch via OpenRouter.
-    const neuralFields = {
-      ...(baseResult.modelId ? { modelId: baseResult.modelId } : {}),
-      ...(baseResult.routedBy ? { routedBy: baseResult.routedBy } : {}),
-      ...(baseResult.provider ? { provider: baseResult.provider } : {}),
-      ...(baseResult.openrouterModel ? { openrouterModel: baseResult.openrouterModel } : {}),
-    };
+    // ADR-149 — forward the per-model fields from baseResult onto the
+    // tier-2/3 return, but ONLY when the tier being returned here still
+    // matches the tier baseResult.model was chosen for. `finalComplexity`
+    // (AST-adjusted / tier3-keyword-boosted, Step 5-6 above) can escalate
+    // the returned tier past what the base bandit router saw when it picked
+    // `modelId` — forwarding it unconditionally would attach a cheaper
+    // tier's concrete model (e.g. `inclusionai/ling-2.6-flash`, chosen for
+    // 'haiku') to an escalated 'opus' decision. `agent-execute-core.ts`
+    // treats a present `modelId` as an override that skips tier-based
+    // dispatch entirely, so a stale, wrong-tier `modelId` silently defeats
+    // the escalation this function just computed. Dropping the mismatched
+    // fields (rather than trying to re-resolve modelId for the new tier)
+    // keeps this fix small and fail-safe: an escalated decision falls back
+    // to the plain `model` field, never to a cheaper model's identity.
+    const neuralFieldsFor = (model: ClaudeModel) =>
+      baseResult.model === model
+        ? {
+            ...(baseResult.modelId ? { modelId: baseResult.modelId } : {}),
+            ...(baseResult.routedBy ? { routedBy: baseResult.routedBy } : {}),
+            ...(baseResult.provider ? { provider: baseResult.provider } : {}),
+            ...(baseResult.openrouterModel ? { openrouterModel: baseResult.openrouterModel } : {}),
+          }
+        : {};
 
     if (finalComplexity < haiku) {
       return {
@@ -508,7 +520,7 @@ export class EnhancedModelRouter {
         canSkipLLM: false,
         estimatedLatencyMs: 500,
         estimatedCost: 0.0002,
-        ...neuralFields,
+        ...neuralFieldsFor('haiku'),
       };
     }
 
@@ -523,7 +535,7 @@ export class EnhancedModelRouter {
         canSkipLLM: false,
         estimatedLatencyMs: 2000,
         estimatedCost: 0.003,
-        ...neuralFields,
+        ...neuralFieldsFor('sonnet'),
       };
     }
 
@@ -537,7 +549,7 @@ export class EnhancedModelRouter {
       canSkipLLM: false,
       estimatedLatencyMs: 5000,
       estimatedCost: 0.015,
-      ...neuralFields,
+      ...neuralFieldsFor('opus'),
     };
   }
 

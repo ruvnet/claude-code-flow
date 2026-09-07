@@ -20,11 +20,16 @@
 import * as path from 'path';
 import * as crypto from 'crypto';
 import { createRequire } from 'node:module';
+import { readAuthoritySnapshot, type SnapshotResult } from './authority-snapshot.js';
 
 // ===== Lazy singleton =====
 
 let registryPromise: Promise<any> | null = null;
 let registryInstance: any = null;
+/** Internal source-only prerequisite: no initialization, fallback or MCP exposure. */
+export function bridgeAuthoritySnapshot(input: unknown): SnapshotResult {
+  return readAuthoritySnapshot(registryInstance, input);
+}
 let bridgeAvailable: boolean | null = null;
 // #2652/#2120: rows created before the status column existed receive NULL
 // during migration. They are live rows, not tombstones. Every user-facing

@@ -800,6 +800,28 @@ Already in DB
       const secondWrite = fsSync.readFileSync(indexPath, 'utf-8');
       expect(secondWrite).toContain('Second insight');
     });
+
+    // Review feedback on #3224's fix: treating every unmarked MEMORY.md as
+    // foreign would also catch every index this bridge wrote *before* the
+    // marker existed, silently freezing it on upgrade. A pre-marker
+    // bridge-authored file is recognized by its exact legacy title line
+    // and continues to curate (and gets the marker going forward).
+    it('should recognize and continue curating a pre-marker (legacy) bridge-authored MEMORY.md', async () => {
+      const indexPath = path.join(testDir, 'MEMORY.md');
+      const legacyOutput = '# Claude Flow V3 Project Memory\n\n## Debugging\n- Old insight\n- See `debugging.md` for details\n';
+      fsSync.writeFileSync(indexPath, legacyOutput, 'utf-8');
+      fsSync.writeFileSync(path.join(testDir, 'debugging.md'), '# Debugging\n\n- New insight\n', 'utf-8');
+
+      let skipEvent: any;
+      bridge.on('index:skipped', (e) => { skipEvent = e; });
+
+      await bridge.curateIndex();
+
+      expect(skipEvent).toBeUndefined();
+      const after = fsSync.readFileSync(indexPath, 'utf-8');
+      expect(after).toContain('New insight');
+      expect(after).not.toBe(legacyOutput);
+    });
   });
 
   describe('getStatus', () => {

@@ -537,8 +537,11 @@ export class WorkerDaemon extends EventEmitter {
     }
 
     try {
-      // Support both flat keys at root and nested under scopes.project
-      const cfg = raw?.scopes?.project ?? raw;
+      // Support flat keys at root, nested under scopes.project, and the
+      // `values` envelope config_set writes for its default scope (#3192 —
+      // without this, config_set daemon.idleSecs 0 has no effect on the
+      // running daemon even though it succeeds and updates config.json).
+      const cfg = raw?.scopes?.project ?? raw?.values ?? raw;
       const rawCpuLoad = cfg['daemon.resourceThresholds.maxCpuLoad'] ?? raw['daemon.resourceThresholds.maxCpuLoad'];
       const rawMinMem = cfg['daemon.resourceThresholds.minFreeMemoryPercent'] ?? raw['daemon.resourceThresholds.minFreeMemoryPercent'];
       const rawMaxConcurrent = cfg['daemon.maxConcurrent'] ?? raw['daemon.maxConcurrent'];

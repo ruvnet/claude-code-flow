@@ -816,6 +816,22 @@ describe('WorkerDaemon resource thresholds', () => {
       expect(config.ttlMs).toBe(0);
     });
 
+    it('reads daemon.idleSecs from the `values` envelope config_set writes for default scope (#3192)', () => {
+      const configFile = join(tempDir, '.claude-flow', 'config.json');
+      // This is the literal shape config_set's default-scope handler
+      // produces (v3/@claude-flow/cli/src/mcp-tools/config-tools.ts),
+      // not a hand-authored file — the daemon reads the same config.json
+      // that tool writes to.
+      writeFileSync(configFile, JSON.stringify({
+        values: { 'daemon.idleSecs': 0 },
+        scopes: {},
+        version: '3.0.0',
+        updatedAt: new Date().toISOString(),
+      }));
+      const config = new WorkerDaemon(tempDir).getStatus().config;
+      expect(config.idleShutdownMs).toBe(0);
+    });
+
     it('prefers constructor arg over config.json and env', () => {
       process.env[TTL_ENV] = '3600';
       const configFile = join(tempDir, '.claude-flow', 'config.json');

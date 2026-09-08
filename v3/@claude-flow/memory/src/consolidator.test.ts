@@ -292,6 +292,34 @@ describe('Phase 4.1 — MemoryConsolidator.dedup embedding near-duplicates', () 
     await svc.close();
   });
 
+  it('fully converges a near-duplicate cluster larger than the search neighborhood in one call', async () => {
+    // Adversarial-critique regression: a cluster wider than
+    // NEAR_DUP_SEARCH_K must still collapse to a single survivor from one
+    // dedup() call, not split into multiple leftover sub-group survivors.
+    const svc = await newService();
+    const consolidator = new MemoryConsolidator(svc as any);
+
+    const base = randomVec(8, 12345);
+    const n = 15; // > NEAR_DUP_SEARCH_K (8)
+    for (let i = 0; i < n; i++) {
+      const entry = createDefaultEntry({ key: `cluster-${i}`, content: `unique-content-${i}` });
+      entry.embedding = new Float32Array(base); // pairwise cosine similarity 1.0
+      entry.updatedAt = 1000 + i;
+      await svc.store(entry);
+    }
+
+    const result = await consolidator.dedup('keep-newest');
+    expect(result.merged).toBe(n - 1);
+
+    const adapter: any = svc.getAdapter();
+    expect(adapter.entries.size).toBe(1);
+    // The single survivor should be the newest of the cluster.
+    const survivor: any = [...adapter.entries.values()][0];
+    expect(survivor.updatedAt).toBe(1000 + n - 1);
+
+    await svc.close();
+  });
+
   it('skips the near-duplicate pass entirely for a non-cosine-metric index', async () => {
     const index = new HNSWIndex({ dimensions: 8, metric: 'euclidean' });
     const embedding = randomVec(8, 7);

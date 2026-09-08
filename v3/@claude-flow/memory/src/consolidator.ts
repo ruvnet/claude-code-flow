@@ -258,36 +258,54 @@ export class MemoryConsolidator {
     }
 
     // Pass 2: embedding near-duplicates among pass-1 survivors.
+    //
+    // Each round only groups an entry with what its single
+    // `NEAR_DUP_SEARCH_K`-wide HNSW query returns, so a duplicate cluster
+    // larger than that window can split into more than one surviving
+    // sub-group in a single round (each sub-group's keeper remains
+    // un-merged with the others). Looping to a fixed point — re-scanning
+    // until a full round produces zero merges — guarantees a single
+    // `dedup()` call fully converges regardless of cluster size, at the
+    // cost of one extra full round whenever a cluster does split (bounded:
+    // strictly fewer entries remain each round that merges anything, so
+    // this always terminates). `groups` therefore counts merge operations
+    // across all rounds, which can exceed the number of ultimate
+    // underlying duplicate clusters when one of them needed more than one
+    // round to fully collapse.
     const threshold = this.opts.similarityThreshold ?? DEFAULT_SIMILARITY_THRESHOLD;
     if (index.getConfig().metric === 'cosine' && threshold < 1) {
-      const consumed = new Set<string>();
-      // Snapshot survivors up front — pass 1 already mutated `entries`, and
-      // this loop mutates it further as groups merge.
-      for (const entry of [...entries.values()]) {
-        if (consumed.has(entry.id) || !entry.embedding || !entries.has(entry.id)) {
-          continue;
-        }
+      let roundMerged: number;
+      do {
+        roundMerged = 0;
+        const consumed = new Set<string>();
+        // Snapshot survivors up front — mutated further as groups merge.
+        for (const entry of [...entries.values()]) {
+          if (consumed.has(entry.id) || !entry.embedding || !entries.has(entry.id)) {
+            continue;
+          }
 
-        const hits = await index.search(entry.embedding, NEAR_DUP_SEARCH_K);
-        const group: MemoryEntry[] = [entry];
-        for (const hit of hits) {
-          if (hit.id === entry.id || consumed.has(hit.id)) continue;
-          const candidate = entries.get(hit.id);
-          if (!candidate || !candidate.embedding) continue;
-          const similarity = 1 - hit.distance;
-          if (similarity >= threshold) group.push(candidate);
-        }
+          const hits = await index.search(entry.embedding, NEAR_DUP_SEARCH_K);
+          const group: MemoryEntry[] = [entry];
+          for (const hit of hits) {
+            if (hit.id === entry.id || consumed.has(hit.id)) continue;
+            const candidate = entries.get(hit.id);
+            if (!candidate || !candidate.embedding) continue;
+            const similarity = 1 - hit.distance;
+            if (similarity >= threshold) group.push(candidate);
+          }
 
-        if (group.length <= 1) {
-          consumed.add(entry.id);
-          continue;
-        }
+          if (group.length <= 1) {
+            consumed.add(entry.id);
+            continue;
+          }
 
-        dupGroups += 1;
-        const { dropped } = await this.mergeGroup(group, effective, ctx);
-        merged += dropped;
-        for (const e of group) consumed.add(e.id);
-      }
+          dupGroups += 1;
+          const { dropped } = await this.mergeGroup(group, effective, ctx);
+          merged += dropped;
+          roundMerged += dropped;
+          for (const e of group) consumed.add(e.id);
+        }
+      } while (roundMerged > 0);
     }
 
     return { merged, groups: dupGroups };

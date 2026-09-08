@@ -50,4 +50,4 @@ This project employs the following security measures at system boundaries:
 - **Path traversal prevention** via the `PathValidator` module
 - **Command injection protection** via the `SafeExecutor` module
 
-For questions about this policy, contact security@ruv.io.
+For questions about this policy, contact security@cognitum.one.

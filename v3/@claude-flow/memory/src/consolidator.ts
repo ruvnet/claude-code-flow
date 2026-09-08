@@ -50,6 +50,20 @@ export interface ConsolidatorOptions {
 const DEFAULT_SIMILARITY_THRESHOLD = 0.95;
 /** Neighborhood size for the near-duplicate HNSW lookup — small and cheap. */
 const NEAR_DUP_SEARCH_K = 8;
+/**
+ * Explicit `ef` (candidate-list size) for the near-duplicate HNSW search.
+ * Left unset, `HNSWIndex.search()` defaults `ef` to
+ * `Math.max(k, efConstruction)` — efConstruction defaults to 200, so an
+ * unset `ef` here means every dedup() search traverses a 200-candidate
+ * list even though duplicate detection only needs to find very-close
+ * neighbors (high similarity), not broad top-k recall. Measured impact at
+ * N=5000 (`consolidator-embedding-benchmark.test.ts`): ~9.8s with the
+ * inherited ef=200 default vs a small fixed ef here. 32 is a deliberate
+ * margin above NEAR_DUP_SEARCH_K (8) for HNSW's approximate-search
+ * headroom, not a re-derivation of efConstruction's separate
+ * index-build-quality concern.
+ */
+const NEAR_DUP_SEARCH_EF = 32;
 
 export interface SweepResult {
   removed: number;
@@ -284,7 +298,7 @@ export class MemoryConsolidator {
             continue;
           }
 
-          const hits = await index.search(entry.embedding, NEAR_DUP_SEARCH_K);
+          const hits = await index.search(entry.embedding, NEAR_DUP_SEARCH_K, NEAR_DUP_SEARCH_EF);
           const group: MemoryEntry[] = [entry];
           for (const hit of hits) {
             if (hit.id === entry.id || consumed.has(hit.id)) continue;

@@ -21,6 +21,11 @@
 
 **An agent meta-harness for Claude Code and Codex.**
 
+[![RuFlo Explained — build an AI team that plans, remembers, tests, and improves](docs/assets/ruflo-explained/ch14.jpg)](docs/ruflo-explained.md)
+
+**[📖 RuFlo Explained — Build an AI Team That Plans, Remembers, Tests, and Improves](docs/ruflo-explained.md)**
+A 14-chapter guide: from the basic idea to a first useful task, then memory, agent teams, plugins, cost and verification.
+
 </div>
 
 > **Agent = Model + Harness.** The model writes; the harness gives it tools, memory, loops, sandboxes, and controls so it can actually work. **Ruflo is the harness** — the execution layer around Claude Code and Codex that adds 100+ specialized agents, coordinated swarms, self-learning memory, federated comms across machines, and enterprise security guardrails. So agents don't just run, they collaborate.

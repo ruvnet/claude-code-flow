@@ -347,14 +347,14 @@ In Claude Code:
 ```bash
 # Clone the repository
 git clone https://github.com/ruvnet/claude-flow.git
-cd claude-flow/claude-plugin
+cd claude-flow
 
 # Run installation script
 bash scripts/install.sh
 
 # Or copy manually
-cp -r commands ~/.claude/commands/
-cp -r agents ~/.claude/agents/
+cp -r .claude/commands/ ~/.claude/commands/
+cp -r .claude/agents/ ~/.claude/agents/
 ```
 
 ### Method 3: NPX (One-Time Setup)
@@ -382,41 +382,42 @@ claude-flow/
 │   ├── plugin.json          # Plugin metadata
 │   ├── README.md            # This file
 │   └── ...
-├── commands/                 # 150+ slash commands
-│   ├── coordination/         # Swarm coordination commands
-│   ├── sparc/                # SPARC methodology commands
-│   ├── github/               # GitHub integration commands
-│   ├── hive-mind/            # Hive mind commands
-│   ├── hooks/                # Hooks configuration commands
-│   ├── memory/               # Memory management commands
-│   ├── monitoring/           # Monitoring commands
-│   ├── optimization/         # Optimization commands
-│   ├── analysis/             # Analysis commands
-│   ├── automation/           # Automation commands
-│   ├── swarm/                # Swarm management commands
-│   ├── workflows/            # Workflow commands
-│   ├── training/             # Neural training commands
-│   ├── flow-nexus/           # Flow Nexus integration
-│   └── ...                   # And more!
-├── agents/                   # 74+ specialized agents
-│   ├── core/                 # Core development agents
-│   ├── consensus/            # Consensus protocol agents
-│   ├── github/               # GitHub automation agents
-│   ├── swarm/                # Swarm coordination agents
-│   ├── hive-mind/            # Hive mind agents
-│   ├── sparc/                # SPARC methodology agents
-│   ├── optimization/         # Optimization agents
-│   ├── specialized/          # Domain-specific agents
-│   ├── templates/            # Template agents
-│   ├── testing/              # Testing agents
-│   └── ...                   # And more!
-├── hooks/                    # Hook scripts
-│   ├── pre-tool-use.sh
-│   ├── post-tool-use.sh
-│   ├── pre-task.sh
-│   ├── post-task.sh
-│   ├── session-start.sh
-│   └── session-end.sh
+├── .claude/                  # All commands and agents live here
+│   ├── commands/             # 150+ slash commands
+│   │   ├── coordination/     # Swarm coordination commands
+│   │   ├── sparc/            # SPARC methodology commands
+│   │   ├── github/           # GitHub integration commands
+│   │   ├── hive-mind/        # Hive mind commands
+│   │   ├── hooks/            # Hooks configuration commands
+│   │   ├── memory/           # Memory management commands
+│   │   ├── monitoring/       # Monitoring commands
+│   │   ├── optimization/     # Optimization commands
+│   │   ├── analysis/         # Analysis commands
+│   │   ├── automation/       # Automation commands
+│   │   ├── swarm/            # Swarm management commands
+│   │   ├── workflows/        # Workflow commands
+│   │   ├── training/         # Neural training commands
+│   │   ├── flow-nexus/       # Flow Nexus integration
+│   │   └── ...               # And more!
+│   ├── agents/               # 74+ specialized agents
+│   │   ├── core/             # Core development agents
+│   │   ├── consensus/        # Consensus protocol agents
+│   │   ├── github/           # GitHub automation agents
+│   │   ├── swarm/            # Swarm coordination agents
+│   │   ├── hive-mind/        # Hive mind agents
+│   │   ├── sparc/            # SPARC methodology agents
+│   │   ├── optimization/     # Optimization agents
+│   │   ├── specialized/      # Domain-specific agents
+│   │   ├── templates/        # Template agents
+│   │   ├── testing/          # Testing agents
+│   │   └── ...               # And more!
+│   └── hooks/                # Hook scripts
+│       ├── pre-tool-use.sh
+│       ├── post-tool-use.sh
+│       ├── pre-task.sh
+│       ├── post-task.sh
+│       ├── session-start.sh
+│       └── session-end.sh
 ├── scripts/                  # Installation and setup scripts
 │   ├── install.sh
 │   ├── setup-mcp.sh

@@ -17,6 +17,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { MemoryService } from './index.js';
 import { MemoryConsolidator } from './consolidator.js';
+import { HNSWIndex } from './hnsw-index.js';
 import { ControllerRegistry } from './controller-registry.js';
 import { createDefaultEntry } from './types.js';
 
@@ -185,6 +186,146 @@ describe('Phase 4 — MemoryConsolidator.dedup', () => {
     expect(new Set(survivor.tags)).toEqual(new Set(['tag-0', 'tag-1', 'tag-2', 'common']));
 
     await svc.close();
+  });
+});
+
+describe('Phase 4.1 — MemoryConsolidator.dedup embedding near-duplicates', () => {
+  it('merges different-content entries whose embeddings are near-identical (cosine >= threshold)', async () => {
+    const svc = await newService();
+    const consolidator = new MemoryConsolidator(svc as any);
+
+    const base = randomVec(8, 42);
+
+    const a = createDefaultEntry({ key: 'a', content: 'paraphrase-one' });
+    a.embedding = base;
+    a.updatedAt = 1000;
+    await svc.store(a);
+
+    const b = createDefaultEntry({
+      key: 'b',
+      content: 'paraphrase-two-totally-different-text',
+    });
+    b.embedding = new Float32Array(base); // identical vector, different content/hash
+    b.updatedAt = 2000;
+    await svc.store(b);
+
+    const result = await consolidator.dedup('keep-newest');
+    expect(result.merged).toBe(1);
+    expect(result.groups).toBe(1);
+
+    const adapter: any = svc.getAdapter();
+    expect(adapter.entries.size).toBe(1);
+    expect(adapter.entries.has(b.id)).toBe(true); // newer of the pair survives
+
+    await svc.close();
+  });
+
+  it('does not merge entries whose embeddings fall below the similarity threshold', async () => {
+    const svc = await newService();
+    const consolidator = new MemoryConsolidator(svc as any);
+
+    const a = createDefaultEntry({ key: 'a', content: 'unrelated-one' });
+    a.embedding = randomVec(8, 1);
+    await svc.store(a);
+
+    const b = createDefaultEntry({ key: 'b', content: 'unrelated-two' });
+    b.embedding = randomVec(8, 999);
+    await svc.store(b);
+
+    const result = await consolidator.dedup();
+    expect(result.merged).toBe(0);
+    expect(result.groups).toBe(0);
+
+    const adapter: any = svc.getAdapter();
+    expect(adapter.entries.size).toBe(2);
+    await svc.close();
+  });
+
+  it('falls back to hash-only behavior for entries with no embedding', async () => {
+    const svc = await newService();
+    const consolidator = new MemoryConsolidator(svc as any);
+
+    const a = createDefaultEntry({ key: 'a', content: 'no-embedding-a' });
+    await svc.store(a);
+    const b = createDefaultEntry({ key: 'b', content: 'no-embedding-b' });
+    await svc.store(b);
+
+    const result = await consolidator.dedup();
+    expect(result.merged).toBe(0);
+    expect(result.groups).toBe(0);
+    await svc.close();
+  });
+
+  it('respects a custom similarityThreshold option', async () => {
+    const svc = await newService();
+    // A threshold below cosine's minimum (-1) means every pair is "similar".
+    const consolidator = new MemoryConsolidator(svc as any, { similarityThreshold: -1 });
+
+    const a = createDefaultEntry({ key: 'a', content: 'threshold-one' });
+    a.embedding = randomVec(8, 11);
+    await svc.store(a);
+    const b = createDefaultEntry({ key: 'b', content: 'threshold-two' });
+    b.embedding = randomVec(8, 22);
+    await svc.store(b);
+
+    const result = await consolidator.dedup();
+    expect(result.merged).toBe(1);
+    expect(result.groups).toBe(1);
+    await svc.close();
+  });
+
+  it('disables the embedding pass entirely when similarityThreshold >= 1', async () => {
+    const svc = await newService();
+    const consolidator = new MemoryConsolidator(svc as any, { similarityThreshold: 1 });
+
+    const embedding = randomVec(8, 5);
+    const a = createDefaultEntry({ key: 'a', content: 'disabled-one' });
+    a.embedding = embedding;
+    await svc.store(a);
+    const b = createDefaultEntry({ key: 'b', content: 'disabled-two' });
+    b.embedding = new Float32Array(embedding); // identical vector, still not merged
+    await svc.store(b);
+
+    const result = await consolidator.dedup();
+    expect(result.merged).toBe(0);
+    expect(result.groups).toBe(0);
+    await svc.close();
+  });
+
+  it('skips the near-duplicate pass entirely for a non-cosine-metric index', async () => {
+    const index = new HNSWIndex({ dimensions: 8, metric: 'euclidean' });
+    const embedding = randomVec(8, 7);
+
+    const a = createDefaultEntry({ key: 'a', content: 'euclid-one' });
+    a.embedding = embedding;
+    const b = createDefaultEntry({ key: 'b', content: 'euclid-two' });
+    b.embedding = new Float32Array(embedding); // identical vector, different content
+
+    await index.addPoint(a.id, a.embedding);
+    await index.addPoint(b.id, b.embedding);
+
+    const entries = new Map([
+      [a.id, a],
+      [b.id, b],
+    ]);
+    const namespaceIndex = new Map<string, Set<string>>([
+      [a.namespace, new Set([a.id, b.id])],
+    ]);
+    const keyIndex = new Map<string, string>([
+      [`${a.namespace}:${a.key}`, a.id],
+      [`${b.namespace}:${b.key}`, b.id],
+    ]);
+    const tagIndex = new Map<string, Set<string>>();
+
+    const fakeService = {
+      getAdapter: () => ({ entries, namespaceIndex, keyIndex, tagIndex, index }),
+    };
+    const consolidator = new MemoryConsolidator(fakeService as any);
+
+    const result = await consolidator.dedup();
+    expect(result.merged).toBe(0);
+    expect(result.groups).toBe(0);
+    expect(entries.size).toBe(2);
   });
 });
 

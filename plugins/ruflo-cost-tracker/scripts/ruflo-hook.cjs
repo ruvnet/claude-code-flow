@@ -16,6 +16,9 @@
  *   2. Spawns track.mjs with TRACK_QUIET=1 and swallows all output.
  *   3. Always exits 0 — telemetry is best-effort, must NEVER block a turn.
  *   4. Times out at 30s so a hung track.mjs can't stall session shutdown.
+ *   5. Records spawn/track failures as one line in <pluginRoot>/logs/
+ *      hook-errors.log plus a one-line stderr warning (#3227) — reporting
+ *      a failure is independent of blocking on it, so exit 0 is kept.
  *
  * Usage: node ruflo-hook.cjs [hook-args ignored]
  */
@@ -42,15 +45,49 @@ const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT
   || path.resolve(__dirname, '..');
 const trackScript = path.join(pluginRoot, 'scripts', 'track.mjs');
 
+/**
+ * Record a hook failure without ever blocking session end (#3227).
+ * Best-effort: logging itself must not throw. Exit code stays 0.
+ */
+function logFailure(reason) {
+  try {
+    const logDir = path.join(pluginRoot, 'logs');
+    fs.mkdirSync(logDir, { recursive: true });
+    fs.appendFileSync(
+      path.join(logDir, 'hook-errors.log'),
+      `${new Date().toISOString()} ruflo-hook: cost-track failed: ${reason}\n`,
+    );
+  } catch {
+    /* ignore — logging must never break the hook contract */
+  }
+  try {
+    console.warn(
+      `[ruflo-cost-tracker] cost-track failed (best-effort, session end continues): ${reason}`,
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
 if (!fs.existsSync(trackScript)) {
-  // Plugin layout drifted — exit clean, never block the turn
+  // Plugin layout drifted — record it, exit clean, never block the turn
+  logFailure(`track script not found: ${trackScript}`);
   done();
 }
 
-spawnSync(process.execPath, [trackScript], {
+const result = spawnSync(process.execPath, [trackScript], {
   env: { ...process.env, TRACK_QUIET: '1' },
   stdio: 'ignore',
   timeout: 30_000,
 });
+
+if (result.error || result.status !== 0) {
+  const reason = result.error
+    ? `spawn error: ${result.error.message}`
+    : result.signal
+      ? `killed by ${result.signal} (30s timeout)`
+      : `track.mjs exited with status ${result.status}`;
+  logFailure(reason);
+}
 
 done();

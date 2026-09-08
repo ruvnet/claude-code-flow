@@ -69,6 +69,15 @@ export function isEncryptionEnabled(): boolean {
  * encryption is enabled but no key resolves, this throws with a clear
  * message rather than silently falling back to plaintext (fail-closed).
  *
+ * The optional `context` selects which missing-key message to throw:
+ *   - `'encrypt'` (default): the caller is about to encrypt because
+ *     `CLAUDE_FLOW_ENCRYPT_AT_REST` is set, so the original message is
+ *     accurate.
+ *   - `'decrypt'`: the caller hit an RFE1-encrypted blob on read (e.g. a
+ *     store restored from another machine) while the enable flag may be
+ *     unset (issue #3212). The message echoes the flag's actual value and
+ *     the on-disk state instead of asserting the flag is set.
+ *
  * Accepted encodings (auto-detected by length):
  *   - 64-char hex (32 bytes)
  *   - 44-char base64 (32 bytes + padding)
@@ -77,9 +86,18 @@ export function isEncryptionEnabled(): boolean {
  * Anything else is rejected — we'd rather fail loudly than encrypt with a
  * truncated key.
  */
-export function getKey(): Buffer {
+export function getKey(context: 'encrypt' | 'decrypt' = 'encrypt'): Buffer {
   const raw = process.env[ENV_KEY_VAR];
   if (!raw) {
+    if (context === 'decrypt') {
+      const flag = process.env[ENV_ENABLE_FLAG] ?? 'unset';
+      throw new Error(
+        `${ENV_KEY_VAR} is required but not set ` +
+        `(${ENV_ENABLE_FLAG}=${flag}; the store on disk is RFE1-encrypted). ` +
+        `Supply the key this store was encrypted with — a newly generated key will not decrypt it. ` +
+        `Provide a 32-byte key as 64-char hex or 44-char base64.`,
+      );
+    }
     throw new Error(
       `${ENV_ENABLE_FLAG} is set but ${ENV_KEY_VAR} is not. ` +
       `Provide a 32-byte key as 64-char hex or 44-char base64. ` +

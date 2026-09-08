@@ -113,6 +113,34 @@ describe('vault (ADR-096 Phase 1)', () => {
       process.env.CLAUDE_FLOW_ENCRYPTION_KEY = 'c'.repeat(64);
       expect(getKey().length).toBe(32);
     });
+
+    it('keeps the original message on the default (encrypt) path', () => {
+      process.env.CLAUDE_FLOW_ENCRYPT_AT_REST = '1';
+      delete process.env.CLAUDE_FLOW_ENCRYPTION_KEY;
+      expect(() => getKey()).toThrow(/is set but/);
+    });
+
+    it('does not claim the flag is set on the decrypt path (#3212)', () => {
+      delete process.env.CLAUDE_FLOW_ENCRYPT_AT_REST;
+      delete process.env.CLAUDE_FLOW_ENCRYPTION_KEY;
+      expect(() => getKey('decrypt')).not.toThrow(/is set but/);
+      expect(() => getKey('decrypt')).toThrow(/is required but not set/);
+    });
+
+    it('echoes the flag actual value and on-disk state on the decrypt path', () => {
+      delete process.env.CLAUDE_FLOW_ENCRYPT_AT_REST;
+      delete process.env.CLAUDE_FLOW_ENCRYPTION_KEY;
+      expect(() => getKey('decrypt')).toThrow(
+        /CLAUDE_FLOW_ENCRYPT_AT_REST=unset.*RFE1-encrypted/,
+      );
+      process.env.CLAUDE_FLOW_ENCRYPT_AT_REST = '0';
+      expect(() => getKey('decrypt')).toThrow(/CLAUDE_FLOW_ENCRYPT_AT_REST=0/);
+    });
+
+    it('warns a new key will not decrypt the existing store', () => {
+      delete process.env.CLAUDE_FLOW_ENCRYPTION_KEY;
+      expect(() => getKey('decrypt')).toThrow(/will not decrypt it/);
+    });
   });
 
   describe('encrypt / decrypt round-trip', () => {

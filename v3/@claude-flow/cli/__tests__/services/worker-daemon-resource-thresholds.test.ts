@@ -832,6 +832,22 @@ describe('WorkerDaemon resource thresholds', () => {
       expect(config.idleShutdownMs).toBe(0);
     });
 
+    it('reads daemon.idleSecs from `values` even when scopes.project holds a different key (mixed-shape config.json)', () => {
+      // A real config.json can accumulate keys from both a project-scoped
+      // config_set call and a default-scope one. Picking one whole object
+      // as "cfg" (scopes.project OR values OR root) would make the daemon
+      // miss any key that lives in a different shape than the one "cfg"
+      // happened to resolve to — each key must be resolved independently.
+      const configFile = join(tempDir, '.claude-flow', 'config.json');
+      writeFileSync(configFile, JSON.stringify({
+        values: { 'daemon.idleSecs': 0 },
+        scopes: { project: { 'daemon.maxConcurrent': 4 } },
+      }));
+      const config = new WorkerDaemon(tempDir).getStatus().config;
+      expect(config.idleShutdownMs).toBe(0);
+      expect(config.maxConcurrent).toBe(4);
+    });
+
     it('prefers constructor arg over config.json and env', () => {
       process.env[TTL_ENV] = '3600';
       const configFile = join(tempDir, '.claude-flow', 'config.json');

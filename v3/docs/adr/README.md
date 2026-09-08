@@ -98,6 +98,8 @@ All ADRs are located in [`/v3/implementation/adrs/`](../../implementation/adrs/)
 | [ADR-378](ADR-378-npm-trusted-publishing-cicd.md) | npm Trusted Publishing for CI/CD Release Automation | Proposed |
 | [ADR-379](ADR-379-statusline-optional-usage-segments.md) | Optional Context/Session/Week Usage Segments and Extra Statusline Lines | Proposed |
 | [ADR-380](ADR-380-agntcy-outshift-runtime-integration.md) | AGNTCY/Outshift Runtime Integration: SLIM Transport, CASA Enforcement, IOC Coordination Events | Proposed |
+| [ADR-381](ADR-381-sequential-promotion-evidence-governance.md) | Sequential Promotion Evidence Governance | Proposed |
+| [ADR-382](ADR-382-sona-proactive-world-monitoring.md) | SONA Proactive World Monitoring: 5-step pipeline with background MONITOR step for world-drift detection | Proposed |
 
 ## Summary Documents
 

@@ -262,8 +262,50 @@ export function sha256Ref(value: string | Buffer): string {
   return `sha256:${createHash('sha256').update(value).digest('hex')}`;
 }
 
+/**
+ * Enforce ADR-322C rule 2 / conformance-checklist A3 over a receipt payload:
+ * "Every fractional value is a canonical decimal string, not a binary float."
+ *
+ * This lives at the RECEIPT boundary rather than inside `canonicalizeJcs`,
+ * which is shared with the proposer envelope (`flywheel-proposer.ts`) and the
+ * promotion ledger (`flywheel-transaction.ts`) — structures the contract does
+ * not govern. A first attempt put the check in the canonicalizer and broke
+ * those callers, which is the reason the scope is spelled out here.
+ *
+ * Integers and scaled integers stay JSON numbers (currency micros, durations,
+ * iteration counts). A fractional JSON number anywhere in the payload is a
+ * contract violation, and the error names the path — the original bug
+ * (ruvnet/ruflo#3229) needed a live fixture to find precisely because neither
+ * verifier said which field was wrong.
+ */
+export function assertReceiptNumberDomain(value: unknown, path = '$'): void {
+  if (typeof value === 'number') {
+    if (!Number.isInteger(value)) {
+      throw new Error(
+        `fractional number at ${path} must be a scale-12 decimal string (ADR-322C rule 2)`,
+      );
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((v, i) => assertReceiptNumberDomain(v, `${path}[${i}]`));
+    return;
+  }
+  if (value && typeof value === 'object') {
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      assertReceiptNumberDomain(v, `${path}.${k}`);
+    }
+  }
+}
+
 export function policyCandidateId(policy: Record<string, unknown>): string {
-  return sha256Ref(canonicalizeJcs(policy));
+  // Encode at the hashing boundary so the content ID is always over the
+  // CANONICAL form, whether the caller passed a raw config or an
+  // already-encoded policy. `encodePolicyFractions` is idempotent — an
+  // encoded value is a string and passes through untouched — so
+  // policyCandidateId(raw) === policyCandidateId(encoded), which is what lets
+  // `verify` recompute the ID from the payload and still match.
+  return sha256Ref(canonicalizeJcs(encodePolicyFractions(policy)));
 }
 
 /** UUIDv7 with a 48-bit millisecond timestamp and RFC-4122 variant bits. */
@@ -282,6 +324,39 @@ const decimal = (value: number, scale = 12): string => {
   const normalized = value.toFixed(scale).replace(/\.?0+$/, '');
   return normalized === '-0' || normalized === '' ? '0' : normalized;
 };
+
+/**
+ * Encode an opaque policy object so every fractional value is a scale-12
+ * decimal string, per ADR-322C rule 2 and conformance-checklist A3.
+ *
+ * `candidatePolicy` is declared "Opaque to this contract; its shape is owned by
+ * policySchemaVersion. Must still satisfy the ADR-322C number rules" — a rule
+ * the JSON Schema cannot express for an opaque object, so nothing enforced it
+ * and the producer wrote binary floats (`{"alpha": 0.3, "mmrLambda": 0.5}`).
+ * Ruflo's own verifier accepted them because `assertJsonValue` only checked
+ * finite-and-not-negative-zero; autogenous's stricter verifier correctly
+ * rejected the receipt (ruvnet/ruflo#3229, ruvnet/autogenous#15).
+ *
+ * Integers stay JSON numbers and only non-integers are encoded, which is what
+ * the contract's own example shows: `{"hnswEf": 128, "hybridWeight": "0.65"}`.
+ * Recurses through nested objects and arrays, because "every fractional value"
+ * is not limited to the top level.
+ */
+export function encodePolicyFractions(value: unknown): unknown {
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) throw new Error('policy value must be finite');
+    // Integers are exact in JSON and the contract permits scaled integers, so
+    // they are left alone; -0 is normalized away by `decimal`.
+    return Number.isInteger(value) && !Object.is(value, -0) ? value : decimal(value);
+  }
+  if (Array.isArray(value)) return value.map(encodePolicyFractions);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, encodePolicyFractions(v)]),
+    );
+  }
+  return value;
+}
 
 function seedFrom(parts: string[]): { seed: number; hex: string } {
   const digest = createHash('sha256').update(parts.join('')).digest();
@@ -385,6 +460,10 @@ function receiptIdentityPayload(payload: Omit<FlywheelReceiptPayload, 'receiptId
 }
 
 function signedBytes(payload: FlywheelReceiptPayload): Buffer {
+  // Assert at the signing boundary: a receipt must never be SIGNED unless it
+  // satisfies the number domain it claims. Covers both produce and verify,
+  // since both paths sign or re-derive these bytes.
+  assertReceiptNumberDomain(payload);
   return Buffer.concat([
     Buffer.from(RECEIPT_DOMAIN, 'utf8'),
     Buffer.from([0]),
@@ -396,7 +475,12 @@ export function createFlywheelReceipt(input: CreateReceiptInput): FlywheelEvalua
   const now = input.now ?? Date.now();
   const evaluationRunId = input.evaluationRunId ?? uuidV7(now);
   const lineageId = input.lineageId ?? uuidV7(now);
-  const candidateId = policyCandidateId(input.candidatePolicy);
+  // Encode ONCE and use the encoded object for both the candidate content ID
+  // and the payload, so `verify`'s recomputation of policyCandidateId still
+  // matches. Encoding after the ID were computed would make every receipt fail
+  // its own 'candidate content ID mismatch' check.
+  const candidatePolicy = encodePolicyFractions(input.candidatePolicy) as Record<string, unknown>;
+  const candidateId = policyCandidateId(candidatePolicy);
   // Verifiers recompute the statistics from the payload's scale-12 decimal
   // strings — the only values they ever have. The encoded values are therefore
   // the statistical inputs of record: compute the decision from them, not from
@@ -424,9 +508,23 @@ export function createFlywheelReceipt(input: CreateReceiptInput): FlywheelEvalua
     evaluationRunId,
     baselineRef: input.baselineRef,
     expectedLedgerHead: input.expectedLedgerHead ?? GENESIS_LEDGER_HEAD,
-    candidatePolicy: input.candidatePolicy,
+    candidatePolicy,
     gateVersion: input.gateVersion ?? statistics.ruleVersion,
-    policySchemaVersion: input.policySchemaVersion ?? 'ruflo.retrieval-policy/v1',
+    // v1 -> v2: the encoding of `candidatePolicy` changed (#3229). Fixing it
+    // changes the candidate content ID, so a pre-fix receipt can never match a
+    // post-fix champion reference. Bumping the schema version makes the
+    // promotion gate refuse those receipts with an ACCURATE reason —
+    // 'policy schema changed' (flywheel-transaction.ts:468) — instead of a
+    // confusing 'stale baseline' hash mismatch.
+    //
+    // Signed receipts are deliberately NOT migrated: re-encoding changes the
+    // content, which changes the ID, which invalidates the signature. A
+    // migration would mean re-signing, i.e. minting new receipts that claim to
+    // be old ones, which is what the receipt design exists to prevent. Existing
+    // receipts stay valid as history and unpromotable; the champion is
+    // re-established through the explicit reset path, which already requires
+    // confirmation and a recorded reason.
+    policySchemaVersion: input.policySchemaVersion ?? 'ruflo.retrieval-policy/v2',
     safetyEnvelopeRef: input.safetyEnvelopeRef,
     ...(input.anchorRef ? { anchorRef: input.anchorRef } : {}),
     requestedProposer: input.requestedProposer ?? 'local',
@@ -495,6 +593,16 @@ export interface ReceiptVerification {
 }
 
 export function verifyFlywheelReceipt(receipt: FlywheelEvaluationReceipt, trustedPublicKeys?: Set<string>): ReceiptVerification {
+  // The enforcement half of #3229. Before this, ruflo verified its own
+  // non-conforming receipts because the only number rule was
+  // finite-and-not-negative-zero, while autogenous's stricter verifier
+  // correctly rejected them. Reported as an error rather than thrown so the
+  // caller gets it alongside every other finding.
+  try {
+    assertReceiptNumberDomain(receipt.payload);
+  } catch (err) {
+    return { valid: false, signed: !!receipt.signature, errors: [(err as Error).message] };
+  }
   const errors: string[] = [];
   try {
     if (receipt.payload.schemaVersion !== RECEIPT_SCHEMA) errors.push('unsupported receipt schema');

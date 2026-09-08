@@ -5,6 +5,8 @@ import {
   RECEIPT_DOMAIN,
   canonicalizeJcs,
   createFlywheelReceipt,
+  assertReceiptNumberDomain,
+  encodePolicyFractions,
   policyCandidateId,
   sha256Ref,
   verifyFlywheelReceipt,
@@ -252,5 +254,102 @@ describe('flywheel receipt protocol', () => {
     });
     expect(receipt.payload.statistics.significant).toBe(true);
     expect(receipt.payload.decision).toBe('rejected');
+  });
+});
+
+describe('ADR-322C rule 2 — fractional values are decimal strings (#3229)', () => {
+  /**
+   * The exact candidatePolicy v3.38.21 wrote, from the issue. Fractions become
+   * scale-12 decimal strings; integers stay JSON numbers, which is what the
+   * contract's own example shows (`{"hnswEf": 128, "hybridWeight": "0.65"}`).
+   */
+  it('encodes the live RetrievalConfig shape from the bug report', () => {
+    const encoded = encodePolicyFractions({
+      alpha: 0.3,
+      subjectWeight: 1,
+      mmrLambda: 0.5,
+      bodyWeight: 1.5,
+      typePenaltyFactor: 0.5,
+    });
+    expect(encoded).toEqual({
+      alpha: '0.3',
+      subjectWeight: 1,
+      mmrLambda: '0.5',
+      bodyWeight: '1.5',
+      typePenaltyFactor: '0.5',
+    });
+  });
+
+  it('recurses through nested objects and arrays', () => {
+    expect(
+      encodePolicyFractions({ outer: { inner: 0.25 }, list: [1, 0.5, 'x'], flag: true }),
+    ).toEqual({ outer: { inner: '0.25' }, list: [1, '0.5', 'x'], flag: true });
+  });
+
+  /**
+   * Idempotence is load-bearing: `policyCandidateId` encodes at the hashing
+   * boundary, so a raw config and an already-encoded policy must hash the
+   * same or `verify` could never recompute the ID from the payload.
+   */
+  it('is idempotent, so a raw and an encoded policy share one candidate ID', () => {
+    const raw = { alpha: 0.3, hnswEf: 128 };
+    const once = encodePolicyFractions(raw);
+    expect(encodePolicyFractions(once)).toEqual(once);
+    expect(policyCandidateId(raw)).toBe(
+      policyCandidateId(once as Record<string, unknown>),
+    );
+  });
+
+  it('normalizes negative zero rather than emitting -0', () => {
+    expect(encodePolicyFractions({ z: -0 })).toEqual({ z: '0' });
+  });
+
+  it('refuses a non-finite policy value instead of writing null', () => {
+    expect(() => encodePolicyFractions({ a: Number.NaN })).toThrow(/must be finite/);
+    expect(() => encodePolicyFractions({ a: Number.POSITIVE_INFINITY })).toThrow(/must be finite/);
+  });
+
+  /** A produced receipt must satisfy the contract it claims. */
+  it('produces a receipt whose candidatePolicy carries no fractional floats', () => {
+    const { receipt } = acceptedReceipt();
+    const policy = receipt.payload.candidatePolicy as Record<string, unknown>;
+    expect(policy.alpha).toBe('0.3');
+    for (const [k, v] of Object.entries(policy)) {
+      if (typeof v === 'number') {
+        expect(Number.isInteger(v), `${k} must be an integer if it is a number`).toBe(true);
+      }
+    }
+  });
+
+  /**
+   * The enforcement half. Before this, `assertJsonValue` accepted any finite
+   * non-`-0` number, so ruflo verified its own non-conforming receipts while
+   * autogenous's stricter verifier rejected them. The error must NAME the
+   * path — the original bug needed a live fixture to find precisely because
+   * neither verifier said which field was wrong.
+   */
+  it('rejects a fractional JSON number anywhere in the payload, naming the path', () => {
+    const { receipt } = acceptedReceipt();
+    const tampered = JSON.parse(JSON.stringify(receipt));
+    tampered.payload.candidatePolicy.alpha = 0.3;
+    // Asserted at the RECEIPT boundary, not in the shared JCS canonicalizer —
+    // that is used by the proposer envelope and the ledger, which the contract
+    // does not govern.
+    const result = verifyFlywheelReceipt(tampered);
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' ')).toMatch(
+      /fractional number at \$\.candidatePolicy\.alpha must be a scale-12 decimal string/,
+    );
+  });
+
+  it('still accepts integers and scaled integers as JSON numbers', () => {
+    expect(() =>
+      assertReceiptNumberDomain({ micros: 1_500_000, iterations: 2000, depth: 24 }),
+    ).not.toThrow();
+  });
+
+  /** Regression guard: the rule must NOT live in the shared canonicalizer. */
+  it('leaves the shared JCS canonicalizer permissive for non-receipt structures', () => {
+    expect(() => canonicalizeJcs({ candidates: [{ policy: { alpha: 0.3 } }] })).not.toThrow();
   });
 });

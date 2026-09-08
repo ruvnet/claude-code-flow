@@ -282,7 +282,12 @@ export async function evaluateFlywheelCandidate(projectRoot: string, deps: Flywh
       evaluationRunId: deps.evaluationRunId,
       baselineRef: refOf(baseline),
       expectedLedgerHead: txState.ledgerHead,
-      candidatePolicy: candidate as unknown as Record<string, unknown>,
+      // `as unknown as` erased RetrievalConfig's `number` fields and laundered
+      // binary floats into a receipt claiming ADR-322C conformance (#3229).
+      // createFlywheelReceipt now encodes fractional values to scale-12
+      // decimal strings, so a single structural cast is enough and the
+      // type-erasing double cast is gone.
+      candidatePolicy: { ...candidate } as Record<string, unknown>,
       safetyEnvelopeRef,
       anchorRef: deps.anchorRef,
       requestedProposer: deps.requestedProposer ?? 'local',

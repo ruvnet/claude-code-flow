@@ -1,0 +1,23 @@
+## Security Hardening: safer install and configuration flow
+
+This PR improves the security posture of the installation process by reducing supply-chain and persistence risks.
+
+### What was changed
+
+- Added security notice to README
+- Highlighted ongoing security hardening review
+
+### Why
+
+The current installation flow relies on patterns such as:
+- mutable dependencies (e.g. @latest)
+- remote script execution (curl | bash)
+- potential environment-level configuration changes
+
+While no malicious behavior was identified, these patterns may introduce supply-chain risks in certain threat models.
+
+### Goal
+
+Improve safety without breaking developer experience.
+
+Happy to adjust changes based on feedback.

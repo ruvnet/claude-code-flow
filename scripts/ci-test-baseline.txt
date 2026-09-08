@@ -92,6 +92,7 @@ v3/@claude-flow/hooks/src/__tests__/guidance-provider.test.ts
 v3/@claude-flow/hooks/src/__tests__/reasoningbank.test.ts
 v3/@claude-flow/memory/src/agentdb-backend.test.ts
 v3/@claude-flow/memory/src/agentdb-retrieval-guard.test.ts
+v3/@claude-flow/memory/src/consolidator-embedding-benchmark.test.ts
 v3/@claude-flow/memory/src/consolidator.test.ts
 v3/@claude-flow/memory/src/controller-registry.test.ts
 v3/@claude-flow/memory/src/database-provider.test.ts

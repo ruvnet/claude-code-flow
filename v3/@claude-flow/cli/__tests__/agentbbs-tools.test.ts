@@ -3,16 +3,17 @@
  *
  * Two surfaces under test:
  *   1. STRUCTURAL — exposure, schema, validation. Runs regardless of agentbbs presence.
- *   2. HAPPY PATH — gated on agentbbs being importable via it.skipIf(!havePkg).
+ *   2. HAPPY PATH — gated on the `agentbbs` CLI being resolvable, via it.skipIf(!havePkg).
  *
- * The degraded path is exercised structurally: when agentbbs is missing,
- * every handler returns `{degraded: true, reason: 'agentbbs-not-found'}`
+ * The degraded path is exercised structurally: when the agentbbs CLI is
+ * missing, every handler returns `{degraded: true, reason: 'agentbbs-not-found'}`
  * matching the metaharness / agenticow / testgen contract.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { execFileSync } from 'node:child_process';
 
 import { agentbbsTools } from '../src/mcp-tools/agentbbs-tools.js';
 
@@ -23,8 +24,15 @@ function findTool(name: string) {
 }
 
 // Detect agentbbs availability at module scope so it.skipIf evaluates correctly.
+// The published `agentbbs` package is a CLI-only launcher with no importable
+// JS entry point, so presence is a subprocess probe, not a module import —
+// mirrors agentbbsCliAvailable() in the tools module under test.
 let havePkg = false;
-try { await import('agentbbs'); havePkg = true; } catch { havePkg = false; }
+try {
+  // shell: true — see agentbbsCliAvailable() in the module under test for why.
+  execFileSync(process.env.AGENTBBS_BIN || 'agentbbs', ['--version'], { stdio: 'ignore', timeout: 5000, shell: true });
+  havePkg = true;
+} catch { havePkg = false; }
 
 describe('agentbbs MCP tools — structural contract', () => {
   it('exposes exactly 4 tools (register / publish / watch / human_join)', () => {

@@ -118,7 +118,9 @@ describe('agenticow MCP tools — happy path (real package)', () => {
     expect(st.status.dimension).toBe(8);
   });
 
-  it('new read/write verbs degrade + validate like the lifecycle verbs', async () => {
+  // Requires the real package: in degraded mode the verb is inert and
+  // returns {degraded:true} before argument validation ever runs.
+  it.skipIf(!havePkg)('new read/write verbs degrade + validate like the lifecycle verbs', async () => {
     // path-traversal rejection is shared via resolveMemoryPath
     const query = findTool('agenticow_query');
     await expect(query.handler({ path: '../../etc/passwd', vector: [1, 2] })).rejects.toThrow(/disallowed/);
@@ -169,7 +171,9 @@ describe('agenticow MCP tools — happy path (real package)', () => {
     expect(rbResult.rolledBack).toBe(true);
   });
 
-  it('agenticow_branch rejects path traversal in basePath', async () => {
+  // Requires the real package: in degraded mode the verb is inert and
+  // returns {degraded:true} before argument validation ever runs.
+  it.skipIf(!havePkg)('agenticow_branch rejects path traversal in basePath', async () => {
     const branch = findTool('agenticow_branch');
     await expect(branch.handler({
       basePath: '../../../../etc/passwd',
@@ -179,7 +183,9 @@ describe('agenticow MCP tools — happy path (real package)', () => {
     })).rejects.toThrow(/disallowed characters/);
   });
 
-  it('agenticow_branch rejects a malformed label', async () => {
+  // Requires the real package: in degraded mode the verb is inert and
+  // returns {degraded:true} before argument validation ever runs.
+  it.skipIf(!havePkg)('agenticow_branch rejects a malformed label', async () => {
     const branch = findTool('agenticow_branch');
     await expect(branch.handler({
       basePath,
@@ -189,7 +195,9 @@ describe('agenticow MCP tools — happy path (real package)', () => {
     })).rejects.toThrow(/may only contain/);
   });
 
-  it('agenticow_branch requires dimension when creating a new memory file', async () => {
+  // Requires the real package: in degraded mode the verb is inert and
+  // returns {degraded:true} before argument validation ever runs.
+  it.skipIf(!havePkg)('agenticow_branch requires dimension when creating a new memory file', async () => {
     const branch = findTool('agenticow_branch');
     const freshBase = join(workdir, 'nonexistent.rvf');
     await expect(branch.handler({

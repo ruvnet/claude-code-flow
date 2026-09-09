@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir, userInfo } from 'node:os';
 import { createHash, createHmac } from 'node:crypto';
@@ -21,7 +21,11 @@ const roots: Array<{ root: string; trust: string }> = [];
 function project(): string {
   const root = mkdtempSync(join(tmpdir(), 'ruflo-policy-runtime-'));
   mkdirSync(join(root, '.claude-flow'), { recursive: true });
-  const projectId = createHash('sha256').update(root).digest('hex');
+  // policy-runtime derives the trust-anchor id from the CANONICAL root
+  // (realpathSync), so hash the same thing here — on macOS tmpdir() sits
+  // behind a symlink, so hashing the raw path pointed this test (and its
+  // cleanup) at a directory that is never created, leaking real anchors.
+  const projectId = createHash('sha256').update(realpathSync(root)).digest('hex');
   roots.push({
     root,
     trust: join(userInfo().homedir, '.config', 'ruflo', 'policy-trust', projectId),

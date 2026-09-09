@@ -384,9 +384,17 @@ export class AgentPool extends EventEmitter implements IAgentPool {
           this.replaceUnhealthyAgent(agentId);
         }
       } else {
-        // Update health positively
+        // Update health positively. Do NOT touch lastHeartbeat here — merely
+        // being under the unhealthy threshold on this tick is not a liveness
+        // signal. lastHeartbeat must only advance on a real external signal
+        // (updateAgentHeartbeat(), or agent creation/replacement), matching
+        // the pattern used by UnifiedSwarmCoordinator.checkHeartbeats()/
+        // handleHeartbeat() in this same package. Stamping it here made
+        // timeSinceLastActivity reset to ~0 on every health-check tick for
+        // every agent, so unhealthyThresholdMs could never be exceeded and
+        // replaceUnhealthyAgent() could never fire, regardless of whether
+        // the agent was actually still alive.
         pooled.agent.health = Math.min(1.0, pooled.agent.health + 0.1);
-        pooled.agent.lastHeartbeat = now;
       }
     }
   }

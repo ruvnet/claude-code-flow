@@ -40,14 +40,20 @@ try {
 } catch { havePkg = false; }
 
 describe('agentbbs MCP tools — structural contract', () => {
-  it('exposes exactly 4 tools (register / publish / watch / human_join)', () => {
+  it('exposes the Phase 1 room surface plus the Phase 2 federation surface', () => {
     const names = agentbbsTools.map(t => t.name).sort();
-    expect(names).toEqual([
-      'federation_bbs_human_join',
-      'federation_bbs_publish',
-      'federation_bbs_register',
-      'federation_bbs_watch',
-    ]);
+    // Phase 1 — local room/envelope handling.
+    for (const n of ['federation_bbs_register', 'federation_bbs_publish',
+                     'federation_bbs_watch', 'federation_bbs_human_join']) {
+      expect(names).toContain(n);
+    }
+    // Phase 2 — cross-host identity, peer pinning, transport and sync.
+    for (const n of ['federation_bbs_identity', 'federation_bbs_peer_add',
+                     'federation_bbs_peers', 'federation_bbs_serve', 'federation_bbs_sync']) {
+      expect(names).toContain(n);
+    }
+    // Pinned so adding a tool is a deliberate contract change, not a slip.
+    expect(names).toHaveLength(9);
   });
 
   it('every tool has an object inputSchema with handler + ≥80-char description', () => {

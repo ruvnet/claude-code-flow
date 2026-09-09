@@ -220,7 +220,15 @@ vi.mock('node:module', () => ({
 // cleanly, this skip can come off.
 //
 // Skip in CI; run locally where WASM is built.
-const __SKIP_WASM_TESTS = process.env.CI === 'true';
+// Skip when CI (see above) OR when the optional WASM package simply is not
+// installed — it is an optionalDependency, so a normal dev install may not
+// have it. Asserting `available === true` in that case tests the developer's
+// node_modules, not this code.
+const __WASM_INSTALLED = await (async () => {
+  try { await import('@ruvector/ruvllm-wasm'); return true; } catch { return false; }
+})();
+const __SKIP_IN_CI = process.env.CI === 'true';
+const __SKIP_WASM_TESTS = __SKIP_IN_CI || !__WASM_INSTALLED;
 
 describe.skipIf(__SKIP_WASM_TESTS)('ruvllm-wasm integration', () => {
   beforeEach(() => {
@@ -460,10 +468,13 @@ describe.skipIf(__SKIP_WASM_TESTS)('ruvllm-wasm integration', () => {
     });
   });
 
-  describe('HNSW_MAX_SAFE_PATTERNS', () => {
-    it('should be 1024', async () => {
-      const { HNSW_MAX_SAFE_PATTERNS } = await import('../../src/ruvector/ruvllm-wasm.js');
-      expect(HNSW_MAX_SAFE_PATTERNS).toBe(1024);
-    });
+});
+
+// A plain exported-constant assertion — no WASM module involved, so gate it on
+// CI only rather than on whether the optional package is installed.
+describe.skipIf(__SKIP_IN_CI)('ruvllm-wasm constants (no WASM module required)', () => {
+  it('HNSW_MAX_SAFE_PATTERNS should be 1024', async () => {
+    const { HNSW_MAX_SAFE_PATTERNS } = await import('../../src/ruvector/ruvllm-wasm.js');
+    expect(HNSW_MAX_SAFE_PATTERNS).toBe(1024);
   });
 });

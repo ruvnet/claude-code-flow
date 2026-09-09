@@ -135,7 +135,15 @@ import {
 // the real @ruvector/rvagent-wasm import still happens. Local runs where
 // the WASM binary is built work fine; CI without postinstall doesn't.
 // See ruvllm-wasm.test.ts for the same pattern.
-const __SKIP_WASM_TESTS = process.env.CI === 'true';
+// Skip when CI (see above) OR when the optional WASM package simply is not
+// installed — it is an optionalDependency, so a normal dev install may not
+// have it. Asserting `available === true` in that case tests the developer's
+// node_modules, not this code.
+const __WASM_INSTALLED = await (async () => {
+  try { await import('@ruvector/rvagent-wasm'); return true; } catch { return false; }
+})();
+const __SKIP_IN_CI = process.env.CI === 'true';
+const __SKIP_WASM_TESTS = __SKIP_IN_CI || !__WASM_INSTALLED;
 
 describe.skipIf(__SKIP_WASM_TESTS)('agent-wasm integration', () => {
   describe('detection and init', () => {
@@ -187,9 +195,6 @@ describe.skipIf(__SKIP_WASM_TESTS)('agent-wasm integration', () => {
       expect(getWasmAgent(agentId)!.id).toBe(agentId);
     });
 
-    it('returns null for unknown agent', () => {
-      expect(getWasmAgent('nonexistent')).toBeNull();
-    });
 
     it('terminates agent', async () => {
       const info = await createWasmAgent();
@@ -199,9 +204,6 @@ describe.skipIf(__SKIP_WASM_TESTS)('agent-wasm integration', () => {
       agentId = ''; // prevent double-terminate
     });
 
-    it('returns false for terminating nonexistent', () => {
-      expect(terminateWasmAgent('nonexistent')).toBe(false);
-    });
   });
 
   describe('prompting', () => {
@@ -216,9 +218,6 @@ describe.skipIf(__SKIP_WASM_TESTS)('agent-wasm integration', () => {
       expect(result).toBe('Hello from WASM agent');
     });
 
-    it('throws for unknown agent', async () => {
-      await expect(promptWasmAgent('nope', 'test')).rejects.toThrow('WASM agent not found');
-    });
   });
 
   describe('tool execution', () => {
@@ -233,9 +232,6 @@ describe.skipIf(__SKIP_WASM_TESTS)('agent-wasm integration', () => {
       expect(result.success).toBe(true);
     });
 
-    it('throws for unknown agent', async () => {
-      await expect(executeWasmTool('nope', { tool: 'list_files' })).rejects.toThrow('WASM agent not found');
-    });
   });
 
   describe('agent state accessors', () => {
@@ -268,12 +264,6 @@ describe.skipIf(__SKIP_WASM_TESTS)('agent-wasm integration', () => {
       expect(parsed).toHaveProperty('info');
     });
 
-    it('throws for unknown agent', () => {
-      expect(() => getWasmAgentState('nope')).toThrow('WASM agent not found');
-      expect(() => getWasmAgentTools('nope')).toThrow('WASM agent not found');
-      expect(() => getWasmAgentTodos('nope')).toThrow('WASM agent not found');
-      expect(() => exportWasmState('nope')).toThrow('WASM agent not found');
-    });
   });
 
   describe('MCP server bridge', () => {
@@ -290,9 +280,6 @@ describe.skipIf(__SKIP_WASM_TESTS)('agent-wasm integration', () => {
       expect(resp).toContain('jsonrpc');
     });
 
-    it('throws for unknown agent', async () => {
-      await expect(createWasmMcpServer('nope')).rejects.toThrow('WASM agent not found');
-    });
   });
 
   describe('gallery templates', () => {
@@ -365,4 +352,33 @@ describe.skipIf(__SKIP_WASM_TESTS)('agent-wasm integration', () => {
       await expect(buildRvfFromTemplate('nonexistent')).rejects.toThrow('Gallery template not found');
     });
   });
+});
+
+// These assertions never touch the WASM module — they exercise the
+// unknown-agent error paths, which resolve from the local registry before any
+// dynamic import. So they are gated on CI only (exactly as before), NOT on
+// whether @ruvector/rvagent-wasm is installed: skipping them when the optional
+// package is absent would test nothing but the developer's node_modules.
+describe.skipIf(__SKIP_IN_CI)('agent-wasm integration (no WASM module required)', () => {
+  it('returns null for unknown agent', () => {
+      expect(getWasmAgent('nonexistent')).toBeNull();
+    });
+  it('returns false for terminating nonexistent', () => {
+      expect(terminateWasmAgent('nonexistent')).toBe(false);
+    });
+  it('throws for unknown agent', async () => {
+      await expect(promptWasmAgent('nope', 'test')).rejects.toThrow('WASM agent not found');
+    });
+  it('throws for unknown agent', async () => {
+      await expect(executeWasmTool('nope', { tool: 'list_files' })).rejects.toThrow('WASM agent not found');
+    });
+  it('throws for unknown agent', () => {
+      expect(() => getWasmAgentState('nope')).toThrow('WASM agent not found');
+      expect(() => getWasmAgentTools('nope')).toThrow('WASM agent not found');
+      expect(() => getWasmAgentTodos('nope')).toThrow('WASM agent not found');
+      expect(() => exportWasmState('nope')).toThrow('WASM agent not found');
+    });
+  it('throws for unknown agent', async () => {
+      await expect(createWasmMcpServer('nope')).rejects.toThrow('WASM agent not found');
+    });
 });

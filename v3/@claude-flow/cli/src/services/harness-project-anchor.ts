@@ -57,14 +57,25 @@ function normalizeHash(value: string): string {
 }
 
 function containedPath(projectRoot: string, requested: string): string {
-  const root = realpathSync(resolve(projectRoot));
-  const absolute = isAbsolute(requested) ? resolve(requested) : resolve(root, requested);
-  const lexical = relative(root, absolute);
-  if (lexical === '..' || lexical.startsWith(`..${sep}`) || isAbsolute(lexical)) {
+  // The project root has two equally valid spellings when its path crosses a
+  // symlink — on macOS `/tmp/x` and `/private/tmp/x` name the same directory.
+  // Comparing a realpath'd root against a NON-realpath'd candidate (as this
+  // did) makes every such project look like an escape, so a project anchored
+  // anywhere under a symlink was rejected outright. Compare like with like:
+  // the lexical guard accepts either spelling of the root, and the symlink
+  // guard below still resolves the target and re-checks it physically.
+  const rootLexical = resolve(projectRoot);
+  const rootPhysical = realpathSync(rootLexical);
+  const absolute = isAbsolute(requested) ? resolve(requested) : resolve(rootLexical, requested);
+  const escapes = (base: string): boolean => {
+    const rel = relative(base, absolute);
+    return rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel);
+  };
+  if (escapes(rootLexical) && escapes(rootPhysical)) {
     throw new Error('flywheel anchor path must stay inside project root');
   }
   const actual = realpathSync(absolute);
-  const physical = relative(root, actual);
+  const physical = relative(rootPhysical, actual);
   if (physical === '..' || physical.startsWith(`..${sep}`) || isAbsolute(physical)) {
     throw new Error('flywheel anchor symlink escapes project root');
   }

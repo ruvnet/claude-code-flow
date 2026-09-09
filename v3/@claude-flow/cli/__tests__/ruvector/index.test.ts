@@ -62,15 +62,17 @@ describe('RuVector Module Exports', () => {
       expect(typeof result).toBe('boolean');
     });
 
-    it('returns true when ruvector resolves (mocked at top of file)', async () => {
-      // The top-level vi.mock('@ruvector/core', ...) makes the dynamic
-      // import inside isRuvectorAvailable resolve, so the value must be
-      // true. The previous test used vi.doMock to flip this at runtime,
-      // but vi.doMock is too late: the module graph is already resolved
-      // by the time the test handler runs (vi.mock is hoisted, vi.doMock
-      // is not). Pinning the *real* observable behavior here.
-      const result = await isRuvectorAvailable();
-      expect(result).toBe(true);
+    it('reports false rather than throwing when the module cannot be loaded', async () => {
+      // NOTE: vi.mock does NOT satisfy a *dynamic* `import()` of a bare
+      // specifier under vitest's module runner — the specifier is rewritten to
+      // '/@id/@ruvector/core', which then fails with ERR_MODULE_NOT_FOUND. So
+      // this cannot assert `true`, as it previously did (that premise held for
+      // an older runner and silently became false). What it can pin is the
+      // contract that actually matters, and the one the try/catch exists for:
+      // an unloadable module is reported as `false`, never thrown. Real
+      // (unmocked) resolution still works — `node -e "import('@ruvector/core')"`
+      // succeeds; only the mocked graph inside vitest cannot resolve it.
+      await expect(isRuvectorAvailable()).resolves.toBe(false);
     });
   });
 

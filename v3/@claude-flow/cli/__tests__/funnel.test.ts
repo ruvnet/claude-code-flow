@@ -718,19 +718,44 @@ describe('attributionUrl (ADR-305 measurement, no runtime network)', () => {
     expect(new URL(out).searchParams.has('fid')).toBe(false);
   });
 
-  it('emits no network call — attribution is a pure link builder', () => {
-    // Guard: the function must be synchronous and side-effect-free with
-    // respect to the network. If someone later adds fetch/https here, this
-    // test will still pass but the *design* is documented.
-    const before = Date.now();
-    for (let i = 0; i < 1000; i++) {
-      attributionUrl('https://cognitum.one/ruflo', {
-        medium: 'statusline', campaign: 'disclosure', content: String(i),
-      });
+  it('emits no network call — attribution is a pure link builder', async () => {
+    // This used to assert `elapsed < 100ms` for 1000 builds and treat that as
+    // proof of "no network call". Two problems: it never actually observed the
+    // network (its own comment conceded a future fetch() would still pass), and
+    // wall-clock is not a property of the code under test — under full-suite
+    // CPU contention the loop measured 118ms and failed, intermittently.
+    // Assert the real property instead, by watching the network primitives.
+    // Take the CJS copies: an ESM namespace object's properties are
+    // non-writable ("Cannot redefine property: request"), while module.exports
+    // on the CJS twin can be swapped and restored. Both surface the same
+    // underlying implementation, so patching here observes any real call.
+    const { createRequire } = await import('node:module');
+    const requireCjs = createRequire(import.meta.url);
+    const http = requireCjs('node:http') as { request: unknown };
+    const https = requireCjs('node:https') as { request: unknown };
+    const originalFetch = globalThis.fetch;
+    const fetchCalls: unknown[] = [];
+    const httpReq = http.request;
+    const httpsReq = https.request;
+    const httpCalls: unknown[] = [];
+    const httpsCalls: unknown[] = [];
+    globalThis.fetch = ((...a: unknown[]) => { fetchCalls.push(a); throw new Error('unexpected fetch'); }) as unknown as typeof fetch;
+    (http as { request: unknown }).request = ((...a: unknown[]) => { httpCalls.push(a); throw new Error('unexpected http.request'); }) as unknown;
+    (https as { request: unknown }).request = ((...a: unknown[]) => { httpsCalls.push(a); throw new Error('unexpected https.request'); }) as unknown;
+    try {
+      for (let i = 0; i < 1000; i++) {
+        attributionUrl('https://cognitum.one/ruflo', {
+          medium: 'statusline', campaign: 'disclosure', content: String(i),
+        });
+      }
+    } finally {
+      globalThis.fetch = originalFetch;
+      (http as { request: unknown }).request = httpReq;
+      (https as { request: unknown }).request = httpsReq;
     }
-    const elapsed = Date.now() - before;
-    // 1000 URL builds must be sub-100ms (network calls would be nowhere near).
-    expect(elapsed).toBeLessThan(100);
+    expect(fetchCalls).toEqual([]);
+    expect(httpCalls).toEqual([]);
+    expect(httpsCalls).toEqual([]);
   });
 });
 

@@ -100,7 +100,11 @@ describe('Neural Tools (neural-tools)', () => {
     expect(typeof provider).toBe('string');
     expect(provider.length).toBeGreaterThan(0);
     // Must match one of the known provider tiers or fallback
-    const knownProviders = /agentic-flow|onnx|mock|hash|fallback|reasoningbank|none/i;
+    // Every backend neural-tools can actually report. The three added here
+    // (ruvector, wasm-embedder, @claude-flow/embeddings) are real provider
+    // strings the allowlist predated — see neural-tools.ts:115/141/1073.
+    const knownProviders =
+      /agentic-flow|onnx|mock|hash|fallback|reasoningbank|none|ruvector|wasm-embedder|@claude-flow\/embeddings/i;
     expect(provider).toMatch(knownProviders);
   });
 });

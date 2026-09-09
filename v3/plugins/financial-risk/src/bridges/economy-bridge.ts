@@ -197,6 +197,12 @@ export class PortfolioRiskCalculator {
     horizon: number = 252,
     seed?: number
   ): number[] {
+    // Empty input would make mean = 0/0 = NaN and silently poison every scenario.
+    // Match the sentinel-on-empty pattern used elsewhere in this class.
+    if (portfolioReturns.length === 0) {
+      return [];
+    }
+
     // Simple random number generator with seed
     let rng = seed !== undefined ? this.seededRandom(seed) : Math.random;
 

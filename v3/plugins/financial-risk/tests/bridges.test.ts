@@ -170,6 +170,21 @@ describe('FinancialEconomyBridge', () => {
       expect(bridge.initialized).toBe(false);
     });
   });
+
+  describe('Edge cases - empty input', () => {
+    beforeEach(async () => {
+      await bridge.initialize();
+    });
+
+    it('simulateMonteCarlo must not silently produce NaN scenarios on empty portfolio', async () => {
+      const result = await bridge.simulateMonteCarlo(new Float32Array([]), 10, 5);
+      // JS fallback: mean = 0/0 = NaN poisons every scenario. Either return an
+      // empty result (signal no data) or finite scenarios, but never NaN -
+      // callers can't tell NaN-poisoning apart from a successful simulation.
+      const containsNaN = Array.from(result).some((v) => Number.isNaN(v));
+      expect(containsNaN).toBe(false);
+    });
+  });
 });
 
 describe('FinancialSparseBridge', () => {

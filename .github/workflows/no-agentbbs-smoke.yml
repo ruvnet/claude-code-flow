@@ -122,7 +122,16 @@ jobs:
                     .replace(/\/\*[\s\S]*?\*\//g, '')                               // block comments
                     .replace(/export\s+\{[^}]*agentbbsTools[^}]*\}\s+from\s+['\"][^'\"]+agentbbs-tools[^'\"]*['\"];?/g, '')
                     .replace(/import\s+\{[^}]*agentbbsTools[^}]*\}\s+from\s+['\"][^'\"]+agentbbs-tools[^'\"]*['\"];?/g, '')
-                    .replace(/\.\.\.agentbbsTools,?/g, '');
+                    .replace(/\.\.\.agentbbsTools,?/g, '')
+                    // Phase 2 federation uses 'agentbbs' as a wire namespace, not a
+                    // package: the '/agentbbs/v1/...' HTTP route prefix and the
+                    // 'agentbbs:<kind>:' hash domain-separators. Neither loads the
+                    // optional dependency, so neither needs a loadAgentbbs guard.
+                    // The static-import check above is untouched and still the
+                    // real gate — this only stops the catch-all heuristic firing
+                    // on string literals that never reach a module resolver.
+                    .replace(/agentbbs(?=\\?\/v1)/g, '')
+                    .replace(/agentbbs(?=:[a-z]+:)/g, '');
                   if (/agentbbs/.test(stripped)) {
                     const guarded = /loadAgentbbs|import\(['\"]agentbbs['\"]\)/m.test(src);
                     if (!guarded) {

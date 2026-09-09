@@ -1,0 +1,23 @@
+[package]
+name = "aperture-swarm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "Wire envelope mirroring v3/@claude-flow/swarm Message; native stdio + WASM postMessage transports"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }
+serde-wasm-bindgen = { workspace = true }
+web-sys = { workspace = true, features = ["MessageEvent", "Window", "MessagePort"] }

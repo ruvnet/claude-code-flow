@@ -1,0 +1,43 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/aperture-core",
+    "crates/aperture-render",
+    "crates/aperture-swarm",
+    "crates/aperture-data",
+    "crates/aperture-tui",
+    "crates/aperture-wasm",
+    "crates/aperture-providers-claude",
+    "crates/aperture-providers-managed-agents",
+]
+
+[workspace.package]
+version = "0.1.0-alpha.1"
+edition = "2021"
+license = "MIT"
+authors = ["ruflo contributors"]
+homepage = "https://github.com/ruvnet/ruflo"
+repository = "https://github.com/ruvnet/ruflo"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+anyhow = "1"
+ratatui = "0.29"
+crossterm = "0.28"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "io-util", "io-std", "time"] }
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+web-sys = "0.3"
+serde-wasm-bindgen = "0.6"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+# Drops unwinding tables — saves ~5 KB in the wasm artifact and a smaller
+# amount in the native binary. Aperture has no panic-recovery story; on any
+# unexpected error the process exits and the swarm coordinator restarts it.
+panic = "abort"

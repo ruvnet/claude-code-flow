@@ -52,6 +52,53 @@ export interface InstalledPlugin {
   config?: Record<string, unknown>;
 }
 
+// ============================================================================
+// Built-in plugin registry
+// ============================================================================
+
+/**
+ * Descriptor for a plugin shipped in-tree under `plugins/<name>/`. Mirrors the
+ * shape of the `plugins` array in `.claude-plugin/marketplace.json`, with the
+ * IPFS `cid` pinned so installs without network access can still resolve.
+ *
+ * TODO(publish): the canonical built-in list lives at
+ * `.claude-plugin/marketplace.json`. Today this constant is hand-maintained;
+ * once ADR-XXX wires marketplace discovery into the plugin store, drop this
+ * mirror and read from there.
+ */
+export interface BuiltInPluginDescriptor {
+  name: string;
+  source: string;
+  description: string;
+  /** IPFS CID once published; empty string until then. */
+  cid: string;
+}
+
+export const BUILT_IN_PLUGINS: readonly BuiltInPluginDescriptor[] = [
+  // Sibling market-data / neural-trader entries already live in
+  // `.claude-plugin/marketplace.json`; aperture is registered here so the
+  // runtime manager can lazily install it as a local plugin pre-publish.
+  {
+    name: 'ruflo-aperture',
+    source: './plugins/ruflo-aperture',
+    description:
+      'Polymorphic, vendor-neutral market workspace — multi-pane SYMBOL VERB GO terminal where each pane is a swarm agent. Native ratatui + WASM (ratzilla) targets.',
+    // TODO(publish): set the IPFS CID after the first Pinata pin (see
+    // CLAUDE.md "Plugin Registry Maintenance"). Empty string keeps `local`
+    // installs working in the meantime.
+    cid: '',
+  },
+];
+
+/**
+ * Look up a built-in plugin descriptor by name.
+ */
+export function getBuiltInPlugin(
+  name: string,
+): BuiltInPluginDescriptor | undefined {
+  return BUILT_IN_PLUGINS.find((p) => p.name === name);
+}
+
 export interface InstalledPluginsManifest {
   version: '1.0.0';
   lastUpdated: string;

@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 10%;
+    --foreground: 0 0% 95%;
+
+    --card: 0 0% 14%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 0 0% 14%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 0 0% 50%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 0 0% 60%;
+
+    --secondary: 0 0% 18%;
+    --secondary-foreground: 0 0% 95%;
+
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 0 0% 70%;
+    --accent-foreground: 0 0% 10%;
+    --accent-glow: 0 0% 75%;
+
+    --destructive: 0 0% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 22%;
+    --input: 0 0% 22%;
+    --ring: 0 0% 50%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 12%;
+    --sidebar-foreground: 0 0% 60%;
+    --sidebar-primary: 0 0% 50%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 0 0% 18%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 22%;
+    --sidebar-ring: 0 0% 50%;
+
+    /* Success colors for completed states */
+    --success: 142 76% 36%;
+    --success-foreground: 142 76% 95%;
+
+    /* Custom design tokens */
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 20%), hsl(0 0% 15%));
+    --gradient-accent: linear-gradient(135deg, hsl(0 0% 25%), hsl(0 0% 20%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 16%), hsl(0 0% 14%));
+    
+    --shadow-glow: 0 0 30px hsl(0 0% 0% / 0.4);
+    --shadow-accent-glow: 0 0 20px hsl(0 0% 0% / 0.3);
+    --shadow-card: 0 4px 20px hsl(0 0% 0% / 0.5);
+
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Widget embed overrides */
+  .widget-embed {
+    --background: var(--widget-bg, 0 0% 10%);
+    --primary: var(--widget-primary, 0 0% 50%);
+    --accent: var(--widget-accent, 142 76% 36%);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}

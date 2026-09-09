@@ -1,0 +1,40 @@
+[package]
+name = "aperture-tui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "Native ratatui binary for Aperture"
+
+[[bin]]
+name = "aperture"
+path = "src/main.rs"
+
+[features]
+# Opt-in web-research providers. Disabled by default so the offline
+# build stays minimal and `cargo build` doesn't pull `tokio::process`
+# in for the regular dependency closure.
+provider-claude = ["dep:aperture-providers-claude"]
+provider-managed-agents = ["dep:aperture-providers-managed-agents"]
+
+[dependencies]
+aperture-core = { path = "../aperture-core" }
+aperture-render = { path = "../aperture-render" }
+aperture-data = { path = "../aperture-data" }
+aperture-swarm = { path = "../aperture-swarm" }
+aperture-providers-claude = { path = "../aperture-providers-claude", optional = true }
+aperture-providers-managed-agents = { path = "../aperture-providers-managed-agents", optional = true }
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+# Integration test in `tests/roundtrip_stdio.rs` spawns the binary; needs
+# the `process` feature on tokio. Kept local to avoid touching the
+# workspace-level tokio feature set.
+tokio = { version = "1", features = ["process", "rt-multi-thread", "macros", "io-util", "io-std", "time"] }
+serde_json = { workspace = true }

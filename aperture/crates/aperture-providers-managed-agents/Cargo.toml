@@ -1,0 +1,20 @@
+[package]
+name = "aperture-providers-managed-agents"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "Web-research DataSource backed by Anthropic Claude Managed Agents (REST + SSE via curl)"
+
+[dependencies]
+aperture-data = { path = "../aperture-data" }
+# Reuse the schema-pinning prompt builders so both backends ask Claude
+# for the same JSON shapes.
+aperture-providers-claude = { path = "../aperture-providers-claude" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+async-trait = "0.1"
+tokio = { version = "1", features = ["process", "rt-multi-thread", "macros", "io-util", "sync", "time"] }

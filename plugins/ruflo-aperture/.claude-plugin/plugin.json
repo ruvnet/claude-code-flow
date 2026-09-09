@@ -1,0 +1,59 @@
+{
+  "name": "ruflo-aperture",
+  "description": "Polymorphic, vendor-neutral market workspace — multi-pane SYMBOL VERB GO terminal where each pane is a swarm agent. Native ratatui + WASM (ratzilla) targets.",
+  "version": "0.1.0-alpha.3",
+  "author": {
+    "name": "ruvnet",
+    "url": "https://github.com/ruvnet"
+  },
+  "homepage": "https://github.com/ruvnet/ruflo",
+  "license": "MIT",
+  "keywords": [
+    "ruflo",
+    "aperture",
+    "market-workspace",
+    "tui",
+    "ratatui",
+    "wasm",
+    "swarm",
+    "pane-as-agent",
+    "ohlcv",
+    "watchlist",
+    "screener",
+    "earnings-calendar"
+  ],
+  "agents": [
+    "aperture-quote",
+    "aperture-chart",
+    "aperture-watchlist",
+    "aperture-oracle",
+    "aperture-news",
+    "aperture-macro",
+    "aperture-yields",
+    "aperture-fx",
+    "aperture-options",
+    "aperture-insider",
+    "aperture-financials",
+    "aperture-crypto",
+    "aperture-risk",
+    "aperture-corpact",
+    "aperture-inbox",
+    "aperture-export",
+    "aperture-earnings",
+    "aperture-movers",
+    "aperture-screen",
+    "aperture-members",
+    "aperture-ivol",
+    "aperture-tech",
+    "aperture-corr",
+    "aperture-filings",
+    "aperture-order",
+    "aperture-sentiment"
+  ],
+  "commands": [
+    "aperture"
+  ],
+  "skills": [
+    "aperture-launch"
+  ]
+}

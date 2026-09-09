@@ -1,0 +1,37 @@
+[package]
+name = "aperture-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "Browser entry for Aperture (wasm-bindgen)"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+aperture-core = { path = "../aperture-core" }
+aperture-render = { path = "../aperture-render" }
+aperture-swarm = { path = "../aperture-swarm" }
+aperture-data = { path = "../aperture-data" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = "0.4"
+js-sys = { workspace = true }
+serde-wasm-bindgen = { workspace = true }
+# `Response` and `Headers` are used by `fetch_bridge` for body + content-type
+# validation; `AbortController` / `AbortSignal` back the 30s fetch timeout
+# (defence-in-depth on top of the SvelteKit proxy). Other primitives
+# (`Window`, `Document`, etc.) are reached through `wasm_bindgen::extern`
+# bindings and don't require feature gates.
+web-sys = { workspace = true, features = [
+    "Response",
+    "Headers",
+    "AbortController",
+    "AbortSignal",
+] }

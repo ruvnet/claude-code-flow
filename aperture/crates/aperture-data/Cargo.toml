@@ -1,0 +1,20 @@
+[package]
+name = "aperture-data"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+description = "DataSource and KeyValueStore traits for Aperture; ships an in-memory provider"
+
+[features]
+default = ["memory"]
+memory = []
+
+[dependencies]
+aperture-core = { path = "../aperture-core" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+async-trait = "0.1"

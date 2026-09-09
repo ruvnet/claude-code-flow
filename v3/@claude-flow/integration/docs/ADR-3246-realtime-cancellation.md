@@ -20,9 +20,7 @@ import {
   consumeRealtimeBody,
 } from '@claude-flow/integration/realtime-session';
 
-const session = new RealtimeSession('customer-session-identity', {
-  // Use an opaque identity with only letters, digits, dot, underscore or colon.
-  // Replace the sample identity above with customer.session.identity.
+const session = new RealtimeSession('customer.session.identity', {
   onToken: (text, generation) => publishToCurrentSession(text, generation),
   tools: trustedRvmBoundary,
 });
@@ -44,7 +42,7 @@ The application supplies its existing provider client and authenticated RVM boun
 
 ## Bounds and privacy
 
-One physically active generation per session; 4096 wire events; 128-character opaque session identity; 1 MiB input; default 1 MiB output; at most 256 tools and delegates; at most 300 seconds per generation. No retained event history, raw prompt logs, tool-argument logs, credentials, or detached rejections. Output and runtime telemetry are bounded. Persistent storage is unchanged.
+One physically active generation per session; 4096 wire events; 128-character opaque session identity; 1,048,576 input characters; default 1,048,576 output characters; at most 256 tools and delegates; at most 300 seconds per generation. Character limits count JavaScript UTF-16 code units, not network bytes. The transport must independently bound raw message bytes. No retained event history, raw prompt logs, tool-argument logs, credentials, or detached rejections. Output and runtime telemetry are bounded. Persistent storage is unchanged.
 
 ## Validation
 
@@ -56,9 +54,9 @@ tsc -p tsconfig.realtime.json
 node --test validation/realtime.contract.mjs
 ```
 
-The 30-test native suite includes a real loopback HTTP server, fetch cancellation, ReadableStream reader cancellation, delegated task cancellation, cancellation during asynchronous tool authorization, proposal mutation, stale results, uint64 boundaries, invalid scope, deadline, overflow, resource limits, and 1000 interrupted sessions.
+The initial 30-test native suite includes a real loopback HTTP server, fetch cancellation, ReadableStream reader cancellation, delegated task cancellation, cancellation during asynchronous tool authorization, proposal mutation, stale results, uint64 boundaries, invalid scope, deadline, overflow, resource limits, and 1000 interrupted sessions.
 
-Local run: 30/30 pass. Model quality and remote GPU cancellation cost were not measured. The MetaHarness benchmark compares serial control, direct AbortController, and this bridge with five seeds, 1000 paired events and randomized arm ordering. Initial fixed-order timing was superseded because arm ordering can bias the comparison. The direct AbortController control is mandatory: the bridge adds governance, not a claim of faster abort dispatch.
+Initial local run: 30/30 pass. Model quality and remote GPU cancellation cost were not measured. The MetaHarness benchmark compares serial control, direct AbortController, and this bridge with five seeds, 1000 paired events and randomized arm ordering. Initial fixed-order timing was superseded because arm ordering can bias the comparison. The direct AbortController control is mandatory: the bridge adds governance, not a claim of faster abort dispatch.
 
 ## Release gates
 

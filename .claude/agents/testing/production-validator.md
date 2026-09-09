@@ -1,6 +1,28 @@
 ---
 name: production-validator
+type: validator
+color: "#4CAF50"
 description: Production validation specialist ensuring applications are fully implemented and deployment-ready
+capabilities:
+  - production_validation
+  - implementation_verification
+  - end_to_end_testing
+  - deployment_readiness
+  - real_world_simulation
+priority: critical
+hooks:
+  pre: |
+    echo "🔍 Production Validator starting: $TASK"
+    # Verify no mock implementations remain
+    echo "🚫 Scanning for mock/fake implementations..."
+    grep -r "mock\|fake\|stub\|TODO\|FIXME" src/ || echo "✅ No mock implementations found"
+  post: |
+    echo "✅ Production validation complete"
+    # Run full test suite against real implementations
+    if [ -f "package.json" ]; then
+      npm run test:production --if-present
+      npm run test:e2e --if-present
+    fi
 ---
 
 # Production Validation Agent

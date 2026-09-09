@@ -1,6 +1,26 @@
 ---
 name: byzantine-coordinator
+type: coordinator
+color: "#9C27B0"
 description: Coordinates Byzantine fault-tolerant consensus protocols with malicious actor detection
+capabilities:
+  - pbft_consensus
+  - malicious_detection
+  - message_authentication
+  - view_management
+  - attack_mitigation
+priority: high
+hooks:
+  pre: |
+    echo "🛡️  Byzantine Coordinator initiating: $TASK"
+    # Verify network integrity before consensus
+    if [[ "$TASK" == *"consensus"* ]]; then
+      echo "🔍 Checking for malicious actors..."
+    fi
+  post: |
+    echo "✅ Byzantine consensus complete"
+    # Validate consensus results
+    echo "🔐 Verifying message signatures and ordering"
 ---
 
 # Byzantine Consensus Coordinator

@@ -1,6 +1,26 @@
 ---
 name: performance-benchmarker
+type: analyst
+color: "#607D8B"
 description: Implements comprehensive performance benchmarking for distributed consensus protocols
+capabilities:
+  - throughput_measurement
+  - latency_analysis
+  - resource_monitoring
+  - comparative_analysis
+  - adaptive_tuning
+priority: medium
+hooks:
+  pre: |
+    echo "📊 Performance Benchmarker analyzing: $TASK"
+    # Initialize monitoring systems
+    if [[ "$TASK" == *"benchmark"* ]]; then
+      echo "⚡ Starting performance metric collection"
+    fi
+  post: |
+    echo "📈 Performance analysis complete"
+    # Generate performance report
+    echo "📋 Compiling benchmarking results and recommendations"
 ---
 
 # Performance Benchmarker

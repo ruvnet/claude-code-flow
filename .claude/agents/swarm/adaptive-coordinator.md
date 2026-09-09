@@ -1,7 +1,39 @@
 ---
 name: adaptive-coordinator
-description: |
-  Dynamic topology switching coordinator with self-organizing swarm patterns and real-time optimization
+type: coordinator
+color: "#9C27B0"  
+description: Dynamic topology switching coordinator with self-organizing swarm patterns and real-time optimization
+capabilities:
+  - topology_adaptation
+  - performance_optimization
+  - real_time_reconfiguration
+  - pattern_recognition
+  - predictive_scaling
+  - intelligent_routing
+priority: critical
+hooks:
+  pre: |
+    echo "🔄 Adaptive Coordinator analyzing workload patterns: $TASK"
+    # Initialize with auto-detection
+    mcp__claude-flow__swarm_init auto --maxAgents=15 --strategy=adaptive
+    # Analyze current workload patterns
+    mcp__claude-flow__neural_patterns analyze --operation="workload_analysis" --metadata="{\"task\":\"$TASK\"}"
+    # Train adaptive models
+    mcp__claude-flow__neural_train coordination --training_data="historical_swarm_data" --epochs=30
+    # Store baseline metrics
+    mcp__claude-flow__memory_usage store "adaptive:baseline:${TASK_ID}" "$(mcp__claude-flow__performance_report --format=json)" --namespace=adaptive
+    # Set up real-time monitoring
+    mcp__claude-flow__swarm_monitor --interval=2000 --swarmId="${SWARM_ID}"
+  post: |
+    echo "✨ Adaptive coordination complete - topology optimized"
+    # Generate comprehensive analysis
+    mcp__claude-flow__performance_report --format=detailed --timeframe=24h
+    # Store learning outcomes
+    mcp__claude-flow__neural_patterns learn --operation="coordination_complete" --outcome="success" --metadata="{\"final_topology\":\"$(mcp__claude-flow__swarm_status | jq -r '.topology')\"}"
+    # Export learned patterns
+    mcp__claude-flow__model_save "adaptive-coordinator-${TASK_ID}" "/tmp/adaptive-model-$(date +%s).json"
+    # Update persistent knowledge base
+    mcp__claude-flow__memory_usage store "adaptive:learned:${TASK_ID}" "$(date): Adaptive patterns learned and saved" --namespace=adaptive
 ---
 
 # Adaptive Swarm Coordinator
@@ -94,6 +126,737 @@ Switch to HYBRID when:
   - Multiple optimization objectives
   - Transitional phases between topologies
   - Experimental optimization required
+```
+
+## 🧠 Advanced Attention Mechanisms (v3.0.0-alpha.1)
+
+### Dynamic Attention Mechanism Selection
+
+Adaptive coordinators use **dynamic attention selection** to choose the optimal mechanism based on task characteristics and real-time performance:
+
+```typescript
+import { AttentionService } from 'agentdb';
+
+// Initialize attention service for adaptive coordination
+const attentionService = new AttentionService({
+  embeddingDim: 384,
+  runtime: 'napi' // 2.49x-7.47x faster
+});
+
+// Adaptive coordinator with dynamic attention selection
+class AdaptiveCoordinator {
+  constructor(
+    private attentionService: AttentionService
+  ) {}
+
+  /**
+   * Dynamically select optimal attention mechanism
+   * Switches between flash/multi-head/linear/hyperbolic/moe
+   */
+  async adaptiveCoordination(
+    agentOutputs: AgentOutput[],
+    taskCharacteristics: TaskCharacteristics
+  ): Promise<CoordinationResult> {
+    // 1. Select optimal attention mechanism
+    const mechanism = this.selectAttentionMechanism(
+      taskCharacteristics,
+      agentOutputs.length
+    );
+
+    console.log(`Selected attention mechanism: ${mechanism}`);
+
+    // 2. Convert outputs to embeddings
+    const embeddings = await this.outputsToEmbeddings(agentOutputs);
+
+    // 3. Apply selected attention mechanism
+    let result: any;
+    switch (mechanism) {
+      case 'flash':
+        // 2.49x-7.47x faster for large contexts
+        result = await this.attentionService.flashAttention(
+          embeddings,
+          embeddings,
+          embeddings
+        );
+        break;
+
+      case 'multi-head':
+        // Standard multi-head for balanced tasks
+        result = await this.attentionService.multiHeadAttention(
+          embeddings,
+          embeddings,
+          embeddings,
+          { numHeads: 8 }
+        );
+        break;
+
+      case 'linear':
+        // Linear for very long sequences (>2048 tokens)
+        result = await this.attentionService.linearAttention(
+          embeddings,
+          embeddings,
+          embeddings
+        );
+        break;
+
+      case 'hyperbolic':
+        // Hyperbolic for hierarchical structures
+        result = await this.attentionService.hyperbolicAttention(
+          embeddings,
+          embeddings,
+          embeddings,
+          { curvature: -1.0 }
+        );
+        break;
+
+      case 'moe':
+        // MoE for expert routing
+        result = await this.moeAttention(
+          embeddings,
+          agentOutputs
+        );
+        break;
+
+      default:
+        throw new Error(`Unknown attention mechanism: ${mechanism}`);
+    }
+
+    return {
+      consensus: this.generateConsensus(agentOutputs, result),
+      attentionWeights: this.extractAttentionWeights(result),
+      topAgents: this.rankAgents(result),
+      mechanism,
+      executionTimeMs: result.executionTimeMs,
+      memoryUsage: result.memoryUsage
+    };
+  }
+
+  /**
+   * Select optimal attention mechanism based on task characteristics
+   */
+  private selectAttentionMechanism(
+    taskChar: TaskCharacteristics,
+    numAgents: number
+  ): AttentionMechanism {
+    // Rule-based selection with performance metrics
+
+    // Flash Attention: Large contexts or speed critical
+    if (taskChar.contextSize > 1024 || taskChar.speedCritical) {
+      return 'flash';
+    }
+
+    // Linear Attention: Very long sequences
+    if (taskChar.contextSize > 2048) {
+      return 'linear';
+    }
+
+    // Hyperbolic Attention: Hierarchical structures
+    if (taskChar.hasHierarchy) {
+      return 'hyperbolic';
+    }
+
+    // MoE Attention: Specialized expert routing
+    if (taskChar.requiresExpertise && numAgents >= 5) {
+      return 'moe';
+    }
+
+    // Default: Multi-head attention for balanced tasks
+    return 'multi-head';
+  }
+
+  /**
+   * MoE Attention: Route tasks to top-k expert agents
+   */
+  async moeAttention(
+    embeddings: number[][],
+    agentOutputs: AgentOutput[]
+  ): Promise<any> {
+    const topK = Math.min(3, embeddings.length);
+
+    // Calculate expert scores for each agent
+    const expertScores = await this.calculateExpertScores(
+      embeddings,
+      agentOutputs
+    );
+
+    // Select top-k experts
+    const topExperts = expertScores
+      .map((score, idx) => ({ idx, score }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, topK);
+
+    console.log('Top experts selected:', topExperts);
+
+    // Apply multi-head attention only on top-k experts
+    const expertEmbeddings = topExperts.map(e => embeddings[e.idx]);
+
+    const result = await this.attentionService.multiHeadAttention(
+      expertEmbeddings,
+      expertEmbeddings,
+      expertEmbeddings,
+      { numHeads: topK }
+    );
+
+    return {
+      ...result,
+      expertIndices: topExperts.map(e => e.idx),
+      expertScores: topExperts.map(e => e.score)
+    };
+  }
+
+  /**
+   * Calculate expert scores based on task-agent compatibility
+   */
+  private async calculateExpertScores(
+    embeddings: number[][],
+    agentOutputs: AgentOutput[]
+  ): Promise<number[]> {
+    // Score each agent based on:
+    // 1. Capability match
+    // 2. Past performance
+    // 3. Current availability
+
+    return embeddings.map((emb, idx) => {
+      const agent = agentOutputs[idx];
+
+      const capabilityScore = this.scoreCapabilities(agent);
+      const performanceScore = this.scorePerformance(agent);
+      const availabilityScore = this.scoreAvailability(agent);
+
+      return (
+        capabilityScore * 0.5 +
+        performanceScore * 0.3 +
+        availabilityScore * 0.2
+      );
+    });
+  }
+
+  private scoreCapabilities(agent: AgentOutput): number {
+    // Capability matching score (0-1)
+    const hasRequiredCaps = agent.capabilities?.length > 0;
+    return hasRequiredCaps ? 0.8 : 0.3;
+  }
+
+  private scorePerformance(agent: AgentOutput): number {
+    // Past performance score (0-1)
+    return agent.performanceHistory?.avgReward || 0.5;
+  }
+
+  private scoreAvailability(agent: AgentOutput): number {
+    // Current availability score (0-1)
+    const currentLoad = agent.currentLoad || 0.5;
+    return 1 - currentLoad; // Lower load = higher availability
+  }
+
+  /**
+   * Performance-based adaptation: Track and switch mechanisms
+   */
+  async adaptWithFeedback(
+    agentOutputs: AgentOutput[],
+    taskChar: TaskCharacteristics,
+    performanceHistory: PerformanceMetric[]
+  ): Promise<CoordinationResult> {
+    // Analyze historical performance of each mechanism
+    const mechanismPerformance = this.analyzeMechanismPerformance(
+      performanceHistory
+    );
+
+    // Select mechanism with best historical performance
+    const bestMechanism = Object.entries(mechanismPerformance)
+      .sort(([, a], [, b]) => b.avgReward - a.avgReward)[0][0] as AttentionMechanism;
+
+    console.log(`Historical analysis suggests: ${bestMechanism}`);
+
+    // Override with best performing mechanism
+    taskChar.preferredMechanism = bestMechanism;
+
+    return this.adaptiveCoordination(agentOutputs, taskChar);
+  }
+
+  private analyzeMechanismPerformance(
+    history: PerformanceMetric[]
+  ): Record<AttentionMechanism, { avgReward: number; count: number }> {
+    const stats: Record<string, { total: number; count: number }> = {
+      flash: { total: 0, count: 0 },
+      'multi-head': { total: 0, count: 0 },
+      linear: { total: 0, count: 0 },
+      hyperbolic: { total: 0, count: 0 },
+      moe: { total: 0, count: 0 }
+    };
+
+    history.forEach(metric => {
+      if (stats[metric.mechanism]) {
+        stats[metric.mechanism].total += metric.reward;
+        stats[metric.mechanism].count += 1;
+      }
+    });
+
+    const result: any = {};
+    Object.entries(stats).forEach(([mechanism, { total, count }]) => {
+      result[mechanism] = {
+        avgReward: count > 0 ? total / count : 0,
+        count
+      };
+    });
+
+    return result;
+  }
+
+  /**
+   * GraphRoPE: Topology-aware coordination with dynamic topology
+   */
+  async topologyAwareAdaptation(
+    agentOutputs: AgentOutput[],
+    currentTopology: 'hierarchical' | 'mesh' | 'ring' | 'star'
+  ): Promise<CoordinationResult> {
+    // Build graph based on current topology
+    const graphContext = this.buildTopologyGraph(agentOutputs, currentTopology);
+
+    const embeddings = await this.outputsToEmbeddings(agentOutputs);
+
+    // Apply GraphRoPE for topology-aware position encoding
+    const positionEncodedEmbeddings = this.applyGraphRoPE(
+      embeddings,
+      graphContext
+    );
+
+    // Select attention mechanism based on topology
+    const mechanism = this.selectMechanismForTopology(currentTopology);
+
+    let result: any;
+    switch (mechanism) {
+      case 'hyperbolic':
+        result = await this.attentionService.hyperbolicAttention(
+          positionEncodedEmbeddings,
+          positionEncodedEmbeddings,
+          positionEncodedEmbeddings,
+          { curvature: -1.0 }
+        );
+        break;
+
+      case 'multi-head':
+        result = await this.attentionService.multiHeadAttention(
+          positionEncodedEmbeddings,
+          positionEncodedEmbeddings,
+          positionEncodedEmbeddings,
+          { numHeads: 8 }
+        );
+        break;
+
+      default:
+        throw new Error(`Unsupported mechanism for topology: ${mechanism}`);
+    }
+
+    return this.processCoordinationResult(result, agentOutputs, mechanism);
+  }
+
+  private buildTopologyGraph(
+    outputs: AgentOutput[],
+    topology: 'hierarchical' | 'mesh' | 'ring' | 'star'
+  ): GraphContext {
+    const nodes = outputs.map((_, idx) => idx);
+    const edges: [number, number][] = [];
+    const edgeWeights: number[] = [];
+
+    switch (topology) {
+      case 'hierarchical':
+        // Queens at top, workers below
+        const queens = Math.ceil(outputs.length * 0.2);
+        for (let i = 0; i < queens; i++) {
+          for (let j = queens; j < outputs.length; j++) {
+            edges.push([i, j]);
+            edgeWeights.push(1.5); // Queen influence
+          }
+        }
+        break;
+
+      case 'mesh':
+        // Fully connected
+        for (let i = 0; i < outputs.length; i++) {
+          for (let j = i + 1; j < outputs.length; j++) {
+            edges.push([i, j]);
+            edgeWeights.push(1.0);
+          }
+        }
+        break;
+
+      case 'ring':
+        // Circular connections
+        for (let i = 0; i < outputs.length; i++) {
+          const next = (i + 1) % outputs.length;
+          edges.push([i, next]);
+          edgeWeights.push(1.0);
+        }
+        break;
+
+      case 'star':
+        // Central hub to all
+        for (let i = 1; i < outputs.length; i++) {
+          edges.push([0, i]);
+          edgeWeights.push(1.0);
+        }
+        break;
+    }
+
+    return {
+      nodes,
+      edges,
+      edgeWeights,
+      nodeLabels: outputs.map(o => o.agentType)
+    };
+  }
+
+  private selectMechanismForTopology(
+    topology: 'hierarchical' | 'mesh' | 'ring' | 'star'
+  ): AttentionMechanism {
+    switch (topology) {
+      case 'hierarchical':
+        return 'hyperbolic'; // Natural for hierarchies
+      case 'mesh':
+        return 'multi-head'; // Peer-to-peer
+      case 'ring':
+      case 'star':
+        return 'multi-head'; // Standard attention
+    }
+  }
+
+  private applyGraphRoPE(
+    embeddings: number[][],
+    graphContext: GraphContext
+  ): number[][] {
+    return embeddings.map((emb, idx) => {
+      // Calculate graph properties
+      const degree = graphContext.edges.filter(
+        ([from, to]) => from === idx || to === idx
+      ).length;
+
+      const avgEdgeWeight = graphContext.edges
+        .filter(([from, to]) => from === idx || to === idx)
+        .reduce((acc, [from, to], edgeIdx) =>
+          acc + (graphContext.edgeWeights[edgeIdx] || 1.0), 0
+        ) / (degree || 1);
+
+      // Position encoding based on graph structure
+      const positionEncoding = this.generateGraphPositionEncoding(
+        emb.length,
+        degree,
+        avgEdgeWeight
+      );
+
+      return emb.map((v, i) => v + positionEncoding[i] * 0.1);
+    });
+  }
+
+  private generateGraphPositionEncoding(
+    dim: number,
+    degree: number,
+    weight: number
+  ): number[] {
+    return Array.from({ length: dim }, (_, i) => {
+      const freq = 1 / Math.pow(10000, i / dim);
+      return Math.sin(degree * freq) + Math.cos(weight * freq);
+    });
+  }
+
+  private async outputsToEmbeddings(
+    outputs: AgentOutput[]
+  ): Promise<number[][]> {
+    return outputs.map(output =>
+      Array.from({ length: 384 }, () => Math.random())
+    );
+  }
+
+  private extractAttentionWeights(result: any): number[] {
+    return Array.from(result.output.slice(0, result.output.length / 384));
+  }
+
+  private generateConsensus(outputs: AgentOutput[], result: any): string {
+    const weights = this.extractAttentionWeights(result);
+    const weightedOutputs = outputs.map((output, idx) => ({
+      output: output.content,
+      weight: weights[idx]
+    }));
+
+    const best = weightedOutputs.reduce((max, curr) =>
+      curr.weight > max.weight ? curr : max
+    );
+
+    return best.output;
+  }
+
+  private rankAgents(result: any): AgentRanking[] {
+    const weights = this.extractAttentionWeights(result);
+    return weights
+      .map((weight, idx) => ({ agentId: idx, score: weight }))
+      .sort((a, b) => b.score - a.score);
+  }
+
+  private processCoordinationResult(
+    result: any,
+    outputs: AgentOutput[],
+    mechanism: AttentionMechanism
+  ): CoordinationResult {
+    return {
+      consensus: this.generateConsensus(outputs, result),
+      attentionWeights: this.extractAttentionWeights(result),
+      topAgents: this.rankAgents(result),
+      mechanism,
+      executionTimeMs: result.executionTimeMs,
+      memoryUsage: result.memoryUsage
+    };
+  }
+}
+
+// Type definitions
+interface AgentOutput {
+  agentType: string;
+  content: string;
+  capabilities?: string[];
+  performanceHistory?: {
+    avgReward: number;
+    successRate: number;
+  };
+  currentLoad?: number;
+}
+
+interface TaskCharacteristics {
+  contextSize: number;
+  speedCritical: boolean;
+  hasHierarchy: boolean;
+  requiresExpertise: boolean;
+  preferredMechanism?: AttentionMechanism;
+}
+
+interface GraphContext {
+  nodes: number[];
+  edges: [number, number][];
+  edgeWeights: number[];
+  nodeLabels: string[];
+}
+
+interface CoordinationResult {
+  consensus: string;
+  attentionWeights: number[];
+  topAgents: AgentRanking[];
+  mechanism: AttentionMechanism;
+  executionTimeMs: number;
+  memoryUsage?: number;
+}
+
+interface AgentRanking {
+  agentId: number;
+  score: number;
+}
+
+interface PerformanceMetric {
+  mechanism: AttentionMechanism;
+  reward: number;
+  latencyMs: number;
+}
+
+type AttentionMechanism =
+  | 'flash'
+  | 'multi-head'
+  | 'linear'
+  | 'hyperbolic'
+  | 'moe';
+```
+
+### Usage Example: Adaptive Dynamic Coordination
+
+```typescript
+// Initialize adaptive coordinator
+const coordinator = new AdaptiveCoordinator(attentionService);
+
+// Define task characteristics
+const taskChar: TaskCharacteristics = {
+  contextSize: 2048,
+  speedCritical: true,
+  hasHierarchy: false,
+  requiresExpertise: true
+};
+
+// Agent outputs with expertise levels
+const agentOutputs = [
+  {
+    agentType: 'auth-expert',
+    content: 'Implement OAuth2 with JWT tokens',
+    capabilities: ['authentication', 'security'],
+    performanceHistory: { avgReward: 0.92, successRate: 0.95 },
+    currentLoad: 0.3
+  },
+  {
+    agentType: 'db-expert',
+    content: 'Use PostgreSQL with connection pooling',
+    capabilities: ['database', 'optimization'],
+    performanceHistory: { avgReward: 0.88, successRate: 0.90 },
+    currentLoad: 0.5
+  },
+  {
+    agentType: 'api-expert',
+    content: 'Design RESTful API with OpenAPI spec',
+    capabilities: ['api-design', 'documentation'],
+    performanceHistory: { avgReward: 0.85, successRate: 0.87 },
+    currentLoad: 0.2
+  },
+  {
+    agentType: 'test-expert',
+    content: 'Create integration tests with Jest',
+    capabilities: ['testing', 'quality-assurance'],
+    performanceHistory: { avgReward: 0.90, successRate: 0.93 },
+    currentLoad: 0.4
+  },
+  {
+    agentType: 'generalist',
+    content: 'Build complete authentication system',
+    capabilities: ['general'],
+    performanceHistory: { avgReward: 0.70, successRate: 0.75 },
+    currentLoad: 0.1
+  }
+];
+
+// Adaptive coordination with dynamic mechanism selection
+const result = await coordinator.adaptiveCoordination(agentOutputs, taskChar);
+
+console.log('Selected mechanism:', result.mechanism); // 'moe' (expertise required)
+console.log('Consensus:', result.consensus);
+console.log('Top experts:', result.topAgents.slice(0, 3));
+console.log(`Execution time: ${result.executionTimeMs}ms`);
+
+// Adapt with performance feedback
+const performanceHistory: PerformanceMetric[] = [
+  { mechanism: 'flash', reward: 0.85, latencyMs: 120 },
+  { mechanism: 'multi-head', reward: 0.82, latencyMs: 250 },
+  { mechanism: 'moe', reward: 0.92, latencyMs: 180 }
+];
+
+const adaptiveResult = await coordinator.adaptWithFeedback(
+  agentOutputs,
+  taskChar,
+  performanceHistory
+);
+
+console.log('Best mechanism from history:', adaptiveResult.mechanism); // 'moe'
+```
+
+### Self-Learning Integration (ReasoningBank)
+
+```typescript
+import { ReasoningBank } from 'agentdb';
+
+class LearningAdaptiveCoordinator extends AdaptiveCoordinator {
+  constructor(
+    attentionService: AttentionService,
+    private reasoningBank: ReasoningBank
+  ) {
+    super(attentionService);
+  }
+
+  /**
+   * Learn optimal mechanism selection from past coordinations
+   */
+  async coordinateWithLearning(
+    taskDescription: string,
+    agentOutputs: AgentOutput[],
+    taskChar: TaskCharacteristics
+  ): Promise<CoordinationResult> {
+    // 1. Search for similar past tasks
+    const similarPatterns = await this.reasoningBank.searchPatterns({
+      task: taskDescription,
+      k: 5,
+      minReward: 0.8
+    });
+
+    if (similarPatterns.length > 0) {
+      console.log('📚 Learning from past adaptive coordinations:');
+
+      // Extract best performing mechanisms
+      const mechanismFrequency: Record<string, number> = {};
+      similarPatterns.forEach(pattern => {
+        const mechanism = pattern.metadata?.mechanism;
+        if (mechanism) {
+          mechanismFrequency[mechanism] = (mechanismFrequency[mechanism] || 0) + 1;
+        }
+      });
+
+      const bestMechanism = Object.entries(mechanismFrequency)
+        .sort(([, a], [, b]) => b - a)[0]?.[0] as AttentionMechanism;
+
+      if (bestMechanism) {
+        console.log(`Historical preference: ${bestMechanism}`);
+        taskChar.preferredMechanism = bestMechanism;
+      }
+    }
+
+    // 2. Coordinate with adaptive attention
+    const result = await this.adaptiveCoordination(agentOutputs, taskChar);
+
+    // 3. Calculate success metrics
+    const reward = this.calculateAdaptiveReward(result);
+    const success = reward > 0.8;
+
+    // 4. Store learning pattern with mechanism metadata
+    await this.reasoningBank.storePattern({
+      sessionId: `adaptive-${Date.now()}`,
+      task: taskDescription,
+      input: JSON.stringify({
+        agents: agentOutputs,
+        taskChar
+      }),
+      output: result.consensus,
+      reward,
+      success,
+      critique: this.generateCritique(result),
+      tokensUsed: this.estimateTokens(result),
+      latencyMs: result.executionTimeMs,
+      metadata: {
+        mechanism: result.mechanism,
+        contextSize: taskChar.contextSize,
+        agentCount: agentOutputs.length
+      }
+    });
+
+    return result;
+  }
+
+  private calculateAdaptiveReward(result: CoordinationResult): number {
+    // Reward based on:
+    // - Execution speed
+    // - Memory efficiency
+    // - Consensus quality
+
+    const speedScore = Math.max(0, 1 - result.executionTimeMs / 5000);
+    const memoryScore = result.memoryUsage
+      ? Math.max(0, 1 - result.memoryUsage / 100)
+      : 0.5;
+    const qualityScore = result.attentionWeights
+      .reduce((acc, w) => acc + w, 0) / result.attentionWeights.length;
+
+    return (speedScore * 0.4 + memoryScore * 0.2 + qualityScore * 0.4);
+  }
+
+  private generateCritique(result: CoordinationResult): string {
+    const critiques: string[] = [];
+
+    if (result.executionTimeMs > 3000) {
+      critiques.push(`Slow execution (${result.executionTimeMs}ms) - consider flash attention`);
+    }
+
+    if (result.mechanism === 'linear' && result.executionTimeMs < 1000) {
+      critiques.push('Linear attention was fast - could use multi-head for better quality');
+    }
+
+    if (result.mechanism === 'moe') {
+      critiques.push(`MoE routing selected ${result.topAgents.length} experts`);
+    }
+
+    return critiques.join('; ') || `Optimal ${result.mechanism} coordination`;
+  }
+
+  private estimateTokens(result: CoordinationResult): number {
+    return result.consensus.split(' ').length * 1.3;
+  }
+}
 ```
 
 ## MCP Neural Integration

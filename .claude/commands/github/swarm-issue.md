@@ -259,9 +259,12 @@ jobs:
         uses: ruvnet/swarm-action@v1
         with:
           command: |
-            if [[ "${{ github.event.label.name }}" == "swarm-ready" ]]; then
+            LABEL_NAME_FILE=$(mktemp)
+            printf '%s' "${{ github.event.label.name }}" > "$LABEL_NAME_FILE"
+            if grep -qx 'swarm-ready' "$LABEL_NAME_FILE"; then
               npx ruv-swarm github issue-init ${{ github.event.issue.number }}
             fi
+            rm -f "$LABEL_NAME_FILE"
 ```
 
 ### Issue Board Integration

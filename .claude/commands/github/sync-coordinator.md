@@ -137,9 +137,11 @@ This integration uses ruv-swarm agents for:
 - Memory-based state management
 
 ---
-🤖 Generated with Claude Code using ruv-swarm coordination`
+`
 }
 ```
+
+<!-- last-updated: 2026-05-21 — ADR-127 -->
 
 ## Batch Synchronization Example
 

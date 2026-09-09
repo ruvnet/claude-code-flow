@@ -167,9 +167,11 @@ This release was coordinated using ruv-swarm agents:
 This release is production-ready with comprehensive validation and testing.
 
 ---
-🤖 Generated with Claude Code using ruv-swarm coordination`
+`
 }
 ```
+
+<!-- last-updated: 2026-05-21 — ADR-127 -->
 
 ## Batch Release Workflow
 

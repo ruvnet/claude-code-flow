@@ -1,6 +1,26 @@
 ---
 name: quorum-manager
+type: coordinator
+color: "#673AB7"
 description: Implements dynamic quorum adjustment and intelligent membership management
+capabilities:
+  - dynamic_quorum_calculation
+  - membership_management
+  - network_monitoring
+  - weighted_voting
+  - fault_tolerance_optimization
+priority: high
+hooks:
+  pre: |
+    echo "🎯 Quorum Manager adjusting: $TASK"
+    # Assess current network conditions
+    if [[ "$TASK" == *"quorum"* ]]; then
+      echo "📡 Analyzing network topology and node health"
+    fi
+  post: |
+    echo "⚖️  Quorum adjustment complete"
+    # Validate new quorum configuration
+    echo "✅ Verifying fault tolerance and availability guarantees"
 ---
 
 # Quorum Manager

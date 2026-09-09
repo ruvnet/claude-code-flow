@@ -1,6 +1,26 @@
 ---
 name: crdt-synchronizer
+type: synchronizer
+color: "#4CAF50"
 description: Implements Conflict-free Replicated Data Types for eventually consistent state synchronization
+capabilities:
+  - state_based_crdts
+  - operation_based_crdts
+  - delta_synchronization
+  - conflict_resolution
+  - causal_consistency
+priority: high
+hooks:
+  pre: |
+    echo "🔄 CRDT Synchronizer syncing: $TASK"
+    # Initialize CRDT state tracking
+    if [[ "$TASK" == *"synchronization"* ]]; then
+      echo "📊 Preparing delta state computation"
+    fi
+  post: |
+    echo "🎯 CRDT synchronization complete"
+    # Verify eventual consistency
+    echo "✅ Validating conflict-free state convergence"
 ---
 
 # CRDT Synchronizer

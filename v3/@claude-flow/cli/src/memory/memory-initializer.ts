@@ -909,7 +909,17 @@ export function getHNSWStatus(): {
   // name promises — that's false while the bridge is the active path, so
   // this no longer claims otherwise. Vector search itself still works via
   // the bridge; `algorithm` tells callers it's brute-force, not HNSW.
-  if (_bridge && _bridge !== null) {
+  //
+  // #3228: this branch previously tested only that the bridge MODULE was
+  // loaded. On Windows the module imports fine but `getRegistry()` returns
+  // null behind the #3024 kill-switch, so every read/write actually goes to
+  // the sql.js store while this function still reported the bridge as the
+  // active path — `describeBackend()` then printed "sqlite (bridge, ...)"
+  // for a store the bridge never touched. Gate on whether the bridge is
+  // *permitted to be* the active path, not on whether the module resolved.
+  // `shouldDisableNativeBridge()` is sync and a pure function of platform +
+  // env, so it is a faithful discriminator here and needs no warm registry.
+  if (_bridge && _bridge !== null && !_bridge.shouldDisableNativeBridge()) {
     return {
       available: false,
       initialized: false,

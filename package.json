@@ -84,7 +84,7 @@
     "fs-extra": "^11.2.0",
     "express": ">=4.22.2",
     "express-rate-limit": ">=8.4.1",
-    "fast-uri": "3.1.5",
+    "fast-uri": "^3.1.6",
     "helmet": "^7.2.0",
     "inquirer": "^9.2.0",
     "semver": "7.7.3",

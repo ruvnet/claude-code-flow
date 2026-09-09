@@ -76,17 +76,32 @@ function existsSync(p) {
 }
 
 function parseFrontmatter(src) {
-  // First non-empty content must be `---`. Everything until the next `---`
-  // is YAML-ish key:value pairs (we only need flat keys).
   const lines = src.split(/\r?\n/);
   if (lines[0].trim() !== '---') return null;
   const fields = {};
   for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trim() === '---') return fields;
+    if (lines[i].trim() === '---') return { fields, error: null };
     const m = /^([\w-]+):\s*(.*)$/.exec(lines[i]);
-    if (m) fields[m[1]] = m[2].trim();
+    if (!m) continue;
+
+    const [, key, rawValue] = m;
+    if (Object.hasOwn(fields, key)) {
+      return { fields: null, error: `duplicate key \`${key}\`` };
+    }
+
+    const value = rawValue.trim();
+    const quoted = (value.startsWith('"') && value.endsWith('"'))
+      || (value.startsWith("'") && value.endsWith("'"));
+    const blockScalar = /^[>|][+-]?$/.test(value);
+    if (value && !quoted && !blockScalar && /:\s/.test(value)) {
+      return {
+        fields: null,
+        error: `plain scalar for \`${key}\` contains \": \": quote the value or use a block scalar`,
+      };
+    }
+    fields[key] = quoted ? value.slice(1, -1) : value;
   }
-  return null; // never closed
+  return null;
 }
 
 function auditSkill(skill) {
@@ -100,16 +115,21 @@ function auditSkill(skill) {
     violations.push({ check: 'readable', detail: e.message });
     return violations;
   }
-  const fm = parseFrontmatter(src);
-  if (!fm) {
+  const parsed = parseFrontmatter(src);
+  if (!parsed) {
     violations.push({ check: 'frontmatter block', detail: 'missing or unclosed `---` block' });
     return violations;
   }
+  if (parsed.error) {
+    violations.push({ check: 'frontmatter YAML', detail: parsed.error });
+    return violations;
+  }
+  const fm = parsed.fields;
   if (!fm.name) violations.push({ check: 'name field', detail: 'missing or empty' });
   if (!fm.description) violations.push({ check: 'description field', detail: 'missing or empty' });
   if (fm['allowed-tools'] === undefined) {
     violations.push({ check: 'allowed-tools field', detail: 'missing (security — no implicit "all tools")' });
-  } else if (fm['allowed-tools'].trim() === '*') {
+  } else if (String(fm['allowed-tools']).trim() === '*') {
     violations.push({ check: 'allowed-tools wildcard', detail: 'value is `*` — explicit list required' });
   }
   if (fm.name && fm.name !== skill.skillDir) {

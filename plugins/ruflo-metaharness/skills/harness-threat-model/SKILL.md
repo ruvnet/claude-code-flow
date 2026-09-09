@@ -1,6 +1,6 @@
 ---
 name: harness-threat-model
-description: Enterprise-review-grade threat model from `harness threat-model <path>`. Categorizes MCP-surface threats; emits `worst: 'clean'|'low'|'medium'|'high'` + per-threat findings. Pure-read.
+description: "Enterprise-review-grade threat model from `harness threat-model <path>`. Categorizes MCP-surface threats; emits `worst: 'clean'|'low'|'medium'|'high'` plus per-threat findings. Pure-read."
 argument-hint: "[--path .] [--fail-on clean|low|medium|high] [--format table|json]"
 allowed-tools: Bash
 ---

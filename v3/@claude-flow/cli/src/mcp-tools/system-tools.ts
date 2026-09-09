@@ -11,6 +11,7 @@
 
 import { type MCPTool, getProjectCwd } from './types.js';
 import { validateIdentifier } from './validate-input.js';
+import { inspectActiveSwarmHealth } from './swarm-tools.js';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, statfsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -374,11 +375,12 @@ export const systemTools: MCPTool[] = [
         });
       }
 
-      // Swarm — cannot verify real connectivity, report unknown
+      // Swarm — inspect the same persisted state used by swarm_status/health.
+      const swarmHealth = inspectActiveSwarmHealth();
       checks.push({
         name: 'swarm',
-        status: 'unknown',
-        message: 'Swarm connectivity not monitored — check coordination store manually',
+        status: swarmHealth.status,
+        message: swarmHealth.message,
       });
 
       // Neural — cannot verify, report unknown
@@ -443,17 +445,23 @@ export const systemTools: MCPTool[] = [
           }
         }
 
-        // Database — check if coordination store exists
+        // Database — accept both the coordination store and the canonical
+        // swarm state store written by swarm_init.
         {
           const t0 = performance.now();
-          const coordPath = join(projectCwd, '.claude-flow', 'coordination', 'store.json');
-          const dbExists = existsSync(coordPath);
+          const stores = [
+            { path: join(projectCwd, '.claude-flow', 'coordination', 'store.json'), label: 'coordination store' },
+            { path: join(projectCwd, '.claude-flow', 'swarm', 'swarm-state.json'), label: 'swarm state store' },
+          ];
+          const availableStore = stores.find((store) => existsSync(store.path));
           const elapsed = performance.now() - t0;
           checks.push({
             name: 'database',
-            status: dbExists ? 'healthy' : 'unknown',
+            status: availableStore ? 'healthy' : 'unknown',
             latency: Math.round(elapsed * 100) / 100,
-            message: dbExists ? undefined : 'Coordination store not found',
+            message: availableStore
+              ? `Persistent ${availableStore.label} available`
+              : 'No coordination or swarm state store found',
           });
         }
       }

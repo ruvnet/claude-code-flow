@@ -62,6 +62,13 @@ interface SwarmStore {
   version: string;
 }
 
+export interface ActiveSwarmHealth {
+  status: 'healthy' | 'degraded' | 'unknown';
+  stateFileExists: boolean;
+  swarmId?: string;
+  message: string;
+}
+
 function getSwarmDir(): string {
   return join(getProjectCwd(), SWARM_DIR);
 }
@@ -203,6 +210,35 @@ function latestRunningSwarm(store: SwarmStore): SwarmState | undefined {
   return Object.values(store.swarms)
     .filter((swarm) => swarm.status === 'running')
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
+}
+
+/** Real, persisted swarm state for aggregate system health reporting. */
+export function inspectActiveSwarmHealth(): ActiveSwarmHealth {
+  const store = loadSwarmStore();
+  const active = latestRunningSwarm(store);
+  const stateFileExists = existsSync(getSwarmStatePath());
+
+  if (active) {
+    return {
+      status: stateFileExists ? 'healthy' : 'degraded',
+      stateFileExists,
+      swarmId: active.swarmId,
+      message: stateFileExists
+        ? `Active swarm ${active.swarmId} is running with persisted state`
+        : `Active swarm ${active.swarmId} is running but its state file is missing`,
+    };
+  }
+
+  const latest = Object.values(store.swarms)
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
+  return {
+    status: 'unknown',
+    stateFileExists,
+    swarmId: latest?.swarmId,
+    message: latest
+      ? `No active swarm; latest swarm ${latest.swarmId} is ${latest.status}`
+      : 'No active swarm found',
+  };
 }
 
 function apscStateOf(swarm: SwarmState | undefined): ApscState | undefined {

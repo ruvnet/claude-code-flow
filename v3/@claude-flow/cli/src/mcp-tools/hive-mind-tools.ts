@@ -23,6 +23,10 @@ type ConsensusStrategyName = 'raft' | 'byzantine' | 'gossip' | 'crdt' | 'quorum'
 
 interface HiveState {
   initialized: boolean;
+  // #655 — persist the hiveId generated at init time so every subsequent
+  // hive-mind_status call reports the SAME id the user saw at init/spawn,
+  // instead of re-deriving a differently-formatted id from createdAt.
+  hiveId?: string;
   topology: 'mesh' | 'hierarchical' | 'ring' | 'star';
   consensusStrategy?: ConsensusStrategyName;
   queen?: {
@@ -322,6 +326,9 @@ export const hiveMindTools: MCPTool[] = [
 
       const requestedConsensus = (input.consensus as ConsensusStrategyName) || 'raft';
       state.initialized = true;
+      // #655 — persist the id we're about to return so status/spawn read it
+      // back verbatim instead of recomputing a different-looking id.
+      state.hiveId = hiveId;
       state.topology = (input.topology as HiveState['topology']) || 'mesh';
       state.consensusStrategy = requestedConsensus;
       state.createdAt = new Date().toISOString();
@@ -388,9 +395,14 @@ export const hiveMindTools: MCPTool[] = [
       const workerCount = Math.max(1, state.workers.length);
       const realLoad = activeTaskCount / workerCount;
 
+      // #655 — fall back to the old derived-from-createdAt format only for
+      // state files persisted before this field existed; a freshly
+      // initialized hive always has state.hiveId set by hive-mind_init.
+      const hiveId = state.hiveId ?? `hive-${state.createdAt ? new Date(state.createdAt).getTime() : Date.now()}`;
+
       const status = {
         // CLI expected fields
-        hiveId: `hive-${state.createdAt ? new Date(state.createdAt).getTime() : Date.now()}`,
+        hiveId,
         status: state.initialized ? 'active' : 'offline',
         topology: state.topology,
         // ADR-093 F3: surface the persisted strategy instead of a hardcoded "byzantine".
@@ -431,7 +443,7 @@ export const hiveMindTools: MCPTool[] = [
           memory: 'healthy',
         },
         // Additional fields
-        id: `hive-${state.createdAt ? new Date(state.createdAt).getTime() : Date.now()}`,
+        id: hiveId,
         initialized: state.initialized,
         workerCount: state.workers.length,
         pendingConsensus: state.consensus.pending.length,

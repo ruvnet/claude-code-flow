@@ -42,13 +42,15 @@ Frozen before evaluation; not modified after seeing results.
 
 ## Benchmarks / Evaluation
 
-**evaluated: accepted (ACCEPT).** Real evaluator: Vitest 4.1.8, deterministic (fake timers), zero LLM calls, $0 cost.
+**evaluated: accepted (ACCEPT-scoped — see adversarial critique below for the scoping caveats).** Real evaluator: Vitest 4.1.8, deterministic (fake timers), zero LLM calls, $0 cost.
 
 Candidate diff: `v3/@claude-flow/swarm/src/agent-pool.ts` (1 line removed + explanatory comment). New test file: `v3/@claude-flow/swarm/__tests__/agent-pool.test.ts` (3 tests, ~100 lines — no test file existed for this class before tonight).
 
 **Baseline vs. candidate, isolated via `git stash` of just the source file (test file kept):** 2 of 3 tests fail against baseline exactly as predicted — a silent agent (no `updateAgentHeartbeat()` calls, 5 health-check ticks past creation) stays `status: 'idle'`/`health: 1.0` instead of becoming `'error'`, and a fully-silent agent is never replaced (`replaceUnhealthyAgent()` never fires, confirmed via a zero-length `agent.replaced` event list) even after 9 ticks — enough time for 5 unhealthy decrements (1.0 → 0.0 in 0.2 steps) under the fix. The 3rd test (a genuinely-alive agent receiving real `updateAgentHeartbeat()` calls every tick stays healthy) passes both ways, confirming the fix doesn't change behavior for agents that already report real liveness — it only stops treating silence as liveness.
 
 Full `@claude-flow/swarm` package suite: **223/223 passing** (220 pre-existing + 3 new), 0 regressions. `tsc --noEmit`: 0 errors.
+
+**Independent adversarial critique (STEP 10), re-run by a separate subagent with no authoring context:** verdict **CONFIRMED-WITH-CAVEATS**. The critic independently re-verified the zero-callers claim, re-ran the full suite and typecheck from scratch, reproduced the baseline-fails/candidate-passes stash isolation itself, and hand-recomputed the tick arithmetic. Two disclosed caveats, neither blocking: (1) `@claude-flow/swarm` is not currently a dependency of the shipped `@claude-flow/cli` package — only one string-literal reference exists in `cli/src` (an ownership-table entry, not an import) — so tonight's fix is real and exercised by the swarm package's own `UnifiedSwarmCoordinator`/tests (`initializeAgentPools()`/`initializeDomainPools()` → `pool.initialize()` → `startHealthChecks()`, and `assignTaskToDomain()` → `pool.acquire()`), but has no reachable path through the actual `npx ruflo`/`claude-flow` CLI today — its present blast radius is the swarm package's public API, not an active CLI hot path; (2) health still optimistically increments +0.1 every tick for an agent inside the 3x grace window even with zero real heartbeats — health isn't strictly liveness-derived until the threshold is first crossed. This is a smaller, pre-existing, out-of-scope characteristic (detection/replacement is now correctly gated purely by `lastHeartbeat` timing, independent of the health score) mirroring `UnifiedSwarmCoordinator.checkHeartbeats()`'s own no-tick-based-recovery design, not a residual instance of tonight's bug. **Corrected verdict: ACCEPT-scoped** — scoping to "the self-stamping detection bug is fixed and tested, real within the swarm package's own coordinator" rather than an unqualified claim about the shipped CLI's current hot path.
 
 ## Darwin Results
 
@@ -91,8 +93,8 @@ Also noted, lower priority: `TaskOrchestrator.getTaskMetrics()`'s `totalQueueTim
 | Field | Value |
 |---|---|
 | Session commit | `e341ec8c4aba8ea616499180dee53035af7e295c` |
-| Gist SHA-256 (pre-witness content) | PENDING |
-| Witness stamp | PENDING |
+| Gist SHA-256 (pre-witness content) | `8b8b5639fc6b2cbe87a143b0b5bd3c56ce72723ab1da977c15dcac12fbf61ac7` |
+| Witness stamp | `008c96a0f16f7b39516a8903e367624ddb1c149463d1561502dee84a92c47d99` |
 
 Verifier procedure: fetch `docs/dream-cycle/dream-gist-2026-09-09.md` from this branch, strip the witness table's filled values back to `PENDING`, SHA-256 it, concatenate with the session commit above, SHA-256 again — result must equal the witness stamp.
 

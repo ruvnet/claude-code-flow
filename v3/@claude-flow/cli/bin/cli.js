@@ -234,6 +234,15 @@ if (isMCPMode) {
     process.exit(0);
   });
 
+  // Exit cleanly when the parent process sends a termination signal.
+  // Without these handlers, the auto-detected MCP server can survive the
+  // parent's death (e.g. when the client is killed with SIGKILL and the
+  // stdin pipe is not closed gracefully) and accumulate as an orphaned
+  // process under PPID=1. The explicit `mcp-server.js` entrypoint already
+  // registers these handlers — this brings the auto-detect path to parity.
+  process.on('SIGINT', () => process.exit(0));
+  process.on('SIGTERM', () => process.exit(0));
+
   async function handleMessage(message) {
     if (!message.method) {
       return {

@@ -140,5 +140,7 @@ All ADRs are located in [`/v3/implementation/adrs/`](../../implementation/adrs/)
 
 ---
 
-**Last Updated:** 2026-01-14
-**CLI Version:** @claude-flow/cli@3.0.0-alpha.104
+| [ADR-131](ADR-131-dream-cycle-security-tool-output-guardrail.md) | Tool-Output Semantic Guardrail (Indirect Prompt Injection) | Proposed |
+
+**Last Updated:** 2026-05-26
+**CLI Version:** @claude-flow/cli@3.7.x

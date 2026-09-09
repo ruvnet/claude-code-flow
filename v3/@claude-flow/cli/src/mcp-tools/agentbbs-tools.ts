@@ -52,11 +52,17 @@ function agentbbsCliAvailable(): boolean {
   if (_cliAvailable !== null) return _cliAvailable;
   const bin = process.env.AGENTBBS_BIN || CLI_NAME;
   try {
-    // shell: true is required on Windows — npm's global-install shim is
-    // `agentbbs.cmd`, and child_process does not consult PATHEXT unless the
-    // command is run through a shell. bin is either the fixed CLI_NAME or an
-    // operator-controlled AGENTBBS_BIN override, not untrusted input.
-    execFileSync(bin, ['--version'], { stdio: 'ignore', timeout: 5000, shell: true });
+    // On Windows npm's global-install shim is `agentbbs.cmd`, and
+    // child_process cannot spawn a .cmd without going through cmd.exe, which
+    // is what resolves the PATHEXT extension. POSIX keeps shell:false so the
+    // AGENTBBS_BIN override is never shell-interpreted — same convention as
+    // browser-tools.ts and commands/init.ts.
+    execFileSync(bin, ['--version'], {
+      stdio: 'ignore',
+      timeout: 5000,
+      shell: process.platform === 'win32',
+      windowsHide: true,
+    });
     _cliAvailable = true;
   } catch {
     _cliAvailable = false;

@@ -29,8 +29,13 @@ function findTool(name: string) {
 // mirrors agentbbsCliAvailable() in the tools module under test.
 let havePkg = false;
 try {
-  // shell: true — see agentbbsCliAvailable() in the module under test for why.
-  execFileSync(process.env.AGENTBBS_BIN || 'agentbbs', ['--version'], { stdio: 'ignore', timeout: 5000, shell: true });
+  // shell only on win32 — see agentbbsCliAvailable() in the module under test.
+  execFileSync(process.env.AGENTBBS_BIN || 'agentbbs', ['--version'], {
+    stdio: 'ignore',
+    timeout: 5000,
+    shell: process.platform === 'win32',
+    windowsHide: true,
+  });
   havePkg = true;
 } catch { havePkg = false; }
 

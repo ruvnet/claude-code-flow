@@ -21,36 +21,53 @@
  *     so callers see one contract regardless of install state
  *   - Phase 1: polling-based watch (streaming subscriptions are Phase 4)
  *
+ * Presence check: the published `agentbbs` package (as of 0.2.1) is a CLI-only
+ * launcher — a `bin` script with no importable JS entry point (no `main` /
+ * `exports` field) — that downloads/builds a Rust binary and shells out to it.
+ * `await import('agentbbs')` can therefore never resolve, even when the CLI is
+ * correctly installed and on PATH: there is no module for Node to find. This
+ * previously made every tool report `degraded: true` unconditionally,
+ * regardless of install state. Detect real availability instead by probing the
+ * CLI itself, matching how the rest of this codebase treats optional
+ * command-line tools (`shutil.which()`-style guards) rather than assuming a
+ * package shape the dependency doesn't have.
+ *
  * @module @claude-flow/cli/mcp-tools/agentbbs
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
 import { resolve, isAbsolute, join } from 'node:path';
 import { randomBytes, createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import type { MCPTool } from './types.js';
 import { getProjectCwd } from './types.js';
 
-const PACKAGE_NAME = 'agentbbs';
+const CLI_NAME = 'agentbbs';
 
-// Cache: amortize dynamic-import cost across handler calls.
-// null = not yet attempted; false = unavailable; module = loaded.
-let _agentbbsMod: any = null;
-let _loadAttempted = false;
+// Cache: amortize the subprocess probe cost across handler calls within a
+// process. null = not yet probed; boolean = probe result.
+let _cliAvailable: boolean | null = null;
 
-async function loadAgentbbs(): Promise<any | null> {
-  if (_loadAttempted) return _agentbbsMod || null;
-  _loadAttempted = true;
+function agentbbsCliAvailable(): boolean {
+  if (_cliAvailable !== null) return _cliAvailable;
+  const bin = process.env.AGENTBBS_BIN || CLI_NAME;
   try {
-    _agentbbsMod = await import(PACKAGE_NAME);
-    return _agentbbsMod;
-  } catch (err: any) {
-    if (err && (err.code === 'ERR_MODULE_NOT_FOUND' || err.code === 'MODULE_NOT_FOUND' ||
-                /Cannot find (module|package)/i.test(String(err?.message)))) {
-      _agentbbsMod = false;
-      return null;
-    }
-    throw err;
+    // On Windows npm's global-install shim is `agentbbs.cmd`, and
+    // child_process cannot spawn a .cmd without going through cmd.exe, which
+    // is what resolves the PATHEXT extension. POSIX keeps shell:false so the
+    // AGENTBBS_BIN override is never shell-interpreted — same convention as
+    // browser-tools.ts and commands/init.ts.
+    execFileSync(bin, ['--version'], {
+      stdio: 'ignore',
+      timeout: 5000,
+      shell: process.platform === 'win32',
+      windowsHide: true,
+    });
+    _cliAvailable = true;
+  } catch {
+    _cliAvailable = false;
   }
+  return _cliAvailable;
 }
 
 function degradedResult(reason: string): { success: true; degraded: true; reason: string } {
@@ -140,11 +157,21 @@ function nextSeq(path: string): number {
  * agentbbs server's responsibility (nonce JTI tracking, per ADR-164 §3.2.4).
  * Phase 2+ will wire this to the existing federation Ed25519 keypair.
  */
+// Use @noble/ed25519 (already a hard dep of @claude-flow/cli for IPFS
+// signing). Memoized behind one loader — two separate dynamic `import()`
+// call sites for the same bare specifier in this module tripped up the
+// test runner's dependency pre-bundling (surfaced once federation_bbs_
+// human_join actually ran instead of always short-circuiting to degraded).
+let _edMod: any = null;
+async function loadEd25519(): Promise<any> {
+  if (!_edMod) _edMod = await import('@noble/ed25519');
+  return _edMod;
+}
+
 let _signingKey: { priv: Uint8Array; pub: Uint8Array } | null = null;
 async function getSigningKey(): Promise<{ priv: Uint8Array; pub: Uint8Array }> {
   if (_signingKey) return _signingKey;
-  // Use @noble/ed25519 (already a hard dep of @claude-flow/cli for IPFS signing).
-  const ed: any = await import('@noble/ed25519');
+  const ed = await loadEd25519();
   const priv = ed.utils.randomPrivateKey
     ? ed.utils.randomPrivateKey()
     : randomBytes(32);
@@ -191,8 +218,7 @@ export const agentbbsTools: MCPTool[] = [
       const roomLabel = validateRoomLabel(String(input.roomLabel));
       const basePath = resolveBasePath(input.basePath as string | undefined);
 
-      const api = await loadAgentbbs();
-      if (!api) return degradedResult('agentbbs-not-found');
+      if (!agentbbsCliAvailable()) return degradedResult('agentbbs-not-found');
 
       ensureDir(basePath);
 
@@ -280,8 +306,7 @@ export const agentbbsTools: MCPTool[] = [
         throw new Error('payload must be a JSON object');
       }
 
-      const api = await loadAgentbbs();
-      if (!api) return degradedResult('agentbbs-not-found');
+      if (!agentbbsCliAvailable()) return degradedResult('agentbbs-not-found');
 
       ensureDir(basePath);
       const logPath = roomLogPath(basePath, roomId);
@@ -336,8 +361,7 @@ export const agentbbsTools: MCPTool[] = [
       const basePath = resolveBasePath(input.basePath as string | undefined);
       const roomId = validateRoomId(String(input.roomId));
 
-      const api = await loadAgentbbs();
-      if (!api) return degradedResult('agentbbs-not-found');
+      if (!agentbbsCliAvailable()) return degradedResult('agentbbs-not-found');
 
       const limitRaw = typeof input.limit === 'number' ? input.limit : 50;
       const limit = Math.max(1, Math.min(500, Math.trunc(limitRaw)));
@@ -383,8 +407,7 @@ export const agentbbsTools: MCPTool[] = [
     handler: async (input) => {
       const roomId = validateRoomId(String(input.roomId));
 
-      const api = await loadAgentbbs();
-      if (!api) return degradedResult('agentbbs-not-found');
+      if (!agentbbsCliAvailable()) return degradedResult('agentbbs-not-found');
 
       const ttlRaw = typeof input.ttlSeconds === 'number' ? input.ttlSeconds : 300;
       const ttlSeconds = Math.max(30, Math.min(900, Math.trunc(ttlRaw)));
@@ -395,7 +418,7 @@ export const agentbbsTools: MCPTool[] = [
       const payload = { roomId, nonce, expiresAt };
       const canonical = JSON.stringify(payload);
 
-      const ed: any = await import('@noble/ed25519');
+      const ed = await loadEd25519();
       const { priv, pub } = await getSigningKey();
       const sigBytes: Uint8Array = await (ed.signAsync ?? ed.sign)(
         new TextEncoder().encode(canonical),

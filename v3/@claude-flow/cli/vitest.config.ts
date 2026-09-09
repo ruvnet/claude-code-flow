@@ -28,7 +28,6 @@ export default defineConfig({
         if (source.startsWith('@ruvector/')) return { id: source, external: true };
         if (source.startsWith('@huggingface/transformers')) return { id: source, external: true };
         if (source.startsWith('@xenova/transformers')) return { id: source, external: true };
-        if (source.startsWith('@noble/ed25519')) return { id: source, external: true };
         return null;
       },
     },

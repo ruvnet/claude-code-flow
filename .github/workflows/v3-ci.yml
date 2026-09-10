@@ -1789,6 +1789,7 @@ jobs:
     # actually exercised.
     name: CLI npx-install smoke (#1147 / #2018) / Node ${{ matrix.node }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:

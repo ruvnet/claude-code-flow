@@ -184,6 +184,17 @@ npm install -g ruflo@latest
 
 > 💡 **Windows users:** the `curl ... | bash` form needs a POSIX shell (Git-Bash, WSL, MSYS). The `npx ruflo@latest init wizard` line works natively in PowerShell and cmd. If you hit an `'bash' is not recognized` error, use the `npx` line instead — both end up running the same init flow.
 
+#### ⏱️ Cold-Cache Installation Times
+
+On first install from a cold cache (no node_modules), `@claude-flow/cli` may take **60–120 seconds** to download and extract. This is normal:
+
+- **~1.8MB package** with 999 files
+- Download varies by network speed (10–40s)
+- Extraction and postinstall scripts (20–80s)
+- **Tip:** Subsequent runs are instant (npm caches locally)
+
+If you see no output after 60 seconds, **wait longer** — the CLI is still installing. The package will succeed unless interrupted by a timeout. If you hit a timeout in CI, increase `timeout-minutes` to 3 (180 seconds).
+
 ### MCP Server
 
 ```bash

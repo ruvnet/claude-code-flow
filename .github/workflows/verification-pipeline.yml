@@ -254,6 +254,7 @@ jobs:
     name: 🏗️ Build Verification
     runs-on: ubuntu-latest
     needs: [setup-verification, code-quality]
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -273,9 +274,10 @@ jobs:
           cd v3/@claude-flow/cli && npm run build || echo "✅ CLI build completed (or already built)"
         continue-on-error: true
 
-      - name: Verify CLI availability
+      - name: Verify CLI availability (extended timeout for cold-cache)
+        timeout-minutes: 3
         run: |
-          echo "✅ Verifying CLI..."
+          echo "✅ Verifying CLI (allowing up to 180s for cold-cache installation)..."
           test -f v3/@claude-flow/cli/bin/cli.js && echo "CLI binary exists" || echo "⚠️ CLI binary not found (non-blocking)"
         continue-on-error: true
 

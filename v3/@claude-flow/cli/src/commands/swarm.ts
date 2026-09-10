@@ -726,6 +726,20 @@ async function runSwarmStartExecute(
 
   const specs = buildWorkerSpecs(objective, agentPlan, { maxAgents, model });
 
+  // Confirm at a TTY before spending on real workers (the console path is
+  // non-interactive, so it is not prompted). Prompt on stdout is fine here.
+  if (ctx.interactive) {
+    const confirmed = await confirm({
+      message: `Execute this objective with ${specs.length} ${model} worker(s)? This spends real tokens.`,
+      default: true,
+    });
+    if (!confirmed) {
+      err('Swarm execution cancelled');
+      return { success: true };
+    }
+  }
+
+  const startedAt = new Date().toISOString();
   err(`Swarm ${swarmId} — streaming execution (ADR-385)`);
   err(`Objective: ${objective}`);
   err(`Strategy: ${strategy} · topology: ${topology} · consensus: ${consensus} · model: ${model}`);
@@ -753,7 +767,7 @@ async function runSwarmStartExecute(
       swarmId, objective, strategy, topology, status: 'running',
       agents: specs.length, agentPlan,
       roster: specs.map((s) => ({ name: s.name, role: s.role, model: s.model })),
-      startedAt: new Date().toISOString(), parallel: ctx.flags.parallel ?? true,
+      startedAt, parallel: ctx.flags.parallel ?? true,
     }, null, 2));
   } catch { /* non-fatal */ }
 
@@ -778,7 +792,7 @@ async function runSwarmStartExecute(
       status: anyOk ? 'completed' : 'failed',
       agents: specs.length, agentPlan,
       roster: overview.roster, artifacts: overview.artifacts,
-      startedAt: new Date().toISOString(), completedAt: new Date().toISOString(),
+      startedAt, completedAt: new Date().toISOString(),
     }, null, 2));
   } catch { /* non-fatal */ }
 

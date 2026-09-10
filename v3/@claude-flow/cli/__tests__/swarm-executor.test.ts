@@ -188,17 +188,19 @@ function writeFixtureBin(dir: string, name: string, body: string): string {
   return p;
 }
 
-// Emits the captured stream-json fixture line-by-line, then exits 0.
+// Emits the captured stream-json fixture line-by-line, then exits 0. Also
+// records the received argv and stdin to files in cwd so tests can prove the
+// objective/prompt travelled over stdin, never argv (the shell-safety guard).
 function streamerScript(): string {
   const fixtureData = readFileSync(FIXTURE, 'utf-8');
   return `#!/usr/bin/env node
+const fs = require('fs'), path = require('path');
 const lines = ${JSON.stringify(fixtureData)}.split('\\n').filter(Boolean);
-// Also dump argv so a test can assert the objective never appears as an arg.
-process.stderr.write('ARGV:' + JSON.stringify(process.argv.slice(2)) + '\\n');
+fs.writeFileSync(path.join(process.cwd(), 'argv.json'), JSON.stringify(process.argv.slice(2)));
 let chunks = '';
 process.stdin.on('data', d => chunks += d);
 process.stdin.on('end', () => {
-  process.stderr.write('STDIN_LEN:' + chunks.length + '\\n');
+  fs.writeFileSync(path.join(process.cwd(), 'stdin.txt'), chunks);
   let i = 0;
   const tick = () => {
     if (i < lines.length) { process.stdout.write(lines[i++] + '\\n'); setTimeout(tick, 5); }
@@ -212,16 +214,23 @@ process.stdin.on('end', () => {
 describe('spawnWorker (executable fixture, full seam)', () => {
   const dir = mkdtempSync(join(tmpdir(), 'swarm-exec-'));
 
-  it('SECURITY: the objective never reaches argv (passed via stdin)', async () => {
-    const bin = writeFixtureBin(dir, 'streamer', streamerScript());
+  it('SECURITY: a malicious objective reaches the child via stdin, never argv', async () => {
+    const sdir = mkdtempSync(join(tmpdir(), 'swarm-sec-'));
+    const bin = writeFixtureBin(sdir, 'streamer', streamerScript());
     const events: SwarmEvent[] = [];
     const malicious = '"; rm -rf ~ #';
     const res = await spawnWorker(
       { name: 'coder', role: 'coder', model: 'haiku', prompt: malicious },
-      { cwd: dir, timeoutMs: 10000, allowedTools: DEFAULT_ALLOWED_TOOLS, claudeBin: bin, onEvent: (e) => events.push(e) },
+      { cwd: sdir, timeoutMs: 10000, allowedTools: DEFAULT_ALLOWED_TOOLS, claudeBin: bin, onEvent: (e) => events.push(e) },
     );
     expect(res.status).toBe('ok');
-    // live streaming happened (events arrived), artifacts captured from tool_use
+    // The child recorded exactly what it received: argv has NO objective text,
+    // stdin IS the objective verbatim.
+    const argv = JSON.parse(readFileSync(join(sdir, 'argv.json'), 'utf-8')) as string[];
+    expect(argv).toContain('-p'); // real flags are present…
+    expect(JSON.stringify(argv)).not.toContain('rm -rf'); // …but the objective is not
+    expect(readFileSync(join(sdir, 'stdin.txt'), 'utf-8')).toBe(malicious);
+    // live streaming happened and tool_use file_path artifacts were captured
     expect(events.some((e) => e.kind === 'token')).toBe(true);
     expect(res.files.some((f) => f.includes('/tmp/'))).toBe(true);
   });
@@ -292,8 +301,8 @@ describe('runSwarmExecution (fixture binary)', () => {
     appendGuidance(sessionDir, 'prioritize the auth module');
     expect(readGuidance(sessionDir)).toContain('prioritize the auth module');
 
-    // A bin that echoes back the received prompt length proves injection ran;
-    // here we assert the guidance file is read and merged into the spec prompt.
+    // The streamer records the prompt it received on stdin; assert the
+    // guidance text was actually merged into that prompt.
     const bin = writeFixtureBin(dir, 'streamer', streamerScript());
     const specs = buildWorkerSpecs('do a task', [
       { role: 'Coder', type: 'coder', count: 1, purpose: 'Implement' },
@@ -305,8 +314,10 @@ describe('runSwarmExecution (fixture binary)', () => {
       maxParallel: 1, deadlineSecs: 30, claudeBin: bin, sessionDir,
       onEvent: (e) => events.push(e),
     });
-    const transcript = readFileSync(join(sessionDir, 'transcript.ndjson'), 'utf-8');
-    expect(transcript.length).toBeGreaterThan(0);
+    const stdinSeen = readFileSync(join(dir, 'stdin.txt'), 'utf-8');
+    expect(stdinSeen).toContain('OPERATOR GUIDANCE');
+    expect(stdinSeen).toContain('prioritize the auth module');
+    expect(readFileSync(join(sessionDir, 'transcript.ndjson'), 'utf-8').length).toBeGreaterThan(0);
   });
 });
 

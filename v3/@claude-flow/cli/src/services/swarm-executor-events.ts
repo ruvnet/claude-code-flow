@@ -262,13 +262,14 @@ export function buildOverview(input: {
   else if (partial) nextSteps.push(`${partial} worker(s) hit the deadline — inspect the transcript and re-run if needed.`);
   if (input.transcriptPath) nextSteps.push(`Full transcript: ${input.transcriptPath}`);
   return {
-    objective: input.objective,
+    objective: redact(input.objective),
     swarmId: input.swarmId,
     topology: input.topology,
     consensus: input.consensus,
     strategy: input.strategy,
     roster: input.workers.map((w) => ({ name: w.name, role: w.role, model: w.model })),
-    workers: input.workers,
+    // Redact worker error strings (built from stderr/exit, not via ev()).
+    workers: input.workers.map((w) => (w.error ? { ...w, error: redact(w.error) } : w)),
     artifacts,
     memoryKeys: input.memoryKeys ?? [],
     transcriptPath: input.transcriptPath ?? null,

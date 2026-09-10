@@ -65,6 +65,7 @@ export function spawnWorker(spec: WorkerSpec, opts: SpawnWorkerOptions): Promise
     let stderr = '';
     let costUsd: number | null = null;
     let settled = false;
+    let procError: string | null = null;
 
     const env: Record<string, string> = {
       ...(process.env as Record<string, string>),
@@ -180,7 +181,11 @@ export function spawnWorker(spec: WorkerSpec, opts: SpawnWorkerOptions): Promise
         status = 'ok';
       } else {
         status = hadOutput && !sawError ? 'partial' : 'failed';
-        error = sawError ? 'worker reported an error event' : `exit code ${code}${stderr ? `: ${stderr.trim().slice(0, 200)}` : ''}`;
+        error = procError
+          ? procError
+          : sawError
+            ? 'worker reported an error event'
+            : `exit code ${code}${stderr ? `: ${stderr.trim().slice(0, 200)}` : ''}`;
       }
       resolve({
         name: spec.name,
@@ -196,7 +201,8 @@ export function spawnWorker(spec: WorkerSpec, opts: SpawnWorkerOptions): Promise
 
     child.on('close', done);
     child.on('error', (err) => {
-      opts.onEvent({ agent: spec.name, role: spec.role, kind: 'error', data: `process error: ${err.message}`, ts: new Date().toISOString() });
+      procError = `process error: ${err.message}`;
+      opts.onEvent({ agent: spec.name, role: spec.role, kind: 'error', data: procError, ts: new Date().toISOString() });
       done(null);
     });
   });
@@ -239,6 +245,13 @@ export async function runSwarmExecution(opts: RunSwarmOptions): Promise<RunSwarm
   // Global deadline: one controller aborts every in-flight worker.
   const controller = new AbortController();
   const globalTimer = setTimeout(() => controller.abort(), deadlineMs);
+
+  // Parent death (console drops the SSE client, user Ctrl+C): abort so the
+  // detached worker groups are killed rather than orphaned and left spending
+  // (mirrors hive-mind.ts). Removed after the run completes.
+  const onSignal = () => controller.abort();
+  process.once('SIGINT', onSignal);
+  process.once('SIGTERM', onSignal);
 
   // Transcript sink (append each event as raw NDJSON).
   let transcriptPath: string | null = null;
@@ -287,6 +300,8 @@ export async function runSwarmExecution(opts: RunSwarmOptions): Promise<RunSwarm
   const pool = Array.from({ length: Math.min(maxParallel, queue.length) }, () => runOne());
   await Promise.all(pool);
   clearTimeout(globalTimer);
+  process.off('SIGINT', onSignal);
+  process.off('SIGTERM', onSignal);
 
   // Deterministic reduce (I1). An LLM coordinator reduce is deferred (I1.5).
   const ok = results.filter((r) => r.status === 'ok').length;

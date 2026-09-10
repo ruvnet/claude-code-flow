@@ -21,10 +21,34 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import { createRequire } from 'node:module';
 
-// ===== Lazy singleton =====
+// ===== Lazy registry cache, keyed by database path =====
 
-let registryPromise: Promise<any> | null = null;
-let registryInstance: any = null;
+/**
+ * #3196: this cache is keyed by resolved database path, and that is the whole
+ * point of it.
+ *
+ * It used to be a single global instance. The first caller to touch the bridge
+ * decided which file the process would use, and every later caller's explicit
+ * `dbPath` was accepted and then silently ignored — `getRegistry()` returned the
+ * already-built instance without ever comparing paths. A `memory store --path A`
+ * following an MCP write therefore read and wrote B, reported success, and left
+ * two valid corpora that neither interface could see whole.
+ *
+ * Keying by path makes an explicit path mean what it says. Two paths in one
+ * process are two registries, which is the behaviour the CLI's `--path` flag and
+ * `CLAUDE_FLOW_DB_PATH` have always advertised.
+ */
+const registryPromises = new Map<string, Promise<any>>();
+const registryInstances = new Map<string, any>();
+/**
+ * Test seam: when set, every path resolves to this registry.
+ *
+ * Kept separate from the path cache on purpose. A test installs a fake registry
+ * and then calls a bridge function with its own temp `dbPath`; keying the
+ * override by path would mean the seam only worked for callers that happened to
+ * pass the same path the seam guessed, which is how #2968's fixture broke.
+ */
+let testRegistryOverride: any = null;
 let bridgeAvailable: boolean | null = null;
 // #2652/#2120: rows created before the status column existed receive NULL
 // during migration. They are live rows, not tombstones. Every user-facing
@@ -179,10 +203,18 @@ async function getRegistry(dbPath?: string): Promise<any | null> {
       : 'AgentDB native bridge disabled by CLAUDE_FLOW_DISABLE_BRIDGE=1';
     return null;
   }
+  if (testRegistryOverride) return testRegistryOverride;
   if (bridgeAvailable === false) return null;
 
-  if (registryInstance) return registryInstance;
+  // Resolve first, then cache on the resolved value: `undefined`, a relative
+  // path and its absolute form must not become three different registries over
+  // the same file.
+  const resolvedPath = dbPath ? path.resolve(dbPath) : getAgentDbPath();
 
+  const cached = registryInstances.get(resolvedPath);
+  if (cached) return cached;
+
+  let registryPromise = registryPromises.get(resolvedPath);
   if (!registryPromise) {
     registryPromise = (async () => {
       try {
@@ -201,7 +233,7 @@ async function getRegistry(dbPath?: string): Promise<any | null> {
         try {
           await (registry as any).initialize({
             // #2786: use agentdb-memory.db (plaintext) so native better-sqlite3 doesn't hit the encrypted memory.db.
-            dbPath: dbPath || getAgentDbPath(),
+            dbPath: resolvedPath,
             embeddingModel: 'Xenova/all-MiniLM-L6-v2',
             dimension: 384,
             vectorBackend: 'auto',
@@ -420,7 +452,7 @@ async function getRegistry(dbPath?: string): Promise<any | null> {
           // Top-level catch — registry stays usable even if post-init wiring fails wholesale.
         }
 
-        registryInstance = registry;
+        registryInstances.set(resolvedPath, registry);
         bridgeAvailable = true;
         bridgeFailureReason = null;
         return registry;
@@ -430,13 +462,30 @@ async function getRegistry(dbPath?: string): Promise<any | null> {
         // makes the resulting sql.js-fallback refusal undiagnosable.
         bridgeFailureReason = err instanceof Error ? err.message : String(err);
         bridgeAvailable = false;
-        registryPromise = null;
+        registryPromises.delete(resolvedPath);
         return null;
       }
     })();
+    registryPromises.set(resolvedPath, registryPromise);
   }
 
   return registryPromise;
+}
+
+/** Test seam: forget cached registries so a test can exercise a fresh open. */
+export function _resetRegistryCacheForTest(): void {
+  registryPromises.clear();
+  registryInstances.clear();
+  testRegistryOverride = null;
+  bridgeAvailable = null;
+  bridgeFailureReason = null;
+}
+
+/** #3196: the sibling store AgentDB owns next to a given sql.js database. */
+export function siblingAgentDbPath(dbPath: string): string | null {
+  if (!dbPath || dbPath === ':memory:') return null;
+  const sibling = path.join(path.dirname(path.resolve(dbPath)), 'agentdb-memory.db');
+  return path.resolve(dbPath) === sibling ? null : sibling;
 }
 
 // ===== Phase 2: BM25 hybrid scoring =====
@@ -1992,8 +2041,9 @@ export function getBridgeFailureReason(): string | null {
  * independent of package build order without changing production startup.
  */
 export function __setMemoryBridgeRegistryForTests(registry: any | null): void {
-  registryInstance = registry;
-  registryPromise = registry ? Promise.resolve(registry) : null;
+  registryPromises.clear();
+  registryInstances.clear();
+  testRegistryOverride = registry;
   bridgeAvailable = registry ? true : null;
   bridgeFailureReason = null;
 }
@@ -2008,15 +2058,18 @@ export function __setMemoryBridgeRegistryForTests(registry: any | null): void {
  * therefore had no recovery path short of a restart.
  */
 export async function shutdownBridge(): Promise<void> {
-  if (registryInstance) {
+  // #3196: every cached registry owns an open database handle, so shutting down
+  // one of several would leave the rest holding files open.
+  for (const registry of registryInstances.values()) {
     try {
-      await registryInstance.shutdown();
+      await registry.shutdown();
     } catch {
       // Best-effort
     }
   }
-  registryInstance = null;
-  registryPromise = null;
+  registryInstances.clear();
+  registryPromises.clear();
+  testRegistryOverride = null;
   bridgeAvailable = null;
   bridgeFailureReason = null;
 }

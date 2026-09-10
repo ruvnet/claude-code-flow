@@ -114,3 +114,66 @@ export async function fetchManyOn(relayUrl, sk, filters) {
 // Tiny TTL cache for hot read paths (roster/claims) to absorb bursts without re-dialing the relay.
 const cache = new Map();
 export async function cached(key, ttlMs, fn) { const c = cache.get(key); const now = Date.now(); if (c && now - c.at < ttlMs) return c.v; const v = await fn(); cache.set(key, { v, at: now }); return v; }
+
+// ---- ADR-386 channels ----
+// A channel scopes events with a ['c', channelId] tag (`h` is reserved by the relay for NIP-29 groups). Private channels carry
+// NIP-44 ciphertext in `content` and hide the type behind k='enc'; the gateway
+// holds no channel keys and never decrypts them.
+
+/** Publish an already-shaped channel event (tags built by channels.mjs). */
+export async function publishTagged(relayUrl, sk, tags, content) {
+  const bytes = Buffer.byteLength(String(content));
+  if (bytes > MAX_PAYLOAD_BYTES) throw new Error(`content too large (${bytes} > ${MAX_PAYLOAD_BYTES} bytes)`);
+  const ws = await connectAuthed(relayUrl, sk);
+  const ev = finalizeEvent({ kind: SWARM_KIND, created_at: Math.floor(Date.now() / 1000), tags, content: String(content) }, sk);
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { try { ws.close(); } catch {} reject(new Error('publish timeout')); }, 15000);
+    ws.on('message', (data) => {
+      const m = JSON.parse(data.toString());
+      if (m[0] === 'OK' && m[1] === ev.id) { clearTimeout(timer); try { ws.close(); } catch {}
+        m[2] ? resolve(ev.id) : reject(new Error(m[3] || 'publish rejected')); }
+    });
+    ws.send(JSON.stringify(['EVENT', ev]));
+  });
+}
+
+/**
+ * Fetch a channel's recent events. Content is returned VERBATIM — parsed for a
+ * public channel, left as ciphertext for a private one, because only a key
+ * holder can open it and the gateway is not one.
+ */
+export async function fetchChannel(relayUrl, sk, { channelId, sinceSeconds = 3600, limit = 100, recipient } = {}) {
+  const ws = await connectAuthed(relayUrl, sk);
+  const filter = { kinds: [SWARM_KIND], '#t': [SWARM_TAG], since: Math.floor(Date.now() / 1000) - sinceSeconds, limit };
+  if (channelId) filter['#c'] = [String(channelId)];
+  if (recipient) filter['#p'] = [String(recipient)];
+  const out = [];
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => { try { ws.close(); } catch {} resolve(out); }, 12000);
+    ws.on('message', (data) => {
+      const m = JSON.parse(data.toString());
+      if (m[0] === 'EVENT' && verifyEvent(m[2])) {
+        const e = m[2];
+        const h = e.tags.find((t) => t[0] === 'c')?.[1];
+        const k = e.tags.find((t) => t[0] === 'k')?.[1];
+        const rec = { id: e.id, pubkey: e.pubkey, created_at: e.created_at, channel: h, k };
+        if (k === 'enc') out.push({ ...rec, encrypted: true, content: e.content });
+        else { let body; try { body = JSON.parse(e.content); } catch { body = { raw: e.content }; } out.push({ ...rec, ...body }); }
+      } else if (m[0] === 'EOSE') { clearTimeout(timer); try { ws.close(); } catch {} resolve(out); }
+    });
+    ws.send(JSON.stringify(['REQ', 'ruflo-channel', filter]));
+  });
+}
+
+/** Channel ids seen recently, with counts. Private ids are opaque by construction. */
+export async function listChannels(relayUrl, sk, { sinceSeconds = 86400, limit = 500 } = {}) {
+  const evs = await fetchChannel(relayUrl, sk, { sinceSeconds, limit });
+  const seen = new Map();
+  for (const e of evs) {
+    if (!e.channel) continue;
+    const c = seen.get(e.channel) || { channel: e.channel, visibility: e.channel.startsWith('prv:') ? 'private' : 'public', messages: 0, publishers: new Set(), lastSeen: 0 };
+    c.messages++; c.publishers.add(e.pubkey); c.lastSeen = Math.max(c.lastSeen, e.created_at); seen.set(e.channel, c);
+  }
+  return [...seen.values()].map((c) => ({ ...c, publishers: c.publishers.size, lastSeen: new Date(c.lastSeen * 1000).toISOString() }))
+    .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : -1));
+}

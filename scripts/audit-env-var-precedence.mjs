@@ -53,6 +53,8 @@ const REPO_ROOT = resolve(__dirname, '..');
 const KNOWN_ESCAPE_HATCHES = new Set([
   // ── CI / test escape hatches ────────────────────────────────────────────────
   'CLAUDE_FLOW_DISABLE_BRIDGE',   // CI/test: force raw sql.js path — intentionally no CLI flag
+  'RUFLO_X_ADMIN_TOKEN',          // credential: gateway admin token for x.ruv.io gateway-identity writes (x_federation_publish/invite_mint/admit). Env-only by design — a secret must never be a CLI flag (shell history / process lists). URL config (RUFLO_X_GATEWAY_URL) DOES take a flag: `ruflo federation --gateway`.
+  'SERAPHINA_METALLM_KEY',        // credential: cognitum meta-llm API key for seraphina_guidance. Env-only by design (same reasoning). URL config (SERAPHINA_METALLM_URL) takes the metaLlmUrl tool arg.
   'RUFLO_HOOK_SKIP_NPX',          // CI: suppress cold-install latency in smoke tests
   'RUFLO_HOOK_CLI_OVERRIDE',      // #2721 test-only: point plugins/ruflo-core/scripts/ruflo-hook.cjs at a local CLI build instead of the ruflo/claude-flow/npx PATH probe. Hook scripts have no CLI-flag surface (invoked by hooks.json, never a user-typed command)
   'RUFLO_HOOK_DEBUG_STDOUT',      // #2721 test-only: surface the invoked CLI's stdout/stderr from ruflo-hook.cjs instead of swallowing it, so test-hooks.mjs can assert on recorded values. Same no-CLI-surface reasoning as RUFLO_HOOK_CLI_OVERRIDE above — production never sets this

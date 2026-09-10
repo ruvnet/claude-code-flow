@@ -154,6 +154,7 @@ import { sessionCommand } from './session.js';
 import { agentCommand } from './agent.js';
 import { swarmCommand } from './swarm.js';
 import { memoryCommand } from './memory.js';
+import { federationCommand } from './federation.js';
 import { mcpCommand } from './mcp.js';
 import { hooksCommand } from './hooks.js';
 
@@ -166,6 +167,7 @@ loadedCommands.set('session', sessionCommand);
 loadedCommands.set('agent', agentCommand);
 loadedCommands.set('swarm', swarmCommand);
 loadedCommands.set('memory', memoryCommand);
+loadedCommands.set('federation', federationCommand);
 loadedCommands.set('mcp', mcpCommand);
 loadedCommands.set('hooks', hooksCommand);
 
@@ -182,6 +184,7 @@ export { sessionCommand } from './session.js';
 export { agentCommand } from './agent.js';
 export { swarmCommand } from './swarm.js';
 export { memoryCommand } from './memory.js';
+export { federationCommand } from './federation.js';
 export { mcpCommand } from './mcp.js';
 export { hooksCommand } from './hooks.js';
 
@@ -228,6 +231,7 @@ export const commands: Command[] = [
   agentCommand,
   swarmCommand,
   memoryCommand,
+  federationCommand,
   mcpCommand,
   hooksCommand,
 ];

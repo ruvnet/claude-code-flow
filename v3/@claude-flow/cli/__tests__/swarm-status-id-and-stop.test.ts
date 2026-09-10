@@ -23,6 +23,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const CLI = join(__dirname, '..', 'bin', 'cli.js');
+// `bin/cli.js` is committed but `dist/` is not: it is emitted by the package build.
+// The root Test Suite job installs dependencies and runs vitest without building the
+// CLI, so shelling out there yields ERR_MODULE_NOT_FOUND on every call rather than a
+// real assertion. Guard on the built entrypoint — not on `bin/cli.js`, which always
+// exists — so these stay real regression guards wherever dist is present and skip
+// where it is not.
+const CLI_BUILT = existsSync(join(__dirname, '..', 'dist', 'src', 'index.js'));
 
 function run(args: string[], cwd: string): { stdout: string; exit: number } {
   try {
@@ -105,7 +112,7 @@ function writeLiveDesktopFixture(cwd: string): void {
   // Deliberately NO .claude-flow/swarm/ — the MCP store never existed.
 }
 
-describe('live desktop fixture (machine 8dd713ae391948)', () => {
+describe.skipIf(!CLI_BUILT)('live desktop fixture (machine 8dd713ae391948)', () => {
   it('resolves swarmId with no `id` key and no MCP store at all', () => {
     const wd = mkdtempSync(join(tmpdir(), 'ruflo-swarm-live-'));
     try {
@@ -137,7 +144,7 @@ describe('live desktop fixture (machine 8dd713ae391948)', () => {
   }, 60_000);
 });
 
-describe('swarm status reports an honest id', () => {
+describe.skipIf(!CLI_BUILT)('swarm status reports an honest id', () => {
   it('emits null — not a sentinel string — when there is no swarm', () => {
     const wd = mkdtempSync(join(tmpdir(), 'ruflo-swarm-id-'));
     try {
@@ -254,7 +261,7 @@ describe('swarm status reports an honest id', () => {
   }, 60_000);
 });
 
-describe('swarm stop works without an argument', () => {
+describe.skipIf(!CLI_BUILT)('swarm stop works without an argument', () => {
   it('stops the persisted swarm and records it in the state file', () => {
     const wd = mkdtempSync(join(tmpdir(), 'ruflo-swarm-stop-'));
     try {

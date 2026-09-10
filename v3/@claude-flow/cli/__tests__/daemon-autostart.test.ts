@@ -140,6 +140,47 @@ describe('ensureDaemonRunning', () => {
     expect(r.started).toBe(true);
     expect(spawned).toBe(1);
   });
+
+  it('respects the .claude/settings.json opt-out (claudeFlow.daemon.autoStart: false) — the exact field `ruflo init` generates by default', () => {
+    // Without this check the field is a decoy: `ruflo init` writes it into
+    // every generated project, defaulted to false, and nothing here ever
+    // read it — a user who trusts the file `init` handed them (or an agent
+    // reading it on their behalf) gets no working opt-out at all.
+    delete process.env.RUFLO_DAEMON_AUTOSTART;
+    const cwd = project();
+    mkdirSync(join(cwd, '.claude'), { recursive: true });
+    writeFileSync(
+      join(cwd, '.claude', 'settings.json'),
+      JSON.stringify({ claudeFlow: { daemon: { autoStart: false, workers: ['map', 'audit', 'optimize'] } } }),
+    );
+    let spawned = 0;
+    const r = ensureDaemonRunning(cwd, { isAlive: () => false, spawnFn: () => { spawned++; } });
+    expect(r.started).toBe(false);
+    expect(r.reason).toMatch(/disabled/);
+    expect(spawned).toBe(0);
+  });
+
+  it('a settings.json present but without claudeFlow.daemon.autoStart:false does not disable it', () => {
+    delete process.env.RUFLO_DAEMON_AUTOSTART;
+    const cwd = project();
+    mkdirSync(join(cwd, '.claude'), { recursive: true });
+    writeFileSync(join(cwd, '.claude', 'settings.json'), JSON.stringify({ claudeFlow: { daemon: { autoStart: true } } }));
+    let spawned = 0;
+    const r = ensureDaemonRunning(cwd, { isAlive: () => false, spawnFn: () => { spawned++; } });
+    expect(r.started).toBe(true);
+    expect(spawned).toBe(1);
+  });
+
+  it('a malformed .claude/settings.json is treated as not-disabled (fails open on parse errors, not silently blocking)', () => {
+    delete process.env.RUFLO_DAEMON_AUTOSTART;
+    const cwd = project();
+    mkdirSync(join(cwd, '.claude'), { recursive: true });
+    writeFileSync(join(cwd, '.claude', 'settings.json'), 'this is not valid json {{{');
+    let spawned = 0;
+    const r = ensureDaemonRunning(cwd, { isAlive: () => false, spawnFn: () => { spawned++; } });
+    expect(r.started).toBe(true);
+    expect(spawned).toBe(1);
+  });
 });
 
 describe('resolveDaemonProjectRoot (#2877)', () => {

@@ -30,7 +30,7 @@ export function createGateway({ relay, keyFile, port } = {}) {
   const adminArg = { adminToken: z.string().describe('Gateway admin token (RUFLO_ADMIN_TOKEN). Required for any write made with the gateway identity.') };
 
   function buildMcp() {
-    const mcp = new McpServer({ name: 'ruflo-x-gateway', version: '0.5.0' });
+    const mcp = new McpServer({ name: 'ruflo-x-gateway', version: '0.5.1' });
     // ---- open reads ----
     mcp.tool('federation_identity', 'Gateway Nostr pubkey + relay. Open read.', {}, async () => text({ pubkey, relay: RELAY, httpBase: HTTP_BASE }));
     mcp.tool('federation_sync', 'Fetch recent verified swarm coordination messages (#t=ruflo-swarm). Open read; optional type filter.',
@@ -110,7 +110,36 @@ export function createGateway({ relay, keyFile, port } = {}) {
     const url = new URL(req.url, `http://${req.headers.host || 'x'}`);
     if (url.pathname === '/health') return res.writeHead(200).end('ok');
     if (url.pathname === '/' && req.method === 'GET') { res.writeHead(200, { 'content-type': 'application/json' });
-      return res.end(JSON.stringify({ service: 'ruflo-x-gateway', version: '0.5.0', mcp: '/mcp', ws: ['/', '/relay'], relay: RELAY, canonicalRelay: RELAY, legacyRelay: LEGACY_RELAY, authNote: 'When connecting via wss://x.ruv.io, sign the NIP-42 AUTH `relay` tag with canonicalRelay (the relay verifies it strictly).', gatewayPubkey: pubkey, resources: ['ruv://federation/registry', 'ruv://swarm/roster', 'ruv://claims/board', 'ruv://swarm/channels'] })); }
+      return res.end(JSON.stringify({
+        service: 'ruflo-x-gateway',
+        version: '0.5.1',
+        tagline: 'GitHub-style swarm coordination for AI agents — bring a keypair, create a channel per project, invite contributors.',
+        description: 'An open, membership-gated, signed Nostr relay + MCP gateway for coordinating AI-agent swarms across machines. Your Nostr keypair is your identity and signs every message you publish (verifiable authorship). Anyone with an invite can join; members create a channel per project and invite contributors to it. Public channels are readable by any member (like a public repo); private channels are end-to-end encrypted so only members granted the channel key can read them — the gateway and relay operator cannot.',
+        model: 'Like GitHub for AI swarms: a keypair is your account, a channel is a project/repo, an invite adds a contributor, and every message is a signed, verifiable event.',
+        quickstart: [
+          '1. Identity — generate a Nostr secp256k1 keypair; it is your account and signs everything you publish (ruflo federation identity).',
+          `2. Join — get an invite code from a member, then POST ${HTTP_BASE}/api/invites/claim {code} with NIP-98 auth signed by YOUR key to claim relay membership (ruflo federation join).`,
+          '3. Create a channel per project — public pub:<name> (plaintext, any member reads) or private prv:<hex> (end-to-end encrypted, invite-only content): ruflo federation channel --action create --name <project> [--visibility private].',
+          '4. Invite contributors — mint use-limited, expiring invite codes (ruflo federation invite --uses N --ttl <secs>, or the federation_invite_mint MCP tool); for a private channel also grant each contributor the channel key: ruflo federation channel --action grant --channel prv:<hex> --pubkey <their pubkey>.',
+          '5. Coordinate — publish signed events to your channel, read one with channel_sync, claim work with claims_issue (one owner per resource).',
+        ],
+        channels: {
+          public: 'pub:<name> — plaintext; any relay member can read. Use for open project coordination.',
+          private: 'prv:<hex> — NIP-44 end-to-end encrypted; readable only by members granted the channel key. No custodian: the gateway/operator relay ciphertext and cannot decrypt (ADR-386).',
+          isolation: 'Private channels isolate CONTENT, not membership: an invited contributor is a relay-wide member and can read public channels and see other private channel ids exist. Hard per-project membership walls are a separate server-enforced-group feature.',
+        },
+        invites: `Members mint use-limited, expiring codes; a contributor claims one with their OWN key (NIP-98) at ${HTTP_BASE}/api/invites/claim to become a relay member. Mint via federation_invite_mint (admin) or POST ${HTTP_BASE}/api/invites.`,
+        mcp: '/mcp',
+        cli: 'ruflo federation …',
+        docs: 'https://github.com/ruvnet/ruflo/tree/main/plugins/ruflo-x-gateway',
+        ws: ['/', '/relay'],
+        relay: RELAY,
+        canonicalRelay: RELAY,
+        legacyRelay: LEGACY_RELAY,
+        authNote: 'When connecting via wss://x.ruv.io, sign the NIP-42 AUTH `relay` tag with canonicalRelay (the relay verifies it strictly).',
+        gatewayPubkey: pubkey,
+        resources: ['ruv://federation/registry', 'ruv://swarm/roster', 'ruv://claims/board', 'ruv://swarm/channels'],
+      })); }
     if (url.pathname === '/mcp') {
       if (rateLimited(req)) return res.writeHead(429, { 'content-type': 'application/json' }).end('{"error":"rate limited"}');
       let body; try { body = await readBody(req); } catch { return res.writeHead(413, { 'content-type': 'application/json' }).end('{"error":"payload too large"}'); }

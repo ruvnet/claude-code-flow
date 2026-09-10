@@ -229,6 +229,12 @@ test('channels: the registry resource publishes the directory', async () => {
   const { DEFAULT_CHANNELS } = await import('../src/channels.mjs');
   for (const d of DEFAULT_CHANNELS) assert.ok(body.includes(d.channel), `${d.channel} missing from the registry`);
   const info = await (await fetch(base + '/')).json();
-  assert.equal(info.version, '0.5.0');
+  assert.equal(info.version, '0.5.1');
+  // GitHub-style discovery metadata: the create-channel + invite-contributor story is self-describing.
+  assert.ok(typeof info.description === 'string' && info.description.length > 0, 'root info carries a description');
+  assert.ok(Array.isArray(info.quickstart) && info.quickstart.length >= 4, 'root info carries a quickstart');
+  assert.ok(info.channels && info.channels.public && info.channels.private, 'root info explains public + private channels');
+  assert.equal(info.canonicalRelay, gw.relay, 'canonicalRelay preserved for NIP-42');
+  assert.ok(info.resources.includes('ruv://claims/board'), 'resources preserved');
   gw.server.close();
 });

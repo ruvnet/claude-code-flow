@@ -38,3 +38,45 @@ export function checkAdmin(token, expected = process.env.RUFLO_ADMIN_TOKEN) {
 }
 
 export const _bucketsForTest = buckets;
+
+/**
+ * Spend guard for the one advisory tool that costs money.
+ *
+ * Seraphina reads and advises; it writes nothing and holds no authority. It was
+ * admin-gated anyway, which put a bearer secret in front of a read — and a
+ * browser cannot hold a bearer secret, so any published UI was locked out or,
+ * worse, tempted to ship the admin token that also mints invites.
+ *
+ * The real exposure is model spend, and spend is bounded with a budget, not a
+ * password. Anonymous callers get a small per-IP rate and share a daily ceiling;
+ * an admin token lifts both. Counters are per-instance and reset daily — good
+ * enough to stop a runaway, not a billing system.
+ */
+const seraphinaDay = { day: '', calls: 0 };
+const seraphinaIp = new Map();
+export const SERAPHINA_DAILY_CAP = Number(process.env.RUFLO_SERAPHINA_DAILY_CAP || 200);
+export const SERAPHINA_IP_HOURLY_CAP = Number(process.env.RUFLO_SERAPHINA_IP_HOURLY_CAP || 10);
+
+export function seraphinaAllowance(req, isAdmin, now = Date.now()) {
+  if (isAdmin) return { allowed: true, admin: true };
+  const day = new Date(now).toISOString().slice(0, 10);
+  if (seraphinaDay.day !== day) { seraphinaDay.day = day; seraphinaDay.calls = 0; seraphinaIp.clear(); }
+  if (seraphinaDay.calls >= SERAPHINA_DAILY_CAP) {
+    return { allowed: false, reason: `Seraphina's shared daily budget (${SERAPHINA_DAILY_CAP} calls) is spent. It resets at 00:00 UTC. An admin token lifts the cap.` };
+  }
+  const ip = clientIp(req);
+  const rec = seraphinaIp.get(ip) || { hour: -1, n: 0 };
+  const hour = Math.floor(now / 3600000);
+  if (rec.hour !== hour) { rec.hour = hour; rec.n = 0; }
+  if (rec.n >= SERAPHINA_IP_HOURLY_CAP) {
+    seraphinaIp.set(ip, rec);
+    return { allowed: false, reason: `This client has used its ${SERAPHINA_IP_HOURLY_CAP} Seraphina calls for the hour. Try again next hour, or use an admin token.` };
+  }
+  rec.n += 1; seraphinaIp.set(ip, rec); seraphinaDay.calls += 1;
+  return { allowed: true, admin: false, remainingToday: SERAPHINA_DAILY_CAP - seraphinaDay.calls };
+}
+
+/** Anonymous callers may not select the most expensive tiers. */
+export const ANON_TIERS = ['cognitum-auto', 'cognitum-low', 'cognitum-mid'];
+
+export function _resetSeraphinaBudgetForTest() { seraphinaDay.day = ''; seraphinaDay.calls = 0; seraphinaIp.clear(); }

@@ -229,6 +229,116 @@ test('channels: the registry resource publishes the directory', async () => {
   const { DEFAULT_CHANNELS } = await import('../src/channels.mjs');
   for (const d of DEFAULT_CHANNELS) assert.ok(body.includes(d.channel), `${d.channel} missing from the registry`);
   const info = await (await fetch(base + '/')).json();
-  assert.equal(info.version, '0.5.0');
+  assert.equal(info.version, '0.7.0');
+  gw.server.close();
+});
+
+test('seraphina: reachable without a token, bounded by budget; writes stay admin-gated', async () => {
+  const { seraphinaAllowance, _resetSeraphinaBudgetForTest, SERAPHINA_IP_HOURLY_CAP, ANON_TIERS } =
+    await import('../src/security.mjs');
+  _resetSeraphinaBudgetForTest();
+  const req = { headers: { 'x-forwarded-for': '203.0.113.9' }, socket: { remoteAddress: '203.0.113.9' } };
+
+  // An anonymous caller is allowed, and told what it has left.
+  const first = seraphinaAllowance(req, false);
+  assert.equal(first.allowed, true);
+  assert.equal(first.admin, false);
+  assert.ok(typeof first.remainingToday === 'number');
+
+  // Per-IP hourly ceiling stops a runaway client without a password.
+  for (let i = 1; i < SERAPHINA_IP_HOURLY_CAP; i++) assert.equal(seraphinaAllowance(req, false).allowed, true);
+  const over = seraphinaAllowance(req, false);
+  assert.equal(over.allowed, false);
+  assert.match(over.reason, /calls for the hour/);
+
+  // A different client is unaffected — the limit is per caller, not global panic.
+  const other = { headers: {}, socket: { remoteAddress: '198.51.100.4' } };
+  assert.equal(seraphinaAllowance(other, false).allowed, true);
+
+  // An admin token lifts the cap for the same exhausted client.
+  assert.equal(seraphinaAllowance(req, true).allowed, true);
+  assert.equal(seraphinaAllowance(req, true).admin, true);
+
+  // The expensive tiers are not selectable anonymously.
+  assert.ok(!ANON_TIERS.includes('cognitum-high'));
+  assert.ok(!ANON_TIERS.includes('cognitum-ultra'));
+  _resetSeraphinaBudgetForTest();
+});
+
+test('seraphina: the tool answers without adminToken while claims_issue still refuses', async () => {
+  process.env.RUFLO_ADMIN_TOKEN = 'test-admin-token';
+  const gw = createGateway({ relay: 'ws://127.0.0.1:1', keyFile: '/tmp/x-gw-sera-' + Date.now() + '.key', port: 0 });
+  const port = await gw.listen(0); const base = `http://127.0.0.1:${port}`;
+  const rpc = (m) => fetch(base + '/mcp', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' }, body: JSON.stringify(m) }).then((r) => r.text());
+
+  // Assert the CONTRACT, not the network: adminToken must be optional in the
+  // schema. Invoking it here would now reach a dead relay and hang, precisely
+  // because it is no longer rejected up front — which is the change under test.
+  const list = await rpc({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} });
+  const sera = JSON.parse(list.slice(list.indexOf('{'))).result.tools.find((t) => t.name === 'seraphina_guidance');
+  assert.ok(sera, 'seraphina_guidance must be registered');
+  assert.ok(!(sera.inputSchema.required || []).includes('adminToken'), 'adminToken must not be required');
+  const gatedWrite = JSON.parse(list.slice(list.indexOf('{'))).result.tools.find((t) => t.name === 'claims_issue');
+  assert.ok((gatedWrite.inputSchema.required || []).includes('adminToken'), 'writes must still require it');
+
+  // The write path is unchanged: still refused without a token.
+  const write = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'claims_issue', arguments: { resourceId: 'x' } } });
+  assert.match(write, /admin token required|invalid_type|Required/);
+
+  gw.server.close();
+});
+
+
+test('onboarding: the guide names both identities and never handles a secret key', async () => {
+  const { onboardingGuide } = await import('../src/onboarding.mjs');
+  const g = onboardingGuide({ relay: 'wss://relay.ruv.io', httpBase: 'https://relay.ruv.io', gatewayPubkey: 'ab'.repeat(32), defaultChannels: [] });
+
+  // The confusion this exists to prevent: which identity signs what.
+  assert.ok(/YOUR identity/.test(g.readThisFirst) && /THE GATEWAY/.test(g.readThisFirst));
+  assert.ok(g.identities.you.noTokenNeeded.includes('needs no admin token'));
+  assert.ok(/admin-gated/.test(g.identities.gateway.what));
+
+  // It must hand over code to run locally, not offer to generate a key here.
+  const code = g.steps.find((s) => s.code)?.code ?? '';
+  assert.ok(code.includes('generateSecretKey()'), 'the caller generates their own key');
+  assert.ok(/never leaves your machine|never transmitted/.test(JSON.stringify(g)), 'must say the key stays local');
+
+  // Structural, not string-matching: an earlier version of this test failed on the
+  // guide's own "Never send your secret key" line, which is the opposite of the
+  // risk. What matters is that no field solicits secret material and the guide
+  // states the key stays local.
+  const secretSolicitingKeys = Object.keys(g).concat(Object.keys(g.identities))
+    .filter((k) => /secretkey|privatekey|seed|nsec/i.test(k));
+  assert.deepEqual(secretSolicitingKeys, [], 'no field may carry or ask for a secret key');
+  assert.ok(g.neverDo.some((n) => /Never send your secret key/.test(n)));
+  assert.ok(g.neverDo.some((n) => /Never put an admin token in a browser/.test(n)));
+
+  // The three field-learned traps stay recorded.
+  const gotchas = g.gotchas.join(' ');
+  assert.match(gotchas, /relay tag with wss:\/\/relay\.ruv\.io exactly/);
+  assert.match(gotchas, /binds publishing to the authenticated connection/);
+  assert.match(gotchas, /channel tag is `c`, not `h`/);
+});
+
+test('onboarding: exposed as an open tool and an open resource', async () => {
+  process.env.RUFLO_ADMIN_TOKEN = 'test-admin-token';
+  const gw = createGateway({ relay: 'ws://127.0.0.1:1', keyFile: '/tmp/x-gw-ob-' + Date.now() + '.key', port: 0 });
+  const port = await gw.listen(0); const base = `http://127.0.0.1:${port}`;
+  const rpc = (m) => fetch(base + '/mcp', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' }, body: JSON.stringify(m) }).then((r) => r.text());
+
+  const tools = JSON.parse((await rpc({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} })).slice((await rpc({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} })).indexOf('{'))).result.tools;
+  const ob = tools.find((t) => t.name === 'federation_onboarding');
+  assert.ok(ob, 'federation_onboarding must be registered');
+  assert.deepEqual(ob.inputSchema.required ?? [], [], 'onboarding must take no credential');
+  assert.match(ob.description, /Use when/);
+  assert.match(ob.description, /wrong turn|is wrong/);
+
+  // Callable with no arguments and no token at all.
+  const called = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'federation_onboarding', arguments: {} } });
+  assert.doesNotMatch(called, /admin token required or invalid/);
+  assert.match(called, /readThisFirst/);
+
+  const info = await (await fetch(base + '/')).json();
+  assert.ok(info.resources.includes('ruv://federation/onboarding'));
   gw.server.close();
 });

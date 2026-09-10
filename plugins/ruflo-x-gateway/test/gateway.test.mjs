@@ -192,6 +192,43 @@ test('channels: tools are registered, private publish refused, ids validated', a
 
   const info = await (await fetch(base + '/')).json();
   assert.ok(info.resources.includes('ruv://swarm/channels'));
-  assert.equal(info.version, '0.4.0');
+  // Version is asserted once, in the registry-directory test — re-pinning it here
+  // just means two tests to update on every bump.
+  gw.server.close();
+});
+
+test('channels: declared defaults are discoverable when quiet, and malformed ids are not channels', async () => {
+  const c = await import('../src/channels.mjs');
+
+  // Small on purpose: a directory of plausible empty rooms costs a newcomer more
+  // attention than no directory at all.
+  assert.ok(c.DEFAULT_CHANNELS.length > 0 && c.DEFAULT_CHANNELS.length <= 6);
+  for (const d of c.DEFAULT_CHANNELS) {
+    assert.ok(c.CHANNEL_ID_RE.test(d.channel), `${d.channel} must be a valid id`);
+    assert.ok(!c.isPrivateChannel(d.channel), 'a declared default cannot be private — nobody could read it');
+    assert.ok(d.purpose && d.purpose.length > 20, `${d.channel} needs a purpose a newcomer can act on`);
+  }
+  const ids = c.DEFAULT_CHANNELS.map((d) => d.channel);
+  assert.equal(new Set(ids).size, ids.length, 'no duplicate default channels');
+
+  // The probe traffic that exposed this: a bare `c` tag value is not a channel.
+  assert.equal(c.isWellFormedChannel('ruflo-probe-c'), false);
+  assert.equal(c.isWellFormedChannel(''), false);
+  assert.equal(c.isWellFormedChannel(undefined), false);
+  assert.equal(c.isWellFormedChannel('pub:announce'), true);
+  assert.equal(c.isWellFormedChannel('prv:0123456789abcdef'), true);
+});
+
+test('channels: the registry resource publishes the directory', async () => {
+  process.env.RUFLO_ADMIN_TOKEN = 'test-admin-token';
+  const gw = createGateway({ relay: 'ws://127.0.0.1:1', keyFile: '/tmp/x-gw-def-' + Date.now() + '.key', port: 0 });
+  const port = await gw.listen(0); const base = `http://127.0.0.1:${port}`;
+  const body = await fetch(base + '/mcp', { method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'resources/read', params: { uri: 'ruv://federation/registry' } }) }).then((r) => r.text());
+  const { DEFAULT_CHANNELS } = await import('../src/channels.mjs');
+  for (const d of DEFAULT_CHANNELS) assert.ok(body.includes(d.channel), `${d.channel} missing from the registry`);
+  const info = await (await fetch(base + '/')).json();
+  assert.equal(info.version, '0.5.0');
   gw.server.close();
 });

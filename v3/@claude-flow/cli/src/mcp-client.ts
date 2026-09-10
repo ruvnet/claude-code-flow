@@ -68,6 +68,8 @@ import { agenticowSpeculateTools } from './mcp-tools/agenticow-speculate-tools.j
 // ADR-164 — AgentBBS federated business-domain BBS rooms (Phase 1).
 // Optional runtime dep, every handler returns `{degraded: true}` when missing.
 import { agentbbsTools } from './mcp-tools/agentbbs-tools.js';
+import { xFederationTools } from './mcp-tools/x-federation-tools.js';
+import { seraphinaTools } from './mcp-tools/seraphina-tools.js';
 // ADR-164 Phase 2 — Business-pod template validation (pure local, no optional deps).
 import { businessPodTools } from './mcp-tools/business-pod-tools.js';
 // ADR-164 Phase 4 §5.1.8 — http_fetch MCP tool (secure-by-default HTTP probe
@@ -178,6 +180,8 @@ registerTools([
   ...agenticowSpeculateTools,
   // ADR-164 — AgentBBS federated business-domain BBS rooms (4 tools, Phase 1, graceful-degraded)
   ...agentbbsTools,
+  ...xFederationTools,
+  ...seraphinaTools,
   // ADR-164 Phase 2 + Phase 3 — business_pod_validate + business_pod_route_backend
   // (2 tools, no optional dep — schema validator + §3.4 domain-affinity router)
   ...businessPodTools,

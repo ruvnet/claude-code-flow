@@ -32,7 +32,14 @@ async function fakeAuthServer() {
       .setIssuer(iss).setAudience(audience).setSubject('user-1')
       .setIssuedAt().setExpirationTime(Math.floor(Date.now() / 1000) + expSeconds)
       .sign(privateKey);
-  return { issuer, jwksUri: `${issuer}/.well-known/jwks.json`, mint, close: () => srv.close() };
+  // Same signing key, but no iss and no aud — the shape auth.cognitum.one actually issues.
+  const mintRaw = ({ scope, expSeconds = 300 }) =>
+    new SignJWT({ scope })
+      .setProtectedHeader({ alg: 'RS256', kid: 'test-1' })
+      .setSubject('user-1').setIssuedAt()
+      .setExpirationTime(Math.floor(Date.now() / 1000) + expSeconds)
+      .sign(privateKey);
+  return { issuer, jwksUri: `${issuer}/.well-known/jwks.json`, mint, mintRaw, close: () => srv.close() };
 }
 
 async function withService(as, { required, publicUrl }, fn) {
@@ -218,5 +225,26 @@ test('the service info advertises the authorization server and enforcement state
         assert.equal(info.authorization.transitionalHeader, required ? null : 'x-caller-token');
       });
     }
+  } finally { as.close(); }
+});
+
+test('a correctly-signed but unbound token is rejected AND says why', async () => {
+  // auth.cognitum.one is measured to issue tokens with neither iss nor aud. Such a
+  // token is not resource-bound: any Cognitum-integrated app holding a user's token
+  // could present it here and publish as the federation identity. It must be
+  // refused — and the refusal must name the cause, not just say "invalid_token".
+  const as = await fakeAuthServer();
+  try {
+    const { publicKey, privateKey } = await generateKeyPair('RS256');
+    void publicKey;
+    void privateKey;
+    await withService(as, { required: true, publicUrl: 'https://cgf.example' }, async (port) => {
+      // Minted by the real issuer's key, but with no iss and no aud.
+      const tok = await as.mintRaw({ scope: `${SCOPE_READ} ${SCOPE_PUBLISH}` });
+      const r = await call(port, 'channel_publish',
+        { channel: 'pub:announce', msgType: 'Status', payload: {} }, { authorization: `Bearer ${tok}` });
+      assert.equal(r.status, 401, 'an unbound token must not authorise anything');
+      assert.match(r.wwwAuth || '', /carries no iss or aud claim/);
+    });
   } finally { as.close(); }
 });

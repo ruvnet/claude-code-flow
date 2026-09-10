@@ -71,8 +71,27 @@ export async function verifyAccessToken(token, { issuer, jwksUri, audience }) {
     const scopes = Array.isArray(raw) ? raw.map(String) : String(raw).split(/\s+/).filter(Boolean);
     return { ok: true, scopes, subject: payload.sub ? String(payload.sub) : undefined };
   } catch (e) {
-    const code = e?.code === 'ERR_JWT_EXPIRED' ? 'invalid_token' : 'invalid_token';
-    return { ok: false, error: code, description: String(e?.message || 'token verification failed').slice(0, 200) };
+    // Say WHY, precisely. A correctly-signed token that fails only on iss/aud is a
+    // very different problem from a forged one, and `auth.cognitum.one` is measured
+    // to issue tokens carrying neither claim (minimax-music services/gateway/src/
+    // jwks.rs, citing freetokens ADR-0017). Without this, that shows up as a bare
+    // "invalid_token" and costs someone an afternoon.
+    //
+    // This re-verifies the SIGNATURE only, for diagnosis. It never grants: every
+    // path below still returns ok:false.
+    let detail = String(e?.message || 'token verification failed').slice(0, 200);
+    try {
+      const { payload } = await jwtVerify(token, keySet(jwksUri), { clockTolerance: 30 });
+      const missing = [];
+      if (issuer && !payload.iss) missing.push('iss');
+      if (audience && !payload.aud) missing.push('aud');
+      if (missing.length) {
+        detail = `token signature is valid but carries no ${missing.join(' or ')} claim, so it is not bound to this resource`;
+        return { ok: false, error: 'invalid_token', description: detail, signatureValid: true, unboundClaims: missing };
+      }
+      detail = `token signature is valid but ${detail}`;
+    } catch { /* signature genuinely bad — keep the original message */ }
+    return { ok: false, error: 'invalid_token', description: detail };
   }
 }
 

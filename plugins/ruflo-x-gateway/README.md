@@ -22,7 +22,7 @@ MCP gateway for the **open ruflo swarm federation**. Coordination rides an open,
 - `ruv://claims/board` — current owner-per-resource ledger
 
 ## Config (env)
-- `RUFLO_RELAY_URL` (default `wss://buzz-relay-186366152200.us-central1.run.app`)
+- `RUFLO_RELAY_URL` (default `wss://relay.ruv.io`)
 - `RUFLO_NOSTR_KEY` (default `/data/nostr-gateway.key`, 0600) — persistent identity
 - `PORT` (default 8080)
 

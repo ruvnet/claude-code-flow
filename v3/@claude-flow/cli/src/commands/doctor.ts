@@ -2059,20 +2059,40 @@ async function checkMetaharnessDeclaredPackages(): Promise<HealthCheck> {
 
 async function checkMetaharness(): Promise<HealthCheck> {
   try {
-    const version = await runCommand('npx -y metaharness@latest --version 2>&1', 15000);
-    // metaharness emits multi-line stdout; parse a version-shaped line.
-    const versionMatch = version.match(/(\d+\.\d+\.\d+)/);
-    if (!versionMatch) {
+    // `metaharness` has no --version flag (it falls through to the usage
+    // banner, which never matches a version regex) and shelling out via
+    // `npx metaharness@latest` ignores the installed version and hits the
+    // network every run. Resolve the version from the installed package's
+    // own package.json instead. `import.meta.resolve` is the reliable route:
+    // `require('metaharness/package.json')` is blocked by the package's
+    // `exports` map, and `createRequire().resolve()` fails on its ESM-only
+    // entry point.
+    const resolved = import.meta.resolve('metaharness');
+    let dir = dirname(fileURLToPath(resolved));
+    let version: string | null = null;
+    for (let i = 0; i < 8; i++) {
+      const pj = join(dir, 'package.json');
+      if (existsSync(pj)) {
+        try {
+          const j = JSON.parse(readFileSync(pj, 'utf-8')) as { name?: string; version?: string };
+          if (j.name === 'metaharness') { version = j.version ?? null; break; }
+        } catch { /* keep walking */ }
+      }
+      const parent = dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+    if (!version) {
       return {
         name: 'MetaHarness (ADR-150)',
         status: 'warn',
-        message: 'Installed but version-string not parseable; integration may still work',
+        message: 'Installed but its package.json was not found while walking up from the resolved module; integration may still work',
       };
     }
     return {
       name: 'MetaHarness (ADR-150)',
       status: 'pass',
-      message: `v${versionMatch[1]} — run \`npx ruflo metaharness score\` for the full scorecard`,
+      message: `v${version} — run \`npx ruflo metaharness score\` for the full scorecard`,
     };
   } catch {
     return {

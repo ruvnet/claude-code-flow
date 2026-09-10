@@ -1,5 +1,5 @@
 ---
-name: "AgentDB Memory Patterns"
+name: agentdb-memory-patterns
 description: "Implement persistent memory patterns for AI agents using AgentDB. Includes session memory, long-term storage, pattern learning, and context management. Use when building stateful agents, chat systems, or intelligent assistants."
 ---
 

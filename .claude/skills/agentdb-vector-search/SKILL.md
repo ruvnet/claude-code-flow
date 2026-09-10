@@ -1,5 +1,5 @@
 ---
-name: "AgentDB Vector Search"
+name: agentdb-vector-search
 description: "Implement semantic vector search with AgentDB for intelligent document retrieval, similarity matching, and context-aware querying. Use when building RAG systems, semantic search engines, or intelligent knowledge bases."
 ---
 

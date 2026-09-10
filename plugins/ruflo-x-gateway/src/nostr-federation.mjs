@@ -167,13 +167,24 @@ export async function fetchChannel(relayUrl, sk, { channelId, sinceSeconds = 360
 
 /** Channel ids seen recently, with counts. Private ids are opaque by construction. */
 export async function listChannels(relayUrl, sk, { sinceSeconds = 86400, limit = 500 } = {}) {
+  const { DEFAULT_CHANNELS, isWellFormedChannel } = await import('./channels.mjs');
   const evs = await fetchChannel(relayUrl, sk, { sinceSeconds, limit });
   const seen = new Map();
+  // Declared defaults appear even when quiet — see DEFAULT_CHANNELS. Without this
+  // an empty channel is undiscoverable, which is how it stays empty.
+  for (const d of DEFAULT_CHANNELS) {
+    seen.set(d.channel, { channel: d.channel, visibility: 'public', isDefault: true, purpose: d.purpose,
+      messages: 0, publishers: new Set(), lastSeen: 0 });
+  }
   for (const e of evs) {
-    if (!e.channel) continue;
+    // A bare or malformed `c` tag is not a channel; keep probe traffic out of the directory.
+    if (!e.channel || !isWellFormedChannel(e.channel)) continue;
     const c = seen.get(e.channel) || { channel: e.channel, visibility: e.channel.startsWith('prv:') ? 'private' : 'public', messages: 0, publishers: new Set(), lastSeen: 0 };
     c.messages++; c.publishers.add(e.pubkey); c.lastSeen = Math.max(c.lastSeen, e.created_at); seen.set(e.channel, c);
   }
-  return [...seen.values()].map((c) => ({ ...c, publishers: c.publishers.size, lastSeen: new Date(c.lastSeen * 1000).toISOString() }))
-    .sort((a, b) => (a.lastSeen < b.lastSeen ? 1 : -1));
+  return [...seen.values()]
+    .map((c) => ({ ...c, publishers: c.publishers.size,
+      lastSeen: c.lastSeen ? new Date(c.lastSeen * 1000).toISOString() : null }))
+    // Active first, then quiet defaults — a directory should lead with what is alive.
+    .sort((a, b) => (b.messages - a.messages) || String(a.channel).localeCompare(String(b.channel)));
 }

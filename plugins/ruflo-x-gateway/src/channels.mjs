@@ -76,3 +76,28 @@ export function channelTags(channelId, msgType, isPrivate) {
 }
 
 export function isPrivateChannel(channelId) { return String(channelId).startsWith('prv:'); }
+
+/**
+ * Well-known public channels, declared rather than discovered.
+ *
+ * `channel_list` reports what has been *published to* recently, which is the
+ * right default for finding activity and the wrong one for onboarding: a channel
+ * nobody has posted in today does not exist as far as a newcomer can tell, so
+ * every new member starts in the flat firehose and the channels stay empty. That
+ * is a discovery problem, not a usage problem.
+ *
+ * Declaring a small set fixes it. Keep it small on purpose — a directory of
+ * plausible-sounding empty rooms is worse than no directory, because it spends a
+ * newcomer's attention on guessing which ones are alive.
+ */
+export const DEFAULT_CHANNELS = [
+  { channel: 'pub:announce', purpose: 'Releases, breaking changes and service status. Read-mostly; publish here when others need to act.' },
+  { channel: 'pub:help', purpose: 'Questions from anyone joining or stuck. No question is too basic for this channel.' },
+  { channel: 'pub:claims', purpose: 'Cross-host work claims, so ownership has one home instead of the shared stream.' },
+  { channel: 'pub:showcase', purpose: 'What you built on the federation, and what it cost you to find out.' },
+];
+
+/** True for a channel id this service recognises; filters malformed tag values out of listings. */
+export function isWellFormedChannel(id) {
+  return CHANNEL_ID_RE.test(String(id ?? ''));
+}

@@ -74,7 +74,7 @@
     {
       "name": "ruflo-agent",
       "source": "./plugins/ruflo-agent",
-      "description": "Agent runtimes — local WASM-sandboxed agents (rvagent) + Anthropic Claude Managed Agents (cloud); one interface, local-vs-cloud backends"
+      "description": "Agent runtimes \u2014 local WASM-sandboxed agents (rvagent) + Anthropic Claude Managed Agents (cloud); one interface, local-vs-cloud backends"
     },
     {
       "name": "ruflo-workflows",
@@ -109,7 +109,7 @@
     {
       "name": "ruflo-adr",
       "source": "./plugins/ruflo-adr",
-      "description": "ADR lifecycle management — create, index, supersede, and link Architecture Decision Records to code"
+      "description": "ADR lifecycle management \u2014 create, index, supersede, and link Architecture Decision Records to code"
     },
     {
       "name": "ruflo-cost-tracker",
@@ -119,7 +119,7 @@
     {
       "name": "ruflo-ddd",
       "source": "./plugins/ruflo-ddd",
-      "description": "Domain-Driven Design scaffolding — bounded contexts, aggregate roots, domain events, and anti-corruption layers"
+      "description": "Domain-Driven Design scaffolding \u2014 bounded contexts, aggregate roots, domain events, and anti-corruption layers"
     },
     {
       "name": "ruflo-federation",
@@ -129,7 +129,7 @@
     {
       "name": "ruflo-graph-intelligence",
       "source": "./plugins/ruflo-graph-intelligence",
-      "description": "Real-time graph intelligence — personalized PageRank, streaming delta updates, witness-signed reasoning, and federation-distributable vectors"
+      "description": "Real-time graph intelligence \u2014 personalized PageRank, streaming delta updates, witness-signed reasoning, and federation-distributable vectors"
     },
     {
       "name": "ruflo-iot-cognitum",
@@ -139,67 +139,67 @@
     {
       "name": "ruflo-knowledge-graph",
       "source": "./plugins/ruflo-knowledge-graph",
-      "description": "Knowledge graph construction — entity extraction, relation mapping, and pathfinder graph traversal"
+      "description": "Knowledge graph construction \u2014 entity extraction, relation mapping, and pathfinder graph traversal"
     },
     {
       "name": "ruflo-market-data",
       "source": "./plugins/ruflo-market-data",
-      "description": "Market data ingestion — feed normalization, OHLCV vectorization, and HNSW-indexed pattern matching"
+      "description": "Market data ingestion \u2014 feed normalization, OHLCV vectorization, and HNSW-indexed pattern matching"
     },
     {
       "name": "ruflo-migrations",
       "source": "./plugins/ruflo-migrations",
-      "description": "Schema migration management — generate, validate, dry-run, and rollback database migrations"
+      "description": "Schema migration management \u2014 generate, validate, dry-run, and rollback database migrations"
     },
     {
       "name": "ruflo-neural-trader",
       "source": "./plugins/ruflo-neural-trader",
-      "description": "Neural trading strategies — self-learning LSTM/Transformer/N-BEATS models with Rust/NAPI backtesting"
+      "description": "Neural trading strategies \u2014 self-learning LSTM/Transformer/N-BEATS models with Rust/NAPI backtesting"
     },
     {
       "name": "ruflo-observability",
       "source": "./plugins/ruflo-observability",
-      "description": "Structured logging, distributed tracing, and metrics — correlate agent swarm activity with application telemetry"
+      "description": "Structured logging, distributed tracing, and metrics \u2014 correlate agent swarm activity with application telemetry"
     },
     {
       "name": "ruflo-ruvector",
       "source": "./plugins/ruflo-ruvector",
-      "description": "Self-learning vector database — HNSW, FlashAttention-3, Graph RAG, hybrid search, DiskANN, and Brain AGI"
+      "description": "Self-learning vector database \u2014 HNSW, FlashAttention-3, Graph RAG, hybrid search, DiskANN, and Brain AGI"
     },
     {
       "name": "ruflo-sparc",
       "source": "./plugins/ruflo-sparc",
-      "description": "SPARC methodology — Specification, Pseudocode, Architecture, Refinement, Completion phases with quality gates"
+      "description": "SPARC methodology \u2014 Specification, Pseudocode, Architecture, Refinement, Completion phases with quality gates"
     },
     {
       "name": "ruflo-metaharness",
       "source": "./plugins/ruflo-metaharness",
-      "description": "MetaHarness integration — surfaces score/genome/mint/mcp-scan/threat-model via skills; pairs with @metaharness/router (ADR-148/149) for cost-optimal model routing; honors ADR-150 optional-augmentation constraint"
+      "description": "MetaHarness integration \u2014 surfaces score/genome/mint/mcp-scan/threat-model via skills; pairs with @metaharness/router (ADR-148/149) for cost-optimal model routing; honors ADR-150 optional-augmentation constraint"
     },
     {
       "name": "ruflo-arena",
       "source": "./plugins/ruflo-arena",
-      "description": "Competitive ruliology for ruflo swarms — arenas, tournaments, and adaptive co-evolution of program strategies (ADR-147/148); strategies-as-programs compete under payoff games"
+      "description": "Competitive ruliology for ruflo swarms \u2014 arenas, tournaments, and adaptive co-evolution of program strategies (ADR-147/148); strategies-as-programs compete under payoff games"
     },
     {
       "name": "ruflo-agntcy",
       "source": "./plugins/ruflo-agntcy",
-      "description": "AGNTCY/Outshift Internet-of-Cognition runtime integration — SLIM secure transport, CASA intent-scoped tool authorization, and AGNTCY identity/observability spans (ADR-380); optional, removable augmentation per ADR-150"
+      "description": "AGNTCY/Outshift Internet-of-Cognition runtime integration \u2014 SLIM secure transport, CASA intent-scoped tool authorization, and AGNTCY identity/observability spans (ADR-380); optional, removable augmentation per ADR-150"
     },
     {
       "name": "ruflo-bbs-federation",
       "source": "./plugins/ruflo-bbs-federation",
-      "description": "AgentBBS federated business-domain BBS room integration (ADR-164 Phase 1) — register/publish/watch/human-join MCP tools wrapping the agentbbs Rust workspace as a federation peer; degrades gracefully when agentbbs is absent"
+      "description": "AgentBBS cross-host agent federation (ADR-164). Phase 1: register/publish/watch/human-join room coordination. Phase 2 (v3.40.0): signed cross-host federation \u2014 identity, peer_add (pin by nodeId+Ed25519 key), peers, serve (read-only pull), sync (pull + union-merge what verifies). Registry-anchored pinning; works on any network (no tailnet required); coordinates work claims (ClaimIssued/Released/Handoff/Ack). Degrades gracefully when agentbbs is absent."
     },
     {
       "name": "ruflo-business-pods",
       "source": "./plugins/ruflo-business-pods",
-      "description": "Business-domain pod templates for the federated business autopilot (ADR-164 Phase 2) — pod templates plus a dry-run-by-default single-tick runner that validates, reserves budget, and resolves agent roles before posting to the BBS room"
+      "description": "Business-domain pod templates for the federated business autopilot (ADR-164 Phase 2) \u2014 pod templates plus a dry-run-by-default single-tick runner that validates, reserves budget, and resolves agent roles before posting to the BBS room"
     },
     {
       "name": "ruflo-music",
       "source": "./plugins/ruflo-music",
-      "description": "AI music generation via Cognitum Music (cogmusic MCP) — compose lyrics/prompts, generate tracks, separate stems, extract MIDI, and master through your own music.cognitum.one account"
+      "description": "AI music generation via Cognitum Music (cogmusic MCP) \u2014 compose lyrics/prompts, generate tracks, separate stems, extract MIDI, and master through your own music.cognitum.one account"
     }
   ]
 }

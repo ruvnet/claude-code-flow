@@ -68,3 +68,33 @@ npx claude-flow claims list --agent agent-123
 2. Scope claims to specific resources
 3. Audit claim usage regularly
 4. Revoke claims when no longer needed
+
+## Cross-Host Work Claims (federation, v3.40.0+)
+
+Distinct from the *authorization* claims above: **work claims** coordinate *ownership of a task or
+resource* across agents, and now propagate across a cross-host federation so a claim made on one node
+is visible to the whole swarm.
+
+### Runtime tools (local ledger)
+
+| Tool | Purpose |
+|------|---------|
+| `claims_claim` | Take ownership of an issue/resource (with optional TTL). |
+| `claims_release` | Give up a claim you hold. |
+| `claims_handoff` / `claims_accept-handoff` | Transfer a claim to another agent. |
+| `claims_steal` / `claims_mark-stealable` | Work-stealing for stalled claims. |
+| `claims_status` / `claims_list` | Inspect current ownership. |
+
+### Federated (cross-host)
+
+Publish claim events into a federation room (`federation_bbs_publish`) so ownership converges across
+hosts. Message types: `ClaimIssued` / `ClaimReleased` / `ClaimHandoff` / `ClaimAck`.
+
+Rules: one owner per `resourceId`; first valid `ClaimIssued` wins (ties → earliest ts, then smallest
+`from`); `ClaimReleased` or expired TTL frees it; `ClaimHandoff` only from the current owner; a
+coordinator posts `ClaimAck` naming the authoritative owner.
+
+**Before shared work: claim, sync, and proceed only if you are the acknowledged owner.** When a claim
+must be both cross-host visible and runtime-enforced, mirror the two — publish the federation claim
+message *and* call `claims_claim`. See the `cross-host-federation` skill (ruflo-bbs-federation plugin)
+for the transport.

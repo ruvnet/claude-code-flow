@@ -11,10 +11,13 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "jose": "^6.2.12",
     "nostr-tools": "^2.7.0",
     "ws": "^8.18.0",
     "zod": "^3.23.0"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "license": "MIT"
 }

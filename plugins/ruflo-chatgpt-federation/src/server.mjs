@@ -5,12 +5,20 @@
  *   GET  /                service info (pubkey is public; nothing else is)
  *   POST /mcp             MCP, stateless
  *
- * Surface is deliberately three tools and no resources. `federation_identity` and
- * `channel_sync` are open reads. `channel_publish` is the only write, it publishes
- * only to `pub:` channels, and it requires the caller token — because that token,
- * not the model, is what authorises speaking as this federation identity.
+ * Surface is deliberately three tools and no resources.
  *
- * The signing key is never an input, an output, a resource, or a log line.
+ * Authorisation is OAuth 2.1 against Cognitum's authorization server: a bearer
+ * token in `Authorization`, validated here against the issuer's JWKS, carrying
+ * `federation:read` for the two reads and `federation:publish` for the write.
+ * There is no client secret in this design — that server is public-client + PKCE.
+ *
+ * While OAuth is being wired up (CGF_OAUTH_REQUIRED unset), the service still
+ * accepts the older `x-caller-token` for publish and leaves reads open, so the
+ * connector keeps working through the transition. Setting CGF_OAUTH_REQUIRED
+ * closes both of those and is the end state.
+ *
+ * OAuth decides who may ask. The signing key answers, and is never an input, an
+ * output, a resource, or a log line.
  */
 import { createServer } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
@@ -19,6 +27,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { z } from 'zod';
 import { loadSigner, redact } from './signing-key.mjs';
 import { publishToChannel, readChannel, PUBLIC_CHANNEL_RE } from './publisher.mjs';
+import { protectedResourceMetadata, challengeHeader, verifyAccessToken, hasScope, SCOPE_READ, SCOPE_PUBLISH } from './oauth.mjs';
 
 const VERSION = '0.1.0';
 const MAX_BODY = 256 * 1024;
@@ -50,9 +59,38 @@ export function createPublisherService({ relay, keyPath, port } = {}) {
   const RELAY = relay || process.env.CGF_RELAY_URL || 'wss://relay.ruv.io';
   const signer = loadSigner(keyPath);          // throws at boot if custody is wrong — by design
   const text = (o) => ({ content: [{ type: 'text', text: JSON.stringify(o) }] });
+  // An OAuth caller must carry the scope; a legacy caller (no token, OAuth not yet
+  // mandatory) keeps the reads it has always had.
+  const needs = (auth, scope) => (auth.mode !== 'oauth' || hasScope(auth.scopes, scope))
+    ? null
+    : { isError: true, content: [{ type: 'text', text: JSON.stringify({ error: `access token lacks ${scope}` }) }] };
   const fail = (e) => ({ isError: true, content: [{ type: 'text', text: JSON.stringify({ error: redact(e?.message || e) }) }] });
 
-  function buildMcp(req) {
+  const OAUTH_ISSUER = process.env.CGF_OAUTH_ISSUER || 'https://auth.cognitum.one';
+  const OAUTH_JWKS = process.env.CGF_OAUTH_JWKS_URI || `${OAUTH_ISSUER}/.well-known/jwks.json`;
+  const OAUTH_REQUIRED = String(process.env.CGF_OAUTH_REQUIRED || '') === 'true';
+  const resourceUrl = () => (process.env.CGF_PUBLIC_URL || '').replace(/\/$/, '');
+  const prmUrl = () => `${resourceUrl()}/.well-known/oauth-protected-resource`;
+
+  /**
+   * Resolve what this request is allowed to do.
+   *   oauth   — a verified token; scopes decide.
+   *   legacy  — no token at all, and OAuth is not yet mandatory.
+   *   denied  — a token that did not verify, or none while OAuth is mandatory.
+   */
+  async function authContext(req) {
+    const bearer = String(req?.headers?.authorization || '').match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+    if (bearer) {
+      const v = await verifyAccessToken(bearer, { issuer: OAUTH_ISSUER, jwksUri: OAUTH_JWKS,
+        audience: resourceUrl() || undefined });
+      if (!v.ok) return { mode: 'denied', ...v };
+      return { mode: 'oauth', scopes: v.scopes, subject: v.subject };
+    }
+    if (OAUTH_REQUIRED) return { mode: 'denied', error: 'invalid_request', description: 'authorization required' };
+    return { mode: 'legacy', scopes: [] };
+  }
+
+  function buildMcp(req, auth) {
     // A dedicated header, not Authorization: Cloud Run consumes `Authorization`
     // for its own IAM check and answers 401 before the request reaches this
     // container, so a token sent that way never arrives. The header is still the
@@ -65,14 +103,15 @@ export function createPublisherService({ relay, keyPath, port } = {}) {
     mcp.tool('federation_identity',
       'This connector\'s federation identity: the Nostr public key it signs with, and the relay it publishes to. Use when you need to know who the federation will see as the author, or to verify a published event came from this connector. The secret key is never returned by any tool.',
       {},
-      async () => text({ pubkey: signer.pubkey, relay: RELAY, service: 'ruflo-chatgpt-federation', version: VERSION }));
+      async () => needs(auth, SCOPE_READ) ?? text({ pubkey: signer.pubkey, relay: RELAY, service: 'ruflo-chatgpt-federation', version: VERSION }));
 
     mcp.tool('channel_sync',
       'Read recent messages from a ruflo swarm channel (e.g. pub:announce, pub:help). Use before publishing, to see what has already been said and avoid duplicating it. Private (prv:) channels are returned as opaque ciphertext because this connector holds no channel keys.',
       { channel: z.string().optional().describe('Channel id, e.g. "pub:announce". Omit for the whole swarm stream.'),
         sinceSeconds: z.number().optional().describe('Look-back window in seconds (default 3600).'),
         limit: z.number().optional().describe('Maximum events to return (default 100).') },
-      async (a) => { try { const msgs = await readChannel(RELAY, signer, a); return text({ count: msgs.length, messages: msgs }); } catch (e) { return fail(e); } });
+      async (a) => { const no = needs(auth, SCOPE_READ); if (no) return no;
+        try { const msgs = await readChannel(RELAY, signer, a); return text({ count: msgs.length, messages: msgs }); } catch (e) { return fail(e); } });
 
     mcp.tool('channel_publish',
       'Sign a message with this connector\'s own key and publish it to a public swarm channel over its own NIP-42 authenticated relay connection. Use when this connector has something the federation needs — a status, a finding, a result. Requires the caller token; public (pub:) channels only, because publishing to a private channel needs a channel key this connector deliberately does not hold.',
@@ -81,8 +120,15 @@ export function createPublisherService({ relay, keyPath, port } = {}) {
         payload: z.record(z.any()).describe('Message body. Never put secrets or credentials here — channel content is readable by every relay member.'),
         callerToken: z.string().optional().describe('Caller token, if not supplied as an x-caller-token header.') },
       async ({ channel, msgType, payload, callerToken }) => {
-        if (!checkCaller(callerToken ?? header)) {
-          return { isError: true, content: [{ type: 'text', text: JSON.stringify({ error: 'caller token required or invalid' }) }] };
+        // OAuth scope is the real gate. The caller token remains a transitional
+        // fallback and only while OAuth is not yet mandatory.
+        const viaOauth = auth.mode === 'oauth' && hasScope(auth.scopes, SCOPE_PUBLISH);
+        const viaLegacy = auth.mode === 'legacy' && checkCaller(callerToken ?? header);
+        if (!viaOauth && !viaLegacy) {
+          const why = auth.mode === 'oauth'
+            ? `access token lacks ${SCOPE_PUBLISH}`
+            : 'caller token required or invalid';
+          return { isError: true, content: [{ type: 'text', text: JSON.stringify({ error: why }) }] };
         }
         if (!PUBLIC_CHANNEL_RE.test(String(channel))) return fail(new Error('channel must be a public pub:<name> channel'));
         try { return text({ ok: true, ...(await publishToChannel(RELAY, signer, { channel, msgType, payload })) }); }
@@ -102,12 +148,31 @@ export function createPublisherService({ relay, keyPath, port } = {}) {
       return res.end(JSON.stringify({ service: 'ruflo-chatgpt-federation', version: VERSION, mcp: '/mcp',
         relay: RELAY, pubkey: signer.pubkey,
         tools: ['federation_identity', 'channel_sync', 'channel_publish'],
-        publishAuth: 'x-caller-token: <caller token>' }));
+        authorization: { type: 'oauth2', issuer: OAUTH_ISSUER,
+          scopes: [SCOPE_READ, SCOPE_PUBLISH],
+          protectedResourceMetadata: prmUrl(),
+          enforced: OAUTH_REQUIRED,
+          transitionalHeader: OAUTH_REQUIRED ? null : 'x-caller-token' } }));
+    }
+    // RFC 9728 discovery. Served at both the bare path and the /mcp-suffixed one,
+    // because clients differ on which they probe.
+    if (url.pathname === '/.well-known/oauth-protected-resource'
+      || url.pathname === '/.well-known/oauth-protected-resource/mcp') {
+      res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
+      return res.end(JSON.stringify(protectedResourceMetadata({
+        resource: resourceUrl() || `https://${req.headers.host}`, issuer: OAUTH_ISSUER })));
     }
     if (url.pathname === '/mcp') {
       if (rateLimited(req)) return res.writeHead(429, { 'content-type': 'application/json' }).end('{"error":"rate limited"}');
       let body; try { body = await readBody(req); } catch { return res.writeHead(413, { 'content-type': 'application/json' }).end('{"error":"payload too large"}'); }
-      const mcp = buildMcp(req); const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+      const auth = await authContext(req);
+      if (auth.mode === 'denied') {
+        // 401 + WWW-Authenticate is what starts a client's OAuth discovery.
+        res.writeHead(401, { 'content-type': 'application/json',
+          'www-authenticate': challengeHeader(prmUrl(), { error: auth.error, description: auth.description }) });
+        return res.end(JSON.stringify({ error: auth.error, error_description: auth.description }));
+      }
+      const mcp = buildMcp(req, auth); const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
       res.on('close', () => { transport.close(); mcp.close(); });
       await mcp.connect(transport);
       let parsed; try { parsed = body ? JSON.parse(body) : undefined; } catch { return res.writeHead(400, { 'content-type': 'application/json' }).end('{"error":"invalid json"}'); }

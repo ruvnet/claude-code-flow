@@ -91,9 +91,41 @@ forgets to pin fails loudly instead of rolling the identity over.
 connector that cannot mint a Google ID token. Authority to publish comes from the
 caller token, not from Cloud Run IAM.
 
-Send that token as **`x-caller-token`**, not `Authorization`. Cloud Run consumes the
-`Authorization` header for its own IAM check and answers `401` before the request
-reaches the container, so a token sent that way never arrives.
+`Authorization` carries the OAuth access token (see below). The transitional
+`x-caller-token` header is a separate, temporary door that closes when
+`CGF_OAUTH_REQUIRED=true`.
+
+> An earlier version of this file claimed Cloud Run strips or rejects `Authorization`
+> on public services. That was wrong. Retested across every header shape — absent,
+> garbage, JWT-shaped, non-Bearer scheme, and the real token — on both `GET /` and
+> `POST /mcp`: all 200, header delivered. The single 401 that produced the claim never
+> reproduced.
+
+## Authorization
+
+OAuth 2.1 against Cognitum's authorization server, which is public-client + PKCE —
+`token_endpoint_auth_methods_supported: ["none"]`, so **there is no client secret in
+this design**.
+
+| | |
+|---|---|
+| Issuer | `https://auth.cognitum.one` |
+| Authorize | `https://auth.cognitum.one/oauth/authorize` |
+| Token | `https://auth.cognitum.one/oauth/token` |
+| JWKS | `https://auth.cognitum.one/.well-known/jwks.json` |
+| Resource metadata | `<service>/.well-known/oauth-protected-resource` (RFC 9728) |
+| Scopes | `federation:read` for the two reads, `federation:publish` for the write |
+| Audience | the service URL — a token minted for another Cognitum resource is refused |
+
+An unauthenticated or unverifiable request to `/mcp` gets `401` with
+`WWW-Authenticate: Bearer resource_metadata="…"`, which is what starts a client's
+discovery.
+
+`CGF_OAUTH_REQUIRED` is the switch. Unset, reads stay open and `x-caller-token` still
+authorises publish, so the connector keeps working while the authorization server side
+is registered. Set to `true`, both transitional doors close and every call needs a
+scoped token. Flip it only once OAuth has passed end to end — that is the last step,
+not the first.
 
 ## Rotate
 

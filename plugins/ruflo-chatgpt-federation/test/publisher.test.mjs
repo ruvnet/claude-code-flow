@@ -211,7 +211,9 @@ async function rpc(port, body, headers = {}) {
     body: JSON.stringify(body) });
   const raw = await res.text();
   const line = raw.split('\n').find((l) => l.startsWith('data: '));
-  return JSON.parse(line ? line.slice(6) : raw);
+  const out = JSON.parse(line ? line.slice(6) : raw);
+  out._status = res.status; out._wwwAuth = res.headers.get('www-authenticate');
+  return out;
 }
 
 test('the MCP surface is exactly three tools, and none of them can return the key', async () => {
@@ -243,12 +245,15 @@ test('channel_publish refuses without the caller token and publishes with it', a
       params: { name: 'channel_publish', arguments: { channel: 'pub:announce', msgType: 'Status', payload: {} } } });
     assert.match(denied.result.content[0].text, /caller token required/);
 
-    // Authorization is NOT the channel: Cloud Run consumes it upstream, so a
-    // client that sends the token there must be told no, not silently allowed.
+    // Authorization is the OAuth channel now, so the caller token sent there is
+    // not a caller token at all — it is an unverifiable access token, and the
+    // answer is a 401 that starts discovery, not a quiet grant.
     const wrongHeader = await rpc(port, { jsonrpc: '2.0', id: 3, method: 'tools/call',
       params: { name: 'channel_publish', arguments: { channel: 'pub:announce', msgType: 'Status', payload: {} } } },
       { authorization: 'Bearer test-caller-token' });
-    assert.match(wrongHeader.result.content[0].text, /caller token required/);
+    assert.equal(wrongHeader._status, 401);
+    assert.match(wrongHeader._wwwAuth || '', /^Bearer resource_metadata=/);
+    assert.match(wrongHeader._wwwAuth || '', /error="invalid_token"/);
 
     const ok = await rpc(port, { jsonrpc: '2.0', id: 2, method: 'tools/call',
       params: { name: 'channel_publish', arguments: { channel: 'pub:announce', msgType: 'Status', payload: { note: 'hi' } } } },

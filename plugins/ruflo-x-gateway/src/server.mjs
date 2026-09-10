@@ -30,7 +30,7 @@ export function createGateway({ relay, keyFile, port } = {}) {
   const adminArg = { adminToken: z.string().describe('Gateway admin token (RUFLO_ADMIN_TOKEN). Required for any write made with the gateway identity.') };
 
   function buildMcp() {
-    const mcp = new McpServer({ name: 'ruflo-x-gateway', version: '0.4.0' });
+    const mcp = new McpServer({ name: 'ruflo-x-gateway', version: '0.4.1' });
     // ---- open reads ----
     mcp.tool('federation_identity', 'Gateway Nostr pubkey + relay. Open read.', {}, async () => text({ pubkey, relay: RELAY, httpBase: HTTP_BASE }));
     mcp.tool('federation_sync', 'Fetch recent verified swarm coordination messages (#t=ruflo-swarm). Open read; optional type filter.',
@@ -108,7 +108,7 @@ export function createGateway({ relay, keyFile, port } = {}) {
     const url = new URL(req.url, `http://${req.headers.host || 'x'}`);
     if (url.pathname === '/health') return res.writeHead(200).end('ok');
     if (url.pathname === '/' && req.method === 'GET') { res.writeHead(200, { 'content-type': 'application/json' });
-      return res.end(JSON.stringify({ service: 'ruflo-x-gateway', version: '0.4.0', mcp: '/mcp', ws: ['/', '/relay'], relay: RELAY, canonicalRelay: RELAY, legacyRelay: LEGACY_RELAY, authNote: 'When connecting via wss://x.ruv.io, sign the NIP-42 AUTH `relay` tag with canonicalRelay (the relay verifies it strictly).', gatewayPubkey: pubkey, resources: ['ruv://federation/registry', 'ruv://swarm/roster', 'ruv://claims/board', 'ruv://swarm/channels'] })); }
+      return res.end(JSON.stringify({ service: 'ruflo-x-gateway', version: '0.4.1', mcp: '/mcp', ws: ['/', '/relay'], relay: RELAY, canonicalRelay: RELAY, legacyRelay: LEGACY_RELAY, authNote: 'When connecting via wss://x.ruv.io, sign the NIP-42 AUTH `relay` tag with canonicalRelay (the relay verifies it strictly).', gatewayPubkey: pubkey, resources: ['ruv://federation/registry', 'ruv://swarm/roster', 'ruv://claims/board', 'ruv://swarm/channels'] })); }
     if (url.pathname === '/mcp') {
       if (rateLimited(req)) return res.writeHead(429, { 'content-type': 'application/json' }).end('{"error":"rate limited"}');
       let body; try { body = await readBody(req); } catch { return res.writeHead(413, { 'content-type': 'application/json' }).end('{"error":"payload too large"}'); }

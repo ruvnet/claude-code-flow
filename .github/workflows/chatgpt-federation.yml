@@ -1,0 +1,28 @@
+name: chatgpt-federation
+
+on:
+  pull_request:
+    paths:
+      - 'plugins/ruflo-chatgpt-federation/**'
+      # The suite guards against the gateway's channel tags drifting away from
+      # this publisher's, so a gateway change must run it too.
+      - 'plugins/ruflo-x-gateway/src/channels.mjs'
+  push:
+    branches: [main]
+    paths:
+      - 'plugins/ruflo-chatgpt-federation/**'
+      - 'plugins/ruflo-x-gateway/src/channels.mjs'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: plugins/ruflo-chatgpt-federation
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm test

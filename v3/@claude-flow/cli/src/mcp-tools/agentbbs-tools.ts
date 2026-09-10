@@ -24,7 +24,7 @@
  * @module @claude-flow/cli/mcp-tools/agentbbs
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, statSync, openSync, readSync, closeSync } from 'node:fs';
 import { resolve, isAbsolute, join } from 'node:path';
 import { randomBytes, createHash } from 'node:crypto';
 import type { MCPTool } from './types.js';
@@ -127,10 +127,83 @@ function readEnvelopes(path: string): BbsEnvelope[] {
   return out;
 }
 
-function nextSeq(path: string): number {
+// Tail of the log we scan to find the last seq. Envelopes are small; one line
+// always fits well inside this. Reading only the tail keeps append O(1) instead
+// of O(n) as a room log grows (ADR-164 §3.2.2 requires monotonic seq, and a
+// full re-parse on every publish was the cost).
+const SEQ_TAIL_BYTES = 65536;
+
+/** Last envelope's seq by scanning only the file tail; full-read fallback keeps it exact. */
+export function nextSeq(path: string): number {
+  if (!existsSync(path)) return 1;
+  try {
+    const size = statSync(path).size;
+    if (size === 0) return 1;
+    const start = Math.max(0, size - SEQ_TAIL_BYTES);
+    const fd = openSync(path, 'r');
+    let text: string;
+    try {
+      const buf = Buffer.alloc(size - start);
+      readSync(fd, buf, 0, buf.length, start);
+      text = buf.toString('utf-8');
+    } finally {
+      closeSync(fd);
+    }
+    // If we started mid-file the first fragment may be a partial line — drop it.
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    const candidates = start > 0 && lines.length > 1 ? lines.slice(1) : lines;
+    for (let i = candidates.length - 1; i >= 0; i--) {
+      try {
+        const e = JSON.parse(candidates[i]);
+        if (typeof e.seq === 'number') return e.seq + 1;
+      } catch { /* keep scanning upward for the last parseable line */ }
+    }
+  } catch { /* fall through to the exact full-read path */ }
+  // Fallback: whole-file parse (rare — huge single line, or a tail with no seq).
   const env = readEnvelopes(path);
   if (env.length === 0) return 1;
   return (env[env.length - 1].seq ?? env.length) + 1;
+}
+
+/** Window within which a fresh PeerHello is suppressed as a duplicate (heartbeat, not spam). */
+const HELLO_WINDOW_SECS = Number(process.env.FEDERATION_BBS_HELLO_WINDOW_SECS ?? 60);
+
+/** Timestamp (ms) of the most recent PeerHello for a room, or -Infinity if none. */
+export function lastPeerHelloMs(logPath: string): number {
+  if (!existsSync(logPath)) return -Infinity;
+  const env = readEnvelopes(logPath);
+  for (let i = env.length - 1; i >= 0; i--) {
+    if (env[i].msgType === 'PeerHello') {
+      const t = Date.parse(env[i].timestamp);
+      return Number.isNaN(t) ? -Infinity : t;
+    }
+  }
+  return -Infinity;
+}
+
+/**
+ * Whether a `register` call should append a PeerHello: only for a genuinely new
+ * registration, or once the heartbeat window has elapsed since the last one.
+ * A re-register within the window is a retry and must NOT spam a near-identical
+ * hello. Pure — the decision the handler makes, exported for test.
+ */
+export function shouldEmitHello(
+  alreadyRegistered: boolean,
+  nowMs: number,
+  lastHelloMs: number,
+  windowSecs: number,
+): boolean {
+  return !alreadyRegistered || nowMs - lastHelloMs >= windowSecs * 1000;
+}
+
+/** Collapse duplicate envelopeIds, preserving order (first occurrence wins). Pure. */
+export function dedupEnvelopes<T extends { envelopeId: string }>(list: T[]): T[] {
+  const seen = new Set<string>();
+  return list.filter(e => {
+    if (seen.has(e.envelopeId)) return false;
+    seen.add(e.envelopeId);
+    return true;
+  });
 }
 
 /**
@@ -202,6 +275,7 @@ export const agentbbsTools: MCPTool[] = [
         existsSync(registryPath) ? JSON.parse(readFileSync(registryPath, 'utf-8')) : {};
 
       // Idempotent — re-registering the same label updates timestamp but keeps id stable.
+      const alreadyRegistered = roomId in registry;
       const entry = {
         roomId,
         roomLabel,
@@ -211,17 +285,27 @@ export const agentbbsTools: MCPTool[] = [
       registry[roomId] = entry;
       writeFileSync(registryPath, JSON.stringify(registry, null, 2));
 
-      // Emit a synthetic PeerHello envelope into the room log so watchers see the join.
+      // Emit a PeerHello only when it carries information: a genuinely new
+      // registration, or a heartbeat refresh once HELLO_WINDOW_SECS has elapsed.
+      // A re-register within the window is a retry/no-op — appending a
+      // near-identical hello every call is the spam ADR-164 dedup guards against
+      // (observed live: one node published 8 near-identical PeerHellos).
       const logPath = roomLogPath(basePath, roomId);
-      const env: BbsEnvelope = {
-        envelopeId: base64url(randomBytes(12)),
-        roomId,
-        seq: nextSeq(logPath),
-        msgType: 'PeerHello',
-        payload: { roomLabel, trustLevel: 'attested' },
-        timestamp: entry.registeredAt,
-      };
-      appendFileSync(logPath, JSON.stringify(env) + '\n');
+      const nowMs = Date.parse(entry.registeredAt);
+      const helloEmitted = shouldEmitHello(
+        alreadyRegistered, nowMs, lastPeerHelloMs(logPath), HELLO_WINDOW_SECS,
+      );
+      if (helloEmitted) {
+        const env: BbsEnvelope = {
+          envelopeId: base64url(randomBytes(12)),
+          roomId,
+          seq: nextSeq(logPath),
+          msgType: 'PeerHello',
+          payload: { roomLabel, trustLevel: 'attested' },
+          timestamp: entry.registeredAt,
+        };
+        appendFileSync(logPath, JSON.stringify(env) + '\n');
+      }
 
       // nodeId: deterministic per (cwd, roomId) so re-registers reuse identity.
       const nodeId = createHash('sha256')
@@ -234,6 +318,7 @@ export const agentbbsTools: MCPTool[] = [
         roomId,
         nodeId,
         trustLevel: 'attested' as const,
+        helloEmitted,
       };
     },
   },
@@ -351,13 +436,16 @@ export const agentbbsTools: MCPTool[] = [
         const idx = all.findIndex(e => e.envelopeId === sinceEnvelopeId);
         slice = idx >= 0 ? all.slice(idx + 1) : all;
       }
-      const envelopes = slice.slice(-limit);
+      // Dedup by envelopeId before applying the limit — a relay replay or a
+      // double-append must not surface the same envelope twice to a watcher.
+      const deduped = dedupEnvelopes(slice);
+      const envelopes = deduped.slice(-limit);
       return {
         success: true,
         roomId,
         envelopes,
         count: envelopes.length,
-        hasMore: slice.length > envelopes.length,
+        hasMore: deduped.length > envelopes.length,
       };
     },
   },

@@ -10,11 +10,17 @@
  * matching the metaharness / agenticow / testgen contract.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, existsSync, readFileSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { agentbbsTools } from '../src/mcp-tools/agentbbs-tools.js';
+import {
+  agentbbsTools,
+  nextSeq,
+  lastPeerHelloMs,
+  shouldEmitHello,
+  dedupEnvelopes,
+} from '../src/mcp-tools/agentbbs-tools.js';
 
 function findTool(name: string) {
   const t = agentbbsTools.find(t => t.name === name);
@@ -179,5 +185,67 @@ describe('agentbbs MCP tools — happy path (real package)', () => {
     // Expiry must be ≤ ttlSeconds from now (within a wide margin to absorb scheduling jitter).
     expect(expiresAt - after).toBeLessThanOrEqual(120 * 1000 + 1000);
     expect(expiresAt - before).toBeGreaterThanOrEqual(120 * 1000 - 1000);
+  });
+});
+
+describe('agentbbs — dedup + seq optimizations (ADR-164, PeerHello spam fix)', () => {
+  let dir: string;
+  beforeAll(() => { dir = mkdtempSync(join(tmpdir(), 'bbs-opt-')); });
+  afterAll(() => { rmSync(dir, { recursive: true, force: true }); });
+
+  it('shouldEmitHello: a genuinely new registration always emits', () => {
+    expect(shouldEmitHello(false, 1_000, -Infinity, 60)).toBe(true);
+  });
+
+  it('shouldEmitHello: re-register within the window is suppressed (kills the 8-hello spam)', () => {
+    // last hello 10s ago, 60s window -> suppress the retry
+    expect(shouldEmitHello(true, 60_000, 50_000, 60)).toBe(false);
+  });
+
+  it('shouldEmitHello: re-register past the window refreshes the heartbeat', () => {
+    // last hello 61s ago, 60s window -> emit a fresh heartbeat
+    expect(shouldEmitHello(true, 61_000, 0, 60)).toBe(true);
+  });
+
+  it('dedupEnvelopes: collapses duplicate envelopeIds, preserves order (first wins)', () => {
+    const out = dedupEnvelopes([
+      { envelopeId: 'a' }, { envelopeId: 'b' }, { envelopeId: 'a' }, { envelopeId: 'c' },
+    ]);
+    expect(out.map(e => e.envelopeId)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('nextSeq: monotonic across 500 appends (tail-read stays exact)', () => {
+    const p = join(dir, 'room-seq.jsonl');
+    expect(nextSeq(p)).toBe(1); // no file yet
+    let seq = 0;
+    for (let i = 0; i < 500; i++) {
+      seq = nextSeq(p);
+      appendFileSync(p, JSON.stringify({ envelopeId: `e${i}`, roomId: 'r', seq, msgType: 'X', payload: {}, timestamp: new Date().toISOString() }) + '\n');
+    }
+    expect(seq).toBe(500);
+    expect(nextSeq(p)).toBe(501);
+  });
+
+  it('nextSeq: exact even when the log exceeds the tail read window (partial first line)', () => {
+    const p = join(dir, 'room-big.jsonl');
+    const pad = 'x'.repeat(2000); // ~2KB/line * 60 lines ~= 120KB > 64KB tail window
+    let seq = 0;
+    for (let i = 0; i < 60; i++) {
+      seq = nextSeq(p);
+      appendFileSync(p, JSON.stringify({ envelopeId: `e${i}`, roomId: 'r', seq, msgType: 'X', payload: { pad }, timestamp: new Date().toISOString() }) + '\n');
+    }
+    expect(seq).toBe(60);
+    expect(nextSeq(p)).toBe(61);
+  });
+
+  it('lastPeerHelloMs: most-recent PeerHello timestamp, ignoring other msgTypes', () => {
+    const p = join(dir, 'room-hello.jsonl');
+    expect(lastPeerHelloMs(p)).toBe(-Infinity); // no file
+    const t1 = '2026-09-10T00:00:00.000Z';
+    const t2 = '2026-09-10T00:05:00.000Z';
+    appendFileSync(p, JSON.stringify({ envelopeId: 'h1', roomId: 'r', seq: 1, msgType: 'PeerHello', payload: {}, timestamp: t1 }) + '\n');
+    appendFileSync(p, JSON.stringify({ envelopeId: 'x1', roomId: 'r', seq: 2, msgType: 'pod-status', payload: {}, timestamp: '2026-09-10T00:10:00.000Z' }) + '\n');
+    appendFileSync(p, JSON.stringify({ envelopeId: 'h2', roomId: 'r', seq: 3, msgType: 'PeerHello', payload: {}, timestamp: t2 }) + '\n');
+    expect(lastPeerHelloMs(p)).toBe(Date.parse(t2));
   });
 });

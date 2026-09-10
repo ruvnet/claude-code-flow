@@ -1,13 +1,13 @@
 import WebSocket, { WebSocketServer } from 'ws';
-const MAX_CONN = 500; let active = 0;
+const MAX_CONN = 500, MAX_PAYLOAD = 256 * 1024; let active = 0;
 // Transparent WebSocket proxy: client <-> this gateway <-> Nostr relay.
 export function attachWsProxy(server, relayUrl, paths = ['/', '/relay']) {
-  const wss = new WebSocketServer({ noServer: true, perMessageDeflate: false });
+  const wss = new WebSocketServer({ noServer: true, perMessageDeflate: false, maxPayload: MAX_PAYLOAD });
   server.on('upgrade', (req, socket, head) => {
     const path = new URL(req.url, 'http://x').pathname;
-    if (!paths.includes(path)) { socket.destroy(); return; }
+    if (!paths.includes(path)) { socket.write('HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n'); socket.destroy(); return; }
     if (active >= MAX_CONN) { socket.write('HTTP/1.1 503 Service Unavailable\r\n\r\n'); socket.destroy(); return; }
-    const up = new WebSocket(relayUrl, { perMessageDeflate: false });
+    const up = new WebSocket(relayUrl, { perMessageDeflate: false, maxPayload: MAX_PAYLOAD });
     up.once('open', () => wss.handleUpgrade(req, socket, head, (client) => {
       active++;
       client.on('message', (d) => { if (up.readyState === WebSocket.OPEN) up.send(d.toString()); });

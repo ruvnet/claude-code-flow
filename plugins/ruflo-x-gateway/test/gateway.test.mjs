@@ -76,3 +76,21 @@ test('seraphina: compaction dedupes by from|type, extractJson survives fences, m
   assert.deepEqual(extractJson('plain prose').proposals, []);
   await assert.rejects(askSeraphina('x', { roster: {}, claims: {}, recentMessages: [] }, {}), /SERAPHINA_METALLM_KEY/);
 });
+test('hardening: publish bounds, bucket eviction, ws maxPayload/404, fetchManyOn single-connection', async () => {
+  const { publish, MAX_PAYLOAD_BYTES, fetchManyOn } = await import('../src/nostr-federation.mjs');
+  const { rateLimited, _bucketsForTest } = await import('../src/security.mjs');
+  const src = await import('node:fs').then((f) => f.readFileSync(new URL('../src/ws-proxy.mjs', import.meta.url), 'utf8'));
+  await assert.rejects(publish('ws://127.0.0.1:1', new Uint8Array(32), 'bad type!', {}), /invalid msgType/);
+  await assert.rejects(publish('ws://127.0.0.1:1', new Uint8Array(32), 'Status', { x: 'y'.repeat(MAX_PAYLOAD_BYTES) }), /payload too large/);
+  for (let i = 0; i < 12_000; i++) rateLimited({ headers: { 'x-forwarded-for': `10.0.${(i >> 8) & 255}.${i & 255}` }, socket: {} }, 60);
+  assert.ok(_bucketsForTest.size <= 10_100, 'bucket map is bounded: ' + _bucketsForTest.size);
+  assert.match(src, /maxPayload/); assert.match(src, /404 Not Found/);
+  // fetchManyOn: one AUTH handshake, N REQs on the same socket
+  const sk = generateSecretKey(); let handshakes = 0, reqs = 0;
+  const wss = new WebSocketServer({ port: 0 });
+  await new Promise((r) => wss.once('listening', r));
+  wss.on('connection', (s) => { s.send(JSON.stringify(['AUTH', 'c'])); s.on('message', (d) => { const m = JSON.parse(d); if (m[0] === 'AUTH') { handshakes++; s.send(JSON.stringify(['OK', m[1].id, true, ''])); } if (m[0] === 'REQ') { reqs++; s.send(JSON.stringify(['EOSE', m[1]])); } }); });
+  const out = await fetchManyOn(`ws://127.0.0.1:${wss.address().port}`, sk, [{ limit: 1 }, { limit: 1 }, { limit: 1 }]);
+  wss.close();
+  assert.equal(out.length, 3); assert.equal(handshakes, 1); assert.equal(reqs, 3);
+});

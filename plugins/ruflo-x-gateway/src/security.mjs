@@ -1,10 +1,17 @@
 import { timingSafeEqual } from 'node:crypto';
 export const MAX_BODY = 256 * 1024;
 const buckets = new Map(); // ip -> {tokens, ts}
+const MAX_BUCKETS = 10_000, IDLE_MS = 10 * 60_000;
+// Evict idle buckets so IP churn cannot grow the map without bound (DoS/memory).
+function pruneBuckets(now) {
+  if (buckets.size < MAX_BUCKETS) { if (buckets.size % 500 !== 0) return; }
+  for (const [ip, b] of buckets) if (now - b.ts > IDLE_MS) buckets.delete(ip);
+  if (buckets.size >= MAX_BUCKETS) { const drop = buckets.size - MAX_BUCKETS + 100; let i = 0; for (const ip of buckets.keys()) { if (i++ >= drop) break; buckets.delete(ip); } }
+}
 export function clientIp(req) { return (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || 'unknown'; }
 // Token bucket: `rate` req/min per IP.
 export function rateLimited(req, rate = 60) {
-  const ip = clientIp(req), now = Date.now(); const b = buckets.get(ip) || { tokens: rate, ts: now };
+  const ip = clientIp(req), now = Date.now(); pruneBuckets(now); const b = buckets.get(ip) || { tokens: rate, ts: now };
   b.tokens = Math.min(rate, b.tokens + ((now - b.ts) / 60000) * rate); b.ts = now;
   if (b.tokens < 1) { buckets.set(ip, b); return true; }
   b.tokens -= 1; buckets.set(ip, b); return false;
@@ -29,3 +36,5 @@ export function checkAdmin(token, expected = process.env.RUFLO_ADMIN_TOKEN) {
   const a = Buffer.from(token), b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
 }
+
+export const _bucketsForTest = buckets;

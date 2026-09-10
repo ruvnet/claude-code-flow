@@ -9,6 +9,8 @@ import { dirname } from 'node:path';
 
 export const SWARM_TAG = 'ruflo-swarm';           // discoverable hashtag
 export const SWARM_KIND = 1;                        // text-note kind, tagged for the swarm
+export const MAX_MSGTYPE = 64, MAX_PAYLOAD_BYTES = 32 * 1024;
+const MSGTYPE_RE = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
 const hex = (b) => Buffer.from(b).toString('hex');
 const unhex = (h) => Uint8Array.from(Buffer.from(h, 'hex'));
 
@@ -53,6 +55,11 @@ export function connectAuthed(relayUrl, sk, { timeoutMs = 15000 } = {}) {
 
 // Publish a signed coordination message. Resolves the event id on relay OK.
 export async function publish(relayUrl, sk, msgType, payload) {
+  // Bound what we sign: a bad/oversized event would be rejected by the relay anyway,
+  // but validating here fails fast and keeps our own memory/CPU bounded.
+  if (!MSGTYPE_RE.test(String(msgType))) throw new Error(`invalid msgType (${MAX_MSGTYPE} chars, [A-Za-z0-9_-])`);
+  const bytes = Buffer.byteLength(JSON.stringify(payload ?? {}));
+  if (bytes > MAX_PAYLOAD_BYTES) throw new Error(`payload too large (${bytes} > ${MAX_PAYLOAD_BYTES} bytes)`);
   const ws = await connectAuthed(relayUrl, sk);
   const ev = finalizeEvent({ kind: SWARM_KIND, created_at: Math.floor(Date.now() / 1000),
     tags: [['t', SWARM_TAG], ['k', String(msgType)]],
@@ -86,3 +93,24 @@ export async function fetchRecent(relayUrl, sk, { sinceSeconds = 3600, limit = 1
     ws.send(JSON.stringify(['REQ', 'ruflo-sync', filter]));
   });
 }
+
+// Run several REQs over ONE authenticated connection (one NIP-42 handshake instead of N).
+// `filters` is an array; resolves an array of verified message lists in the same order.
+export async function fetchManyOn(relayUrl, sk, filters) {
+  const ws = await connectAuthed(relayUrl, sk);
+  const results = filters.map(() => []); let open = filters.length;
+  return new Promise((resolve) => {
+    const finish = () => { try { ws.close(); } catch {} resolve(results); };
+    const timer = setTimeout(finish, 12000);
+    ws.on('message', (data) => {
+      const m = JSON.parse(data.toString());
+      const idx = typeof m[1] === 'string' && m[1].startsWith('q') ? Number(m[1].slice(1)) : -1;
+      if (m[0] === 'EVENT' && idx >= 0 && verifyEvent(m[2])) { let body; try { body = JSON.parse(m[2].content); } catch { body = { raw: m[2].content }; } results[idx].push({ id: m[2].id, pubkey: m[2].pubkey, created_at: m[2].created_at, ...body }); }
+      else if (m[0] === 'EOSE' && idx >= 0) { ws.send(JSON.stringify(['CLOSE', m[1]])); if (--open === 0) { clearTimeout(timer); finish(); } }
+    });
+    filters.forEach((f, i) => ws.send(JSON.stringify(['REQ', 'q' + i, { kinds: [SWARM_KIND], '#t': [SWARM_TAG], since: Math.floor(Date.now() / 1000) - (f.sinceSeconds ?? 3600), limit: f.limit ?? 100, ...(f.type ? { '#k': [String(f.type)] } : {}) }])));
+  });
+}
+// Tiny TTL cache for hot read paths (roster/claims) to absorb bursts without re-dialing the relay.
+const cache = new Map();
+export async function cached(key, ttlMs, fn) { const c = cache.get(key); const now = Date.now(); if (c && now - c.at < ttlMs) return c.v; const v = await fn(); cache.set(key, { v, at: now }); return v; }

@@ -9,6 +9,8 @@ import { select, confirm, input } from '../prompt.js';
 import { callMCPTool, MCPClientError } from '../mcp-client.js';
 import { distillCommand } from './memory-distill.js';
 import { backupCommand } from './memory-backup.js';
+import { countSiblingStoreRows } from '../memory/sibling-store.js';
+import { resolveDbPath } from '../memory/memory-initializer.js';
 
 // Memory backends
 const BACKENDS = [
@@ -814,6 +816,18 @@ const listCommand: Command = {
 
       output.writeln();
       output.printInfo(`Showing ${entries.length} of ${listResult.total} entries`);
+
+      // #3196: AgentDB owns a sibling store next to this one. `total` counts only
+      // the file we read, so a bare count reads as "this is everything" while rows
+      // sit unreadable next door. Silence would be recoverable; a confident wrong
+      // total is not, because nothing prompts anyone to look further.
+      const unread = await countSiblingStoreRows(resolveDbPath(ctx.flags.path as string | undefined));
+      if (unread && unread.rows > 0) {
+        output.printWarning(
+          `${unread.rows} more entries are in ${unread.path} and were not read here. ` +
+          `That store is written by the MCP/AgentDB path; read it with --path ${unread.path}.`
+        );
+      }
 
       return { success: true, data: listResult.entries };
     } catch (error) {

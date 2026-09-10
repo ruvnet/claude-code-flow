@@ -51,6 +51,36 @@ export const federationCommand: Command = {
       options: [{ name: 'type', description: 'Message type (Status|Task|Result|…)', type: 'string', required: true }, { name: 'payload', description: 'JSON payload', type: 'string', required: true }],
       action: (ctx) => { let payload: unknown; try { payload = JSON.parse(String(ctx.flags.payload)); } catch { output.printError('--payload must be JSON'); return Promise.resolve({ success: false, exitCode: 1 }); }
         return run(ctx, 'x_federation_publish', { msgType: ctx.flags.type, payload }, 'Published'); } },
+    { name: 'channel', description: 'Public and private swarm channels (ADR-386). Private channels are encrypted with a key only this machine holds.',
+      options: [
+        { name: 'action', description: 'create|grant|accept|publish|read|list', type: 'string', required: true },
+        { name: 'name', description: 'Channel name (create)', type: 'string' },
+        { name: 'visibility', description: 'public|private (create)', type: 'string' },
+        { name: 'channel', description: 'Channel id: pub:<name> or prv:<16 hex>', type: 'string' },
+        { name: 'pubkey', description: '64-hex member pubkey (grant)', type: 'string' },
+        { name: 'type', description: 'Message type (publish)', type: 'string' },
+        { name: 'payload', description: 'JSON payload (publish)', type: 'string' },
+        { name: 'since', description: 'Look-back seconds (read|accept)', type: 'number' },
+        { name: 'limit', description: 'Max messages (read)', type: 'number' },
+      ],
+      action: (ctx) => {
+        const a = String(ctx.flags.action);
+        switch (a) {
+          case 'create': return run(ctx, 'x_federation_channel_create', { name: ctx.flags.name, visibility: ctx.flags.visibility ?? 'public' }, 'Channel created');
+          case 'grant': return run(ctx, 'x_federation_channel_grant', { channel: ctx.flags.channel, pubkey: ctx.flags.pubkey }, 'Channel granted');
+          case 'accept': return run(ctx, 'x_federation_channel_accept', { sinceSeconds: ctx.flags.since }, 'Grants accepted');
+          case 'read': return run(ctx, 'x_federation_channel_read', { channel: ctx.flags.channel, sinceSeconds: ctx.flags.since, limit: ctx.flags.limit }, 'Channel messages');
+          case 'list': return run(ctx, 'x_federation_channel_list', {}, 'Channel keys held');
+          case 'publish': {
+            let payload: unknown;
+            try { payload = JSON.parse(String(ctx.flags.payload)); } catch { output.printError('--payload must be JSON'); return Promise.resolve({ success: false, exitCode: 1 }); }
+            return run(ctx, 'x_federation_channel_publish', { channel: ctx.flags.channel, msgType: ctx.flags.type, payload }, 'Published to channel');
+          }
+          default:
+            output.printError('--action must be create|grant|accept|publish|read|list');
+            return Promise.resolve({ success: false, exitCode: 1 });
+        }
+      } },
   ],
-  action: async (ctx) => { output.printInfo('Usage: ruflo federation <join|sync|roster|claims|registry|invite|admit|publish>'); void ctx; return { success: true }; },
+  action: async (ctx) => { output.printInfo('Usage: ruflo federation <join|sync|roster|claims|registry|invite|admit|publish|channel>'); void ctx; return { success: true }; },
 };

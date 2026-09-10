@@ -94,3 +94,65 @@ test('hardening: publish bounds, bucket eviction, ws maxPayload/404, fetchManyOn
   wss.close();
   assert.equal(out.length, 3); assert.equal(handshakes, 1); assert.equal(reqs, 3);
 });
+
+// ---- ADR-386 channels ----
+test('channels: ids, seal/open, non-member cannot open, type hidden on private', async () => {
+  const c = await import('../src/channels.mjs');
+  const { generateSecretKey, getPublicKey } = await import('nostr-tools/pure');
+
+  // public ids carry the name; private ids are derived from the key and carry nothing
+  assert.equal(c.publicChannelId('release-3-41'), 'pub:release-3-41');
+  assert.throws(() => c.publicChannelId('Bad Name'), /channel name/);
+  const key = c.newChannelKey();
+  const id = c.privateChannelId(key);
+  assert.match(id, /^prv:[0-9a-f]{16}$/);
+  assert.equal(c.privateChannelId(key), id, 'id is deterministic in the key');
+  assert.notEqual(c.privateChannelId(c.newChannelKey()), id);
+  assert.ok(c.isPrivateChannel(id) && !c.isPrivateChannel('pub:x'));
+  assert.throws(() => c.privateChannelId('abcd'), /32 bytes/);
+
+  // message sealing round trip, and a wrong key opens nothing
+  const ct = c.sealMessage(key, { type: 'Task', taskId: 't-1' });
+  assert.ok(!/taskId|Task/.test(ct), 'ciphertext must not leak the body');
+  assert.deepEqual(c.openMessage(key, ct), { type: 'Task', taskId: 't-1' });
+  assert.equal(c.openMessage(c.newChannelKey(), ct), null);
+
+  // key grant: only the addressed member opens it
+  const granter = generateSecretKey(), member = generateSecretKey(), outsider = generateSecretKey();
+  const sealed = c.sealChannelKey(granter, getPublicKey(member), key);
+  assert.equal(c.openChannelKey(member, getPublicKey(granter), sealed), key);
+  assert.equal(c.openChannelKey(outsider, getPublicKey(granter), sealed), null);
+  assert.throws(() => c.sealChannelKey(granter, 'nothex', key), /64 hex/);
+
+  // tags: private hides the message type behind k=enc, public keeps it
+  assert.deepEqual(c.channelTags(id, 'Task', true), [['t', 'ruflo-swarm'], ['c', id], ['k', 'enc']]);
+  assert.deepEqual(c.channelTags('pub:ops', 'Status', false), [['t', 'ruflo-swarm'], ['c', 'pub:ops'], ['k', 'Status']]);
+  assert.throws(() => c.channelTags('bogus', 'Task', false), /bad channel id/);
+});
+
+test('channels: tools are registered, private publish refused, ids validated', async () => {
+  process.env.RUFLO_ADMIN_TOKEN = 'test-admin-token';
+  const gw = createGateway({ relay: 'ws://127.0.0.1:1', keyFile: '/tmp/x-gw-ch-' + Date.now() + '.key', port: 0 });
+  const port = await gw.listen(0); const base = `http://127.0.0.1:${port}`;
+  const rpc = (m) => fetch(base + '/mcp', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' }, body: JSON.stringify(m) }).then((r) => r.text());
+  const list = await rpc({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} });
+  for (const n of ['channel_list', 'channel_sync', 'channel_publish']) assert.ok(list.includes(`"name":"${n}"`), n);
+  assert.ok(list.includes('Use when'), 'ADR-112 descriptions');
+
+  // channel_publish is admin-gated like every other gateway-identity write
+  const noTok = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'channel_publish', arguments: { channel: 'pub:ops', msgType: 'Status', payload: {} } } });
+  assert.match(noTok, /admin token required|invalid_type|Required/);
+
+  // the gateway refuses to publish to a private channel: it holds no channel key
+  const priv = await rpc({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'channel_publish', arguments: { channel: 'prv:0123456789abcdef', msgType: 'Status', payload: {}, adminToken: 'test-admin-token' } } });
+  assert.match(priv, /holds no channel key|private channels cannot/);
+
+  // a malformed id is rejected before any relay work
+  const bad = await rpc({ jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'channel_sync', arguments: { channel: 'not a channel' } } });
+  assert.match(bad, /pub:<name> or prv:/);
+
+  const info = await (await fetch(base + '/')).json();
+  assert.ok(info.resources.includes('ruv://swarm/channels'));
+  assert.equal(info.version, '0.4.0');
+  gw.server.close();
+});

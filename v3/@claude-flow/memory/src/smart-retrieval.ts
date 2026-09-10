@@ -279,15 +279,28 @@ export function applyMMR<T extends SearchCandidate>(
 function mmrRerank(scored: Scored[], lambda: number, limit: number): Scored[] {
   if (scored.length <= 1) return scored.slice(0, limit);
 
+  // Lazy, per-candidate token cache: PR #3169 made embedding-cosine the
+  // common `pairSimilarity` path, so eager per-outer-pass tokenization
+  // (the prior implementation) mostly computed tokens that were then
+  // discarded. Tokens are now computed at most once per candidate, only
+  // when the Jaccard fallback actually needs them (Dream Cycle 2026-09-10).
+  const tokenCache = new Map<SearchCandidate, Set<string>>();
+  const getTokens = (item: Scored): Set<string> => {
+    let tokens = tokenCache.get(item.candidate);
+    if (!tokens) {
+      tokens = tokenize(item.candidate.content);
+      tokenCache.set(item.candidate, tokens);
+    }
+    return tokens;
+  };
+
   const selected: Scored[] = [];
   const remaining = [...scored];
-  const selectedTokens: Set<string>[] = [];
   const selectedEmbeddings: Array<number[] | undefined> = [];
 
   // Seed with the top-scored candidate.
   const first = remaining.shift()!;
   selected.push(first);
-  selectedTokens.push(tokenize(first.candidate.content));
   selectedEmbeddings.push(first.candidate.embedding);
 
   while (selected.length < limit && remaining.length > 0) {
@@ -296,11 +309,10 @@ function mmrRerank(scored: Scored[], lambda: number, limit: number): Scored[] {
 
     for (let i = 0; i < remaining.length; i++) {
       const cand = remaining[i];
-      const candTokens = tokenize(cand.candidate.content);
       const candEmbedding = cand.candidate.embedding;
       let maxOverlap = 0;
-      for (let j = 0; j < selectedTokens.length; j++) {
-        const sim = pairSimilarity(candEmbedding, selectedEmbeddings[j], candTokens, selectedTokens[j]);
+      for (let j = 0; j < selected.length; j++) {
+        const sim = pairSimilarity(candEmbedding, selectedEmbeddings[j], cand, selected[j], getTokens);
         if (sim > maxOverlap) maxOverlap = sim;
       }
       const mmr = lambda * cand.score - (1 - lambda) * maxOverlap;
@@ -313,19 +325,19 @@ function mmrRerank(scored: Scored[], lambda: number, limit: number): Scored[] {
     if (bestIdx < 0) break;
     const [chosen] = remaining.splice(bestIdx, 1);
     selected.push(chosen);
-    selectedTokens.push(tokenize(chosen.candidate.content));
     selectedEmbeddings.push(chosen.candidate.embedding);
   }
 
   return selected;
 }
 
-/** Cosine similarity when both embeddings exist, agree in dimension, and are well-formed; token-Jaccard otherwise. */
+/** Cosine similarity when both embeddings exist, agree in dimension, and are well-formed; token-Jaccard (computed lazily via `getTokens`) otherwise. */
 function pairSimilarity(
   embA: number[] | undefined,
   embB: number[] | undefined,
-  tokensA: Set<string>,
-  tokensB: Set<string>
+  a: Scored,
+  b: Scored,
+  getTokens: (item: Scored) => Set<string>
 ): number {
   if (
     isWellFormedEmbedding(embA) &&
@@ -334,7 +346,7 @@ function pairSimilarity(
   ) {
     return cosineSimilarity(embA, embB);
   }
-  return jaccard(tokensA, tokensB);
+  return jaccard(getTokens(a), getTokens(b));
 }
 
 /**
@@ -365,7 +377,13 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-function tokenize(text: string): Set<string> {
+/**
+ * Exported (this package's `exports` map is a `"./*"` wildcard, so this is
+ * real public API, not just test access) so the mmrRerank tokenize-call-
+ * count regression test can spy on it (Dream Cycle 2026-09-10). Pure and
+ * side-effect-free, so widening its visibility carries no behavioral risk.
+ */
+export function tokenize(text: string): Set<string> {
   return new Set(
     text
       .toLowerCase()

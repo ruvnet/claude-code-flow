@@ -14,7 +14,8 @@ function printJsonOrTable(ctx: CommandContext, data: unknown, title: string): vo
 }
 async function run(ctx: CommandContext, tool: string, args: Record<string, unknown>, title: string): Promise<CommandResult> {
   try {
-    const data = await callMCPTool(tool, args);
+    // CLI flag --gateway takes precedence over the RUFLO_X_GATEWAY_URL env var (ADR-125).
+    const data = await callMCPTool(tool, { gatewayUrl: ctx.flags.gateway, ...args });
     printJsonOrTable(ctx, data, title);
     return { success: true, data };
   } catch (e) {
@@ -26,7 +27,10 @@ async function run(ctx: CommandContext, tool: string, args: Record<string, unkno
 export const federationCommand: Command = {
   name: 'federation',
   description: 'Open swarm federation via x.ruv.io — sync messages, roster, claims, registry, invites (Nostr, signed, membership-gated)',
-  options: [{ name: 'format', short: 'f', description: 'Output format (json|text)', type: 'string', default: 'text' }],
+  options: [
+    { name: 'format', short: 'f', description: 'Output format (json|text)', type: 'string', default: 'text' },
+    { name: 'gateway', description: 'Gateway base URL (takes precedence over RUFLO_X_GATEWAY_URL; default https://x.ruv.io)', type: 'string' },
+  ],
   subcommands: [
     { name: 'sync', description: 'Fetch recent verified swarm messages',
       options: [{ name: 'since', description: 'Look-back seconds (default 3600)', type: 'number' }, { name: 'limit', description: 'Max messages', type: 'number' }, { name: 'type', description: 'Filter by message type', type: 'string' }],

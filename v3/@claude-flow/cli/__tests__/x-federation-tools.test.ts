@@ -40,6 +40,12 @@ describe('x_federation_* (ruflo → x.ruv.io gateway)', () => {
     await tool('x_federation_roster').handler({}, {} as any);
     expect(calls[0].url).toBe('https://gw.example/mcp');
   });
+  it('gatewayUrl tool arg takes precedence over RUFLO_X_GATEWAY_URL (ADR-125) and is not forwarded to the gateway', async () => {
+    process.env.RUFLO_X_GATEWAY_URL = 'https://env.example';
+    await tool('x_federation_sync').handler({ gatewayUrl: 'https://arg.example', limit: 1 }, {} as any);
+    expect(calls[0].url).toBe('https://arg.example/mcp');
+    expect(calls[0].body.params.arguments).toEqual({ limit: 1 });
+  });
   it('roster/claims/registry read the matching ruv:// resource', async () => {
     for (const [t, uri] of [['x_federation_roster', 'ruv://swarm/roster'], ['x_federation_claims', 'ruv://claims/board'], ['x_federation_registry', 'ruv://federation/registry']] as const) {
       calls = [];

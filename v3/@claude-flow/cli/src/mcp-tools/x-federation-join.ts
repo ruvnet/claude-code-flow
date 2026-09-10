@@ -16,8 +16,8 @@ import { join, dirname } from 'node:path';
 
 // ADR-125 precedence: tool args (relayHttp / relayWs / keyFile) take precedence over the
 // RUFLO_X_RELAY_HTTP / RUFLO_X_RELAY_WS / RUFLO_NOSTR_KEY_FILE env vars, which precede defaults.
-const HTTP_BASE = (o?: string) => (o || process.env.RUFLO_X_RELAY_HTTP || 'https://buzz-relay-186366152200.us-central1.run.app').replace(/\/$/, '');
-const RELAY_WS = (o?: string) => o || process.env.RUFLO_X_RELAY_WS || 'wss://buzz-relay-186366152200.us-central1.run.app';
+const HTTP_BASE = (o?: string) => (o || process.env.RUFLO_X_RELAY_HTTP || 'https://relay.ruv.io').replace(/\/$/, '');
+const RELAY_WS = (o?: string) => o || process.env.RUFLO_X_RELAY_WS || 'wss://relay.ruv.io';
 const KEY_FILE = () => process.env.RUFLO_NOSTR_KEY_FILE || join(homedir(), '.ruflo', 'nostr.key');
 const hex = (b: Uint8Array) => Buffer.from(b).toString('hex');
 const unhex = (h: string) => Uint8Array.from(Buffer.from(h, 'hex'));
@@ -63,8 +63,10 @@ export const xFederationJoinTools: MCPTool[] = [{
   handler: async (input) => {
     const i = input as { code: string; relayHttp?: string; relayWs?: string; keyFile?: string };
     const nt = await loadNostrTools();
-    if (!nt) return { degraded: true, reason: 'nostr-tools not installed', hint: 'npm i -g nostr-tools  (secp256k1 signing is not in node:crypto)' };
+    // Validate input before the optional-dependency check so a bad code fails fast and identically
+    // whether or not nostr-tools is present.
     if (!/^v2\.[A-Za-z0-9._-]{8,}$/.test(i.code)) throw new Error('invite code must look like v2.<token>');
+    if (!nt) return { degraded: true, reason: 'nostr-tools not installed', hint: 'npm i -g nostr-tools  (secp256k1 signing is not in node:crypto)' };
     const { sk, pubkey, created } = loadOrCreateKey(nt, i.keyFile);
     const url = `${HTTP_BASE(i.relayHttp)}/api/invites/claim`; const body = JSON.stringify({ code: i.code });
     const r = await fetch(url, { method: 'POST', headers: { Authorization: nip98Header(nt, sk, url, 'POST', body), 'Content-Type': 'application/json' }, body, signal: AbortSignal.timeout(20_000) });

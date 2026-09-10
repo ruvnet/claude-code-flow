@@ -130,7 +130,7 @@
   "optionalDependencies": {
     "@agntcy/slim-bindings": "2.0.0-alpha.5",
     "@claude-flow/memory": "^3.0.0-alpha.23",
-    "@metaharness/darwin": "~0.9.0",
+    "@metaharness/darwin": "~0.10.2",
     "@metaharness/flywheel": "~0.1.10",
     "@metaharness/radio": "~0.1.0",
     "@metaharness/turn-credit": "~0.1.0",

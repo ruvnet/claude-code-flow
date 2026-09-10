@@ -52,7 +52,7 @@ import {
 // scripts/check-metaharness-pins.mjs watch this constant for drift. Kept in
 // lock-step with the optionalDependencies pin in package.json and the plugin
 // darwin cache (versioned by the plugin's own `~0.8.0` pin in _darwin.mjs).
-export const MH_DARWIN_PIN = '0.9.0';
+export const MH_DARWIN_PIN = '0.10.2';
 
 // ── Provenance ─────────────────────────────────────────────────────────────
 

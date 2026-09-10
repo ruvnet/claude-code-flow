@@ -209,8 +209,8 @@ importers:
         specifier: ^3.0.0-alpha.23
         version: link:../memory
       '@metaharness/darwin':
-        specifier: ~0.9.0
-        version: 0.9.0
+        specifier: ~0.10.2
+        version: 0.10.2
       '@metaharness/flywheel':
         specifier: ~0.1.10
         version: 0.1.10
@@ -1767,19 +1767,19 @@ packages:
     resolution: {integrity: sha512-Vo+PSpZG2/fmgmiNzYK9qWRh8h/CHrwD0mo1h1DzL4yzHNSfWYujGTYsWGreD000gcgmZ7K4Ys6Tx9TxtsKdDw==}
     dev: false
 
-  /@metaharness/darwin@0.2.8:
-    resolution: {integrity: sha512-B8tF7IrrSxwKS6fEPEL6N2Juth9WWn+hppLUtUYPTJ2vcHzzZPIg2cS5T9qTyNNuANlTSWnQHnvzlfvYdGNfeQ==}
-    engines: {node: '>=20.0.0'}
-    hasBin: true
-    dev: false
-
-  /@metaharness/darwin@0.9.0:
-    resolution: {integrity: sha512-X/u0sI4QNFi/YUhcQwZ2hcmthgc3H3n4PdPoKMbAE/y+rUWOQCS9oc1wqCcUysBN5K0jHV7U+3QApdMFvwKvRQ==}
+  /@metaharness/darwin@0.10.2:
+    resolution: {integrity: sha512-Glczy9YJDLf5x4HlfVuQVbZuPuue45K+8ohfLixZPJ18oc0Q8RR+BcsopHUQsL4hBkvs3YPXUyZ16piDJQp4gw==}
     engines: {node: '>=20.0.0'}
     hasBin: true
     requiresBuild: true
     dev: false
     optional: true
+
+  /@metaharness/darwin@0.2.8:
+    resolution: {integrity: sha512-B8tF7IrrSxwKS6fEPEL6N2Juth9WWn+hppLUtUYPTJ2vcHzzZPIg2cS5T9qTyNNuANlTSWnQHnvzlfvYdGNfeQ==}
+    engines: {node: '>=20.0.0'}
+    hasBin: true
+    dev: false
 
   /@metaharness/flywheel@0.1.10:
     resolution: {integrity: sha512-yrLXDXNdf4jKqHlW6QZw3Cy5T0eMMjjaPqn1XB717/Xx/y0Iv9R03W0OhMEiR/kfqMNebRBW1fi6D7inStEyqA==}

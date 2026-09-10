@@ -13,10 +13,16 @@ const hex = (b) => Buffer.from(b).toString('hex');
 const unhex = (h) => Uint8Array.from(Buffer.from(h, 'hex'));
 
 export function loadIdentity(keyFile) {
-  mkdirSync(dirname(keyFile), { recursive: true });
+  // Priority: a hex key injected via env (a GCP secret in prod, for a STABLE
+  // identity across Cloud Run instances) > a persisted key file > a fresh key.
+  const envHex = (process.env.RUFLO_NOSTR_KEY_HEX || '').trim();
+  if (/^[0-9a-f]{64}$/i.test(envHex)) { const sk = unhex(envHex); return { sk, pubkey: getPublicKey(sk) }; }
   let sk;
-  if (existsSync(keyFile)) sk = unhex(readFileSync(keyFile, 'utf8').trim());
-  else { sk = generateSecretKey(); writeFileSync(keyFile, hex(sk), { mode: 0o600 }); }
+  try {
+    mkdirSync(dirname(keyFile), { recursive: true });
+    if (existsSync(keyFile)) sk = unhex(readFileSync(keyFile, 'utf8').trim());
+    else { sk = generateSecretKey(); writeFileSync(keyFile, hex(sk), { mode: 0o600 }); }
+  } catch { sk = generateSecretKey(); }  // read-only FS fallback (ephemeral)
   return { sk, pubkey: getPublicKey(sk) };
 }
 

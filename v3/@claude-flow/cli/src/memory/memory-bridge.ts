@@ -3304,3 +3304,4 @@ export async function getMemoryBridgeStats(options: {
     return { totalEntries: 0, perNamespace: {}, source: 'memory-bridge (error)', reachable: false };
   }
 }
+

@@ -166,6 +166,26 @@ describe('buildOverview / renderOverviewCard', () => {
     expect(o.nextSteps.some((s) => s.includes('failed'))).toBe(true);
     expect(o.transcriptPath).toBe('/t/transcript.ndjson');
   });
+  it('ADR-069 no-key fallback: when all workers fail on auth, next steps point to the defer path', () => {
+    const authFailed = [
+      { name: 'coordinator', role: 'coordinator', model: 'sonnet', status: 'failed' as const, summary: '', files: [], costUsd: null, error: 'exit code 1: Invalid API key · 401 authentication_error' },
+    ];
+    const o = buildOverview({
+      objective: 'do X', swarmId: 's1', topology: 'hierarchical', consensus: 'raft', strategy: 'development',
+      workers: authFailed, elapsedMs: 500, reduce: 'merged',
+    });
+    expect(o.nextSteps.some((s) => s.includes('No usable model auth'))).toBe(true);
+    expect(o.nextSteps.some((s) => s.includes('claude -p') || s.includes('hive-mind') || s.includes('--no-execute'))).toBe(true);
+  });
+
+  it('does NOT trigger the no-key fallback when a worker succeeds', () => {
+    const o = buildOverview({
+      objective: 'do X', swarmId: 's1', topology: 'hierarchical', consensus: 'raft', strategy: 'development',
+      workers, elapsedMs: 500, reduce: 'merged', // `workers` has one ok, one non-auth failure
+    });
+    expect(o.nextSteps.some((s) => s.includes('No usable model auth'))).toBe(false);
+  });
+
   it('renders a human card naming artifacts and worker status', () => {
     const o = buildOverview({
       objective: 'do X', swarmId: 's1', topology: 'hierarchical', consensus: 'raft', strategy: 'development',

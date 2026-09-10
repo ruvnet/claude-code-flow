@@ -54,6 +54,7 @@ A terminal `{"kind":"overview", overview:{…}}` NDJSON event is emitted on stdo
 - **Redaction:** every streamed `data` string passes `redact()` (Anthropic/OpenAI keys, bearer tokens, GitHub tokens, `KEY=val` secrets). `process.env` is inherited for ambient auth but never emitted.
 - **No escalation:** capability is bounded by `--allowedTools` (default `Read,Write,Edit,Bash,Glob,Grep`); there is no `--dangerously-skip-permissions`. Workers run in the invocation cwd (same trust boundary as the existing `/run`).
 - **No silent fallback (COROLLARY 7):** every failure — spawn error, nonzero exit, `is_error` result, timeout, deadline — is surfaced as a `kind:"error"` event and a `failed`/`partial` worker status.
+- **ADR-069 no-key degradation:** workers use ambient `claude -p` auth, which has no single env signal, so execution runs first and detects after. If **every** worker fails on an auth/credit error (`looksLikeAuthError`), the overview degrades honestly — its next steps state that no usable model auth was detected and point the user at the defer path (`claude -p` / `hive-mind spawn --claude` / `--no-execute` plan-only). Where auth is present (verified in the e2e), execution proceeds normally.
 
 ### Verification
 

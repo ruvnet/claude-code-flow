@@ -140,6 +140,17 @@ const REDACTION_PATTERNS: RegExp[] = [
   /\b[A-Za-z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD|PASSWD)\s*[=:]\s*\S+/gi, // KEY=... assignments
 ];
 
+/**
+ * Heuristic: does this worker error look like missing/invalid model auth or
+ * exhausted credit? Used only to route the user to the ADR-069 no-key fallback
+ * guidance — never to gate execution (ambient `claude -p` auth has no single
+ * env signal, so we run first and detect after).
+ */
+export function looksLikeAuthError(msg: string | undefined): boolean {
+  if (!msg) return false;
+  return /\b(401|403|invalid[_ -]?api[_ -]?key|authentication|unauthor|no credit|credit balance|quota|rate.?limit|oauth|login required|not (logged in|authenticated))\b/i.test(msg);
+}
+
 /** Strip anything that looks like a secret before it reaches the stream. */
 export function redact(text: string): string {
   if (!text) return text;
@@ -255,7 +266,32 @@ export function buildOverview(input: {
   const artifacts = [...artifactSet].sort();
   const failed = input.workers.filter((w) => w.status === 'failed').length;
   const partial = input.workers.filter((w) => w.status === 'partial').length;
+  // ADR-069 no-key fallback: if EVERY worker failed and it looks like an auth /
+  // credit problem, this host has no usable model auth — degrade honestly by
+  // pointing at the defer path rather than pretending work happened.
+  const allAuthFailed =
+    input.workers.length > 0 &&
+    input.workers.every((w) => w.status === 'failed' && looksLikeAuthError(w.error));
   const nextSteps: string[] = [];
+  if (allAuthFailed) {
+    nextSteps.push('No usable model auth detected — every worker failed on an auth/credit error. Streaming execution needs the ADR-069 per-tenant LLM key to be live.');
+    nextSteps.push('Until then, drive execution manually via: claude -p (headless), hive-mind spawn --claude, or the Claude Code Task tool — or re-run with --no-execute for the plan only.');
+    return {
+      objective: redact(input.objective),
+      swarmId: input.swarmId,
+      topology: input.topology,
+      consensus: input.consensus,
+      strategy: input.strategy,
+      roster: input.workers.map((w) => ({ name: w.name, role: w.role, model: w.model })),
+      workers: input.workers.map((w) => (w.error ? { ...w, error: redact(w.error) } : w)),
+      artifacts,
+      memoryKeys: input.memoryKeys ?? [],
+      transcriptPath: input.transcriptPath ?? null,
+      elapsedMs: input.elapsedMs,
+      reduce: input.reduce,
+      nextSteps,
+    };
+  }
   if (artifacts.length) nextSteps.push(`Review the changed files: ${artifacts.slice(0, 5).join(', ')}${artifacts.length > 5 ? ' …' : ''}`);
   nextSteps.push('Run the project checks (build + tests) to validate the changes.');
   if (failed) nextSteps.push(`${failed} worker(s) failed — re-run with a longer --deadline-secs or narrower objective.`);

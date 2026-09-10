@@ -119,3 +119,5 @@ v3/plugins/legal-contracts/tests/mcp-tools.test.ts
 v3/plugins/legal-contracts/tests/types.test.ts
 v3/plugins/quantum-optimizer/tests/mcp-tools.test.ts
 
+# ruflo-x-gateway: node:test suite with its own deps (nostr-tools, ws, MCP SDK) — run via `npm test` in plugins/ruflo-x-gateway; root vitest cannot resolve them (same pattern as plugins/ruflo-adr)
+plugins/ruflo-x-gateway/test/gateway.test.mjs

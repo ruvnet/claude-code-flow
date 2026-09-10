@@ -1,6 +1,6 @@
 {
   "name": "ruflo",
-  "version": "3.41.1",
+  "version": "3.41.2",
   "description": "Ruflo - Enterprise AI agent orchestration platform. Deploy 60+ specialized agents in coordinated swarms with self-learning, fault-tolerant consensus, vector memory, and MCP integration",
   "main": "bin/ruflo.js",
   "type": "module",

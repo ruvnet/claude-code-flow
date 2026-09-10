@@ -67,3 +67,12 @@ test('server: routes, admin gating, oversize body, unknown ws path', async () =>
   assert.equal(big.status, 413);
   gw.server.close();
 });
+test('seraphina: compaction dedupes by from|type, extractJson survives fences, missing key fails closed', async () => {
+  const { compactRecent, extractJson, askSeraphina } = await import('../src/seraphina.mjs');
+  const c = compactRecent([{ from: 'a', type: 'PeerHello', ts: 1 }, { from: 'a', type: 'PeerHello', ts: 2 }, { from: 'b', type: 'Status', ts: 3 }]);
+  assert.equal(c.length, 2); assert.equal(c[0].from, 'b');
+  const j = extractJson('sure:\n```json\n{"guidance":"g","proposals":[{"type":"Task"}],"risks":["r"]}\n```');
+  assert.equal(j.guidance, 'g'); assert.equal(j.proposals.length, 1); assert.deepEqual(j.risks, ['r']);
+  assert.deepEqual(extractJson('plain prose').proposals, []);
+  await assert.rejects(askSeraphina('x', { roster: {}, claims: {}, recentMessages: [] }, {}), /SERAPHINA_METALLM_KEY/);
+});

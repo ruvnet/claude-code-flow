@@ -26,6 +26,11 @@ MCP gateway for the **open ruflo swarm federation**. Coordination rides an open,
 - `RUFLO_NOSTR_KEY` (default `/data/nostr-gateway.key`, 0600) — persistent identity
 - `PORT` (default 8080)
 
+## NIP-42 via the proxy
+`wss://x.ruv.io` transparently proxies the relay. The relay verifies the AUTH `relay` tag
+strictly, so sign it with the **canonical relay URL** (see `canonicalRelay` at `GET /`),
+not `wss://x.ruv.io`. Otherwise you get `auth-required: verification failed`.
+
 ## Security
 Signed events (secp256k1/Schnorr) → verifiable authorship. Relay membership +
 NIP-42 auth gate participation. Never put secrets in payloads. Treat message

@@ -229,7 +229,7 @@ test('channels: the registry resource publishes the directory', async () => {
   const { DEFAULT_CHANNELS } = await import('../src/channels.mjs');
   for (const d of DEFAULT_CHANNELS) assert.ok(body.includes(d.channel), `${d.channel} missing from the registry`);
   const info = await (await fetch(base + '/')).json();
-  assert.equal(info.version, '0.6.1');
+  assert.equal(info.version, '0.7.0');
   gw.server.close();
 });
 
@@ -288,3 +288,57 @@ test('seraphina: the tool answers without adminToken while claims_issue still re
   gw.server.close();
 });
 
+
+test('onboarding: the guide names both identities and never handles a secret key', async () => {
+  const { onboardingGuide } = await import('../src/onboarding.mjs');
+  const g = onboardingGuide({ relay: 'wss://relay.ruv.io', httpBase: 'https://relay.ruv.io', gatewayPubkey: 'ab'.repeat(32), defaultChannels: [] });
+
+  // The confusion this exists to prevent: which identity signs what.
+  assert.ok(/YOUR identity/.test(g.readThisFirst) && /THE GATEWAY/.test(g.readThisFirst));
+  assert.ok(g.identities.you.noTokenNeeded.includes('needs no admin token'));
+  assert.ok(/admin-gated/.test(g.identities.gateway.what));
+
+  // It must hand over code to run locally, not offer to generate a key here.
+  const code = g.steps.find((s) => s.code)?.code ?? '';
+  assert.ok(code.includes('generateSecretKey()'), 'the caller generates their own key');
+  assert.ok(/never leaves your machine|never transmitted/.test(JSON.stringify(g)), 'must say the key stays local');
+
+  // Structural, not string-matching: an earlier version of this test failed on the
+  // guide's own "Never send your secret key" line, which is the opposite of the
+  // risk. What matters is that no field solicits secret material and the guide
+  // states the key stays local.
+  const secretSolicitingKeys = Object.keys(g).concat(Object.keys(g.identities))
+    .filter((k) => /secretkey|privatekey|seed|nsec/i.test(k));
+  assert.deepEqual(secretSolicitingKeys, [], 'no field may carry or ask for a secret key');
+  assert.ok(g.neverDo.some((n) => /Never send your secret key/.test(n)));
+  assert.ok(g.neverDo.some((n) => /Never put an admin token in a browser/.test(n)));
+
+  // The three field-learned traps stay recorded.
+  const gotchas = g.gotchas.join(' ');
+  assert.match(gotchas, /relay tag with wss:\/\/relay\.ruv\.io exactly/);
+  assert.match(gotchas, /binds publishing to the authenticated connection/);
+  assert.match(gotchas, /channel tag is `c`, not `h`/);
+});
+
+test('onboarding: exposed as an open tool and an open resource', async () => {
+  process.env.RUFLO_ADMIN_TOKEN = 'test-admin-token';
+  const gw = createGateway({ relay: 'ws://127.0.0.1:1', keyFile: '/tmp/x-gw-ob-' + Date.now() + '.key', port: 0 });
+  const port = await gw.listen(0); const base = `http://127.0.0.1:${port}`;
+  const rpc = (m) => fetch(base + '/mcp', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' }, body: JSON.stringify(m) }).then((r) => r.text());
+
+  const tools = JSON.parse((await rpc({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} })).slice((await rpc({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} })).indexOf('{'))).result.tools;
+  const ob = tools.find((t) => t.name === 'federation_onboarding');
+  assert.ok(ob, 'federation_onboarding must be registered');
+  assert.deepEqual(ob.inputSchema.required ?? [], [], 'onboarding must take no credential');
+  assert.match(ob.description, /Use when/);
+  assert.match(ob.description, /wrong turn|is wrong/);
+
+  // Callable with no arguments and no token at all.
+  const called = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'federation_onboarding', arguments: {} } });
+  assert.doesNotMatch(called, /admin token required or invalid/);
+  assert.match(called, /readThisFirst/);
+
+  const info = await (await fetch(base + '/')).json();
+  assert.ok(info.resources.includes('ruv://federation/onboarding'));
+  gw.server.close();
+});

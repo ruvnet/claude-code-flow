@@ -40,6 +40,15 @@ import { createRequire } from 'node:module';
  */
 const registryPromises = new Map<string, Promise<any>>();
 const registryInstances = new Map<string, any>();
+/**
+ * Test seam: when set, every path resolves to this registry.
+ *
+ * Kept separate from the path cache on purpose. A test installs a fake registry
+ * and then calls a bridge function with its own temp `dbPath`; keying the
+ * override by path would mean the seam only worked for callers that happened to
+ * pass the same path the seam guessed, which is how #2968's fixture broke.
+ */
+let testRegistryOverride: any = null;
 let bridgeAvailable: boolean | null = null;
 // #2652/#2120: rows created before the status column existed receive NULL
 // during migration. They are live rows, not tombstones. Every user-facing
@@ -194,6 +203,7 @@ async function getRegistry(dbPath?: string): Promise<any | null> {
       : 'AgentDB native bridge disabled by CLAUDE_FLOW_DISABLE_BRIDGE=1';
     return null;
   }
+  if (testRegistryOverride) return testRegistryOverride;
   if (bridgeAvailable === false) return null;
 
   // Resolve first, then cache on the resolved value: `undefined`, a relative
@@ -466,6 +476,7 @@ async function getRegistry(dbPath?: string): Promise<any | null> {
 export function _resetRegistryCacheForTest(): void {
   registryPromises.clear();
   registryInstances.clear();
+  testRegistryOverride = null;
   bridgeAvailable = null;
   bridgeFailureReason = null;
 }
@@ -2032,14 +2043,7 @@ export function getBridgeFailureReason(): string | null {
 export function __setMemoryBridgeRegistryForTests(registry: any | null): void {
   registryPromises.clear();
   registryInstances.clear();
-  if (registry) {
-    // Install under every key a caller can resolve to, so a test seam behaves
-    // the same whether the call site passes a path or leaves it default.
-    for (const key of new Set([getAgentDbPath(), path.resolve(getDbPath())])) {
-      registryInstances.set(key, registry);
-      registryPromises.set(key, Promise.resolve(registry));
-    }
-  }
+  testRegistryOverride = registry;
   bridgeAvailable = registry ? true : null;
   bridgeFailureReason = null;
 }
@@ -2065,6 +2069,7 @@ export async function shutdownBridge(): Promise<void> {
   }
   registryInstances.clear();
   registryPromises.clear();
+  testRegistryOverride = null;
   bridgeAvailable = null;
   bridgeFailureReason = null;
 }

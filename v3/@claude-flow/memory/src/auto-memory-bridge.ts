@@ -507,7 +507,42 @@ export class AutoMemoryBridge extends EventEmitter {
       sectionOrder,
     );
 
-    await fs.writeFile(this.getIndexPath(), lines.join('\n'), 'utf-8');
+    // #3224: never let a curate shrink somebody's index.
+    //
+    // The #1556 guard above only fires when NOTHING matched. Once the bridge has
+    // written its own first topic file, that guard stops applying, and this write
+    // replaces a hand-maintained MEMORY.md with a generated stub — 75 curated
+    // lines and 49 links down to 6 in the reported case. The bridge only knows
+    // about its own topic files, so "everything else" looks like nothing to it.
+    //
+    // Rule: a curate may grow or reorder the index, never shrink it. When the
+    // generated view is smaller than what is on disk, keep the file, write the
+    // generated view beside it, and say so.
+    const indexPath = this.getIndexPath();
+    const generated = lines.join('\n');
+    let existing = '';
+    try { existing = await fs.readFile(indexPath, 'utf-8'); } catch { /* first run */ }
+
+    const linksIn = (text: string) => (text.match(/\]\(/g) ?? []).length;
+    const wouldLose = existing.trim().length > 0
+      && (linksIn(existing) > linksIn(generated) || existing.split('\n').length > lines.length);
+
+    if (wouldLose) {
+      const sidecar = indexPath.replace(/\.md$/, '') + '.generated.md';
+      await fs.writeFile(sidecar, generated, 'utf-8');
+      this.emit('index:preserved', {
+        reason: 'would-shrink-user-index',
+        indexPath,
+        sidecar,
+        existingLines: existing.split('\n').length,
+        generatedLines: lines.length,
+        existingLinks: linksIn(existing),
+        generatedLinks: linksIn(generated),
+      });
+      return;
+    }
+
+    await fs.writeFile(indexPath, generated, 'utf-8');
     this.emit('index:curated', { lines: lines.length });
   }
 

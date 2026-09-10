@@ -50,13 +50,30 @@ export function isDaemonAlive(projectRoot: string): boolean {
 
 /** Project-local opt-out: `{ "daemon": { "autostart": false } }` in claude-flow.config.json. */
 function autostartDisabledByProjectConfig(projectRoot: string): boolean {
-  try {
-    const raw = fs.readFileSync(path.join(projectRoot, 'claude-flow.config.json'), 'utf-8');
-    const cfg = JSON.parse(raw);
-    return cfg?.daemon?.autostart === false;
-  } catch {
-    return false; // absent/malformed config = not disabled
+  // #3278: read BOTH files, and both spellings.
+  //
+  // This used to consult only `claude-flow.config.json` with the key
+  // `daemon.autostart`. But `init` generates `.claude/settings.json` with
+  // `claudeFlow.daemon.autoStart` — a different file and a different capital S —
+  // and writes it `false` under the comment "Opt-in only — prevents unintended
+  // token consumption (#1427, #1330)". So the one setting a fresh project
+  // actually ships was never read, and the runtime spent tokens the generated
+  // config existed to prevent. Accept either spelling in either file: a user who
+  // wrote the word "autostart: false" anywhere sensible meant it.
+  const readsFalse = (v: unknown) => v === false;
+  for (const [file, pick] of [
+    ['claude-flow.config.json', (c: any) => c?.daemon],
+    [path.join('.claude', 'settings.json'), (c: any) => c?.claudeFlow?.daemon],
+  ] as const) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(path.join(projectRoot, file), 'utf-8'));
+      const d = pick(cfg);
+      if (readsFalse(d?.autostart) || readsFalse(d?.autoStart)) return true;
+    } catch {
+      // absent/malformed config = this file says nothing; keep checking the others
+    }
   }
+  return false;
 }
 
 function autostartDisabled(projectRoot: string): boolean {

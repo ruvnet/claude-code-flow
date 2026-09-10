@@ -12,6 +12,26 @@ import { backupCommand } from './memory-backup.js';
 import { countSiblingStoreRows } from '../memory/sibling-store.js';
 import { resolveDbPath } from '../memory/memory-initializer.js';
 
+/**
+ * #3228: a miss in one store is not a miss in the memory.
+ *
+ * 3.41.1 disclosed the sibling AgentDB store from `memory list` only. `retrieve`,
+ * `search` and `stats` kept reporting a clean negative — "Key not found", "No
+ * results" — while the rows sat in the file this interface does not read. On the
+ * reported Windows install that is 31,673 rows in the other store answering
+ * `found:false`. A confident negative is worse than an error, because nothing
+ * prompts anyone to look further.
+ */
+async function warnIfSiblingHasRows(pathFlag: unknown): Promise<void> {
+  const unread = await countSiblingStoreRows(resolveDbPath(pathFlag as string | undefined));
+  if (unread && unread.rows > 0) {
+    output.printWarning(
+      `This read covered one store. ${unread.rows} entries are in ${unread.path} and were not searched. ` +
+      `That store is written by the MCP/AgentDB path; read it with --path ${unread.path}.`,
+    );
+  }
+}
+
 // Memory backends
 const BACKENDS = [
   { value: 'agentdb', label: 'AgentDB', hint: 'Vector database with HNSW indexing (150x-12,500x faster)' },
@@ -309,6 +329,7 @@ const retrieveCommand: Command = {
 
       if (!result.found || !result.entry) {
         output.printWarning(`Key not found: ${key}`);
+        await warnIfSiblingHasRows(ctx.flags.path);
         return { success: false, exitCode: 1, data: { key, found: false } };
       }
 
@@ -710,6 +731,7 @@ const searchCommand: Command = {
 
       if (results.length === 0) {
         output.printWarning('No results found');
+        await warnIfSiblingHasRows(ctx.flags.path);
         output.writeln(output.dim('Try: claude-flow memory store -k "key" --value "data"'));
         return { success: true, data: [] };
       }
@@ -798,6 +820,7 @@ const listCommand: Command = {
 
       if (entries.length === 0) {
         output.printWarning('No entries found');
+        await warnIfSiblingHasRows(ctx.flags.path);
         output.printInfo('Store data: claude-flow memory store -k "key" --value "data"');
         return { success: true, data: [] };
       }

@@ -53,6 +53,9 @@ const REPO_ROOT = resolve(__dirname, '..');
 const KNOWN_ESCAPE_HATCHES = new Set([
   // ── CI / test escape hatches ────────────────────────────────────────────────
   'CLAUDE_FLOW_DISABLE_BRIDGE',   // CI/test: force raw sql.js path — intentionally no CLI flag
+  'RUFLO_ADMIN_TOKEN',            // credential: the x.ruv.io gateway's OWN admin token, read by plugins/ruflo-x-gateway. Env-only by design — a secret must never be a CLI flag (shell history / process lists), and the gateway is a service with no typed command surface at all.
+  'RUFLO_SERAPHINA_DAILY_CAP',    // gateway spend guard (#3275): shared daily Seraphina budget. Read by a long-running service, not a typed command — there is no invocation to attach a flag to.
+  'RUFLO_SERAPHINA_IP_HOURLY_CAP',// gateway spend guard (#3275): per-client hourly Seraphina budget. Same service-only reasoning.
   'RUFLO_X_ADMIN_TOKEN',          // credential: gateway admin token for x.ruv.io gateway-identity writes (x_federation_publish/invite_mint/admit). Env-only by design — a secret must never be a CLI flag (shell history / process lists). URL config (RUFLO_X_GATEWAY_URL) DOES take a flag: `ruflo federation --gateway`.
   'SERAPHINA_METALLM_KEY',        // credential: cognitum meta-llm API key for seraphina_guidance. Env-only by design (same reasoning). URL config (SERAPHINA_METALLM_URL) takes the metaLlmUrl tool arg.
   'RUFLO_HOOK_SKIP_NPX',          // CI: suppress cold-install latency in smoke tests
@@ -247,7 +250,7 @@ const SCAN_ROOTS = [
 ];
 
 // ── Skip patterns ─────────────────────────────────────────────────────────────
-const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '__tests__', 'tests']);
+const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', 'coverage', '__tests__', 'tests', 'test']);
 const SCAN_EXTS = new Set(['.ts', '.mjs', '.cjs', '.js']);
 
 // ── Regex to find process.env.CLAUDE_FLOW_* reads ────────────────────────────

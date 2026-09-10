@@ -110,22 +110,41 @@ this design**.
 | | |
 |---|---|
 | Issuer | `https://auth.cognitum.one` |
-| Authorize | `https://auth.cognitum.one/oauth/authorize` |
-| Token | `https://auth.cognitum.one/oauth/token` |
-| JWKS | `https://auth.cognitum.one/.well-known/jwks.json` |
+| Authorize / Token | `/oauth/authorize`, `/oauth/token` |
+| JWKS | `/.well-known/jwks.json` (single ES256 P-256 key) |
+| Client id | `chatgpt-federation` (console migration 0029) |
 | Resource metadata | `<service>/.well-known/oauth-protected-resource` (RFC 9728) |
-| Scopes | `federation:read` for the two reads, `federation:publish` for the write |
-| Audience | the service URL — a token minted for another Cognitum resource is refused |
+| Scopes | `federation:read` for the reads, `federation:publish` for the write |
+| Expected `aud` | the **client id**, not the resource URL — see below |
 
 An unauthenticated or unverifiable request to `/mcp` gets `401` with
-`WWW-Authenticate: Bearer resource_metadata="…"`, which is what starts a client's
-discovery.
+`WWW-Authenticate: Bearer resource_metadata="…"`, which is what starts discovery.
+
+### Why the audience is a client id
+
+`auth.cognitum.one` binds `aud` to the **requesting OAuth client**
+(`issue_oauth_access_token` in console `services/identity/src/jwt.rs`), not to a
+resource — RFC 8707 resource indicators remain an open question in that repo's
+ADR-038. Client-audience binding closes the same confused-deputy hole here *only
+because this connector is the only resource its client id is registered for*. That
+assumption is load-bearing: if `federation:read`/`federation:publish` were ever added
+to another client's `allowed_scopes`, that client's tokens would authenticate here and
+it would inherit the federation identity.
+
+Two related traps, both real and both cost time:
+
+- A widely-cited in-house comment states Cognitum tokens carry **neither `iss` nor
+  `aud`**. That is true of *browser-session* tokens, which `auth_web.rs` mints through
+  the unbound `issue_access_token`. It is not true of the OAuth flow. Check which
+  minting path a token came from before concluding anything about its claims.
+- `CGF_OAUTH_REQUIRED=true` without `CGF_OAUTH_CLIENT_ID` would accept every token
+  this issuer ever minted, for any Cognitum app — worse than the transitional header
+  it replaces. The service refuses to start in that configuration rather than let it
+  pass quietly.
 
 `CGF_OAUTH_REQUIRED` is the switch. Unset, reads stay open and `x-caller-token` still
-authorises publish, so the connector keeps working while the authorization server side
-is registered. Set to `true`, both transitional doors close and every call needs a
-scoped token. Flip it only once OAuth has passed end to end — that is the last step,
-not the first.
+authorises publish. Set to `true`, both transitional doors close. Flip it only once
+OAuth has passed end to end — that is the last step, not the first.
 
 ## Rotate
 

@@ -42,16 +42,19 @@ async function fakeAuthServer() {
   return { issuer, jwksUri: `${issuer}/.well-known/jwks.json`, mint, mintRaw, close: () => srv.close() };
 }
 
-async function withService(as, { required, publicUrl }, fn) {
+const CLIENT_ID = 'chatgpt-federation';
+
+async function withService(as, { required, publicUrl, clientId = CLIENT_ID }, fn) {
   const prev = { ...process.env };
   Object.assign(process.env, {
     CGF_OAUTH_ISSUER: as.issuer, CGF_OAUTH_JWKS_URI: as.jwksUri,
     CGF_PUBLIC_URL: publicUrl, CGF_OAUTH_REQUIRED: required ? 'true' : '',
+    CGF_OAUTH_CLIENT_ID: clientId,
   });
   const svc = createPublisherService({ relay: 'ws://127.0.0.1:1', keyPath });
   const port = await svc.listen(0);
   try { return await fn(port, svc); }
-  finally { svc.server.close(); for (const k of ['CGF_OAUTH_ISSUER','CGF_OAUTH_JWKS_URI','CGF_PUBLIC_URL','CGF_OAUTH_REQUIRED']) { if (prev[k] === undefined) delete process.env[k]; else process.env[k] = prev[k]; } }
+  finally { svc.server.close(); for (const k of ['CGF_OAUTH_ISSUER','CGF_OAUTH_JWKS_URI','CGF_PUBLIC_URL','CGF_OAUTH_REQUIRED','CGF_OAUTH_CLIENT_ID']) { if (prev[k] === undefined) delete process.env[k]; else process.env[k] = prev[k]; } }
 }
 
 const call = (port, name, args = {}, headers = {}) =>
@@ -111,7 +114,7 @@ test('a token from another issuer is refused', async () => {
   const as = await fakeAuthServer();
   try {
     await withService(as, { required: true, publicUrl: 'https://cgf.example' }, async (port) => {
-      const tok = await as.mint({ scope: SCOPE_READ, audience: 'https://cgf.example', issuer: 'https://evil.example' });
+      const tok = await as.mint({ scope: SCOPE_READ, audience: CLIENT_ID, issuer: 'https://evil.example' });
       const r = await call(port, 'federation_identity', {}, { authorization: `Bearer ${tok}` });
       assert.equal(r.status, 401);
       assert.match(r.wwwAuth, /error="invalid_token"/);
@@ -119,13 +122,14 @@ test('a token from another issuer is refused', async () => {
   } finally { as.close(); }
 });
 
-test('a token minted for a different resource is refused', async () => {
-  // Same issuer, wrong audience. Without this check any Cognitum token would be
-  // able to act on the federation identity — which is the point of RFC 8707.
+test('a token minted for a different client is refused', async () => {
+  // Same issuer, different client. auth.cognitum.one binds `aud` to the
+  // requesting client_id, so this is the check that stops another Cognitum app's
+  // token from acting as the federation identity.
   const as = await fakeAuthServer();
   try {
     await withService(as, { required: true, publicUrl: 'https://cgf.example' }, async (port) => {
-      const tok = await as.mint({ scope: SCOPE_PUBLISH, audience: 'https://some-other.cognitum.one' });
+      const tok = await as.mint({ scope: SCOPE_PUBLISH, audience: 'some-other-client' });
       const r = await call(port, 'federation_identity', {}, { authorization: `Bearer ${tok}` });
       assert.equal(r.status, 401);
     });
@@ -136,7 +140,7 @@ test('an expired token is refused', async () => {
   const as = await fakeAuthServer();
   try {
     await withService(as, { required: true, publicUrl: 'https://cgf.example' }, async (port) => {
-      const tok = await as.mint({ scope: SCOPE_READ, audience: 'https://cgf.example', expSeconds: -3600 });
+      const tok = await as.mint({ scope: SCOPE_READ, audience: CLIENT_ID, expSeconds: -3600 });
       const r = await call(port, 'federation_identity', {}, { authorization: `Bearer ${tok}` });
       assert.equal(r.status, 401);
     });
@@ -147,7 +151,7 @@ test('federation:read reads, but does not publish', async () => {
   const as = await fakeAuthServer();
   try {
     await withService(as, { required: true, publicUrl: 'https://cgf.example' }, async (port, svc) => {
-      const tok = await as.mint({ scope: SCOPE_READ, audience: 'https://cgf.example' });
+      const tok = await as.mint({ scope: SCOPE_READ, audience: CLIENT_ID });
       const auth = { authorization: `Bearer ${tok}` };
 
       const id = await call(port, 'federation_identity', {}, auth);
@@ -165,7 +169,7 @@ test('a scopeless token cannot even read', async () => {
   const as = await fakeAuthServer();
   try {
     await withService(as, { required: true, publicUrl: 'https://cgf.example' }, async (port) => {
-      const tok = await as.mint({ scope: '', audience: 'https://cgf.example' });
+      const tok = await as.mint({ scope: '', audience: CLIENT_ID });
       const r = await call(port, 'federation_identity', {}, { authorization: `Bearer ${tok}` });
       assert.match(toolText(r.body), /lacks federation:read/);
     });
@@ -176,7 +180,7 @@ test('federation:publish reaches the publish path (and fails only at the relay)'
   const as = await fakeAuthServer();
   try {
     await withService(as, { required: true, publicUrl: 'https://cgf.example' }, async (port) => {
-      const tok = await as.mint({ scope: `${SCOPE_READ} ${SCOPE_PUBLISH}`, audience: 'https://cgf.example' });
+      const tok = await as.mint({ scope: `${SCOPE_READ} ${SCOPE_PUBLISH}`, audience: CLIENT_ID });
       const r = await call(port, 'channel_publish',
         { channel: 'pub:announce', msgType: 'Status', payload: {} }, { authorization: `Bearer ${tok}` });
       // Authorisation passed; the relay is unreachable in this test, which is how
@@ -247,4 +251,21 @@ test('a correctly-signed but unbound token is rejected AND says why', async () =
       assert.match(r.wwwAuth || '', /carries no iss or aud claim/);
     });
   } finally { as.close(); }
+});
+
+test('enforcing OAuth without an expected audience fails the deploy', async () => {
+  // Enforcing OAuth with no audience to bind to would accept ANY token this
+  // issuer ever minted, for any Cognitum app — strictly worse than the
+  // transitional caller token it replaces. It must not be a silent config gap.
+  const prev = { ...process.env };
+  try {
+    process.env.CGF_OAUTH_REQUIRED = 'true';
+    delete process.env.CGF_OAUTH_CLIENT_ID;
+    assert.throws(() => createPublisherService({ relay: 'ws://127.0.0.1:1', keyPath }),
+      /refusing to enforce OAuth without an audience to bind to/);
+  } finally {
+    for (const k of ['CGF_OAUTH_REQUIRED', 'CGF_OAUTH_CLIENT_ID']) {
+      if (prev[k] === undefined) delete process.env[k]; else process.env[k] = prev[k];
+    }
+  }
 });

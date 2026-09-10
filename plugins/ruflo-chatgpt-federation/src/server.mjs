@@ -58,6 +58,12 @@ function rateLimited(req, rate = 60) {
 export function createPublisherService({ relay, keyPath, port } = {}) {
   const RELAY = relay || process.env.CGF_RELAY_URL || 'wss://relay.ruv.io';
   const signer = loadSigner(keyPath);          // throws at boot if custody is wrong — by design
+  if (String(process.env.CGF_OAUTH_REQUIRED || '') === 'true' && !(process.env.CGF_OAUTH_CLIENT_ID || '').trim()) {
+    // Enforcing OAuth without an expected audience would accept any token this
+    // issuer ever minted, for any Cognitum app — strictly worse than the
+    // transitional caller token it replaces. Fail the deploy.
+    throw new Error('CGF_OAUTH_REQUIRED=true needs CGF_OAUTH_CLIENT_ID — refusing to enforce OAuth without an audience to bind to');
+  }
   const text = (o) => ({ content: [{ type: 'text', text: JSON.stringify(o) }] });
   // An OAuth caller must carry the scope; a legacy caller (no token, OAuth not yet
   // mandatory) keeps the reads it has always had.
@@ -69,6 +75,10 @@ export function createPublisherService({ relay, keyPath, port } = {}) {
   const OAUTH_ISSUER = process.env.CGF_OAUTH_ISSUER || 'https://auth.cognitum.one';
   const OAUTH_JWKS = process.env.CGF_OAUTH_JWKS_URI || `${OAUTH_ISSUER}/.well-known/jwks.json`;
   const OAUTH_REQUIRED = String(process.env.CGF_OAUTH_REQUIRED || '') === 'true';
+  // auth.cognitum.one sets `aud` to the requesting client_id, so THAT is what a
+  // token must be addressed to — not this service's URL. Absent, no audience is
+  // asserted, which is only acceptable while OAuth is not yet enforced.
+  const OAUTH_CLIENT_ID = (process.env.CGF_OAUTH_CLIENT_ID || '').trim();
   const resourceUrl = () => (process.env.CGF_PUBLIC_URL || '').replace(/\/$/, '');
   const prmUrl = () => `${resourceUrl()}/.well-known/oauth-protected-resource`;
 
@@ -82,7 +92,7 @@ export function createPublisherService({ relay, keyPath, port } = {}) {
     const bearer = String(req?.headers?.authorization || '').match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
     if (bearer) {
       const v = await verifyAccessToken(bearer, { issuer: OAUTH_ISSUER, jwksUri: OAUTH_JWKS,
-        audience: resourceUrl() || undefined });
+        audience: OAUTH_CLIENT_ID || undefined });
       if (!v.ok) return { mode: 'denied', ...v };
       return { mode: 'oauth', scopes: v.scopes, subject: v.subject };
     }
@@ -148,7 +158,7 @@ export function createPublisherService({ relay, keyPath, port } = {}) {
       return res.end(JSON.stringify({ service: 'ruflo-chatgpt-federation', version: VERSION, mcp: '/mcp',
         relay: RELAY, pubkey: signer.pubkey,
         tools: ['federation_identity', 'channel_sync', 'channel_publish'],
-        authorization: { type: 'oauth2', issuer: OAUTH_ISSUER,
+        authorization: { type: 'oauth2', issuer: OAUTH_ISSUER, clientId: OAUTH_CLIENT_ID || null,
           scopes: [SCOPE_READ, SCOPE_PUBLISH],
           protectedResourceMetadata: prmUrl(),
           enforced: OAUTH_REQUIRED,

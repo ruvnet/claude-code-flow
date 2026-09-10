@@ -52,8 +52,17 @@ export function _resetJwksForTest() { jwks = null; jwksFor = null; }
  * Verify an access token and return its granted scopes.
  *
  * Audience is checked, not merely parsed: a token minted for another Cognitum
- * resource must not act on the federation identity just because it is signed by
- * the same issuer. That is the whole point of RFC 8707.
+ * app must not act on the federation identity just because the same issuer
+ * signed it.
+ *
+ * The audience to expect is this connector's **client_id**, not its resource
+ * URL. `auth.cognitum.one` binds `aud` to the requesting OAuth client
+ * (services/identity/src/jwt.rs `issue_oauth_access_token`), which is
+ * client-audience binding rather than RFC 8707 resource binding. It closes the
+ * same confused-deputy hole here because this connector is the only resource
+ * its client_id is registered for — a one-client-one-resource assumption that
+ * is load-bearing, and the reason `federation:*` must never be added to another
+ * client's allowed_scopes.
  *
  * @returns {Promise<{ ok: true, scopes: string[], subject?: string } | { ok: false, error: string, description: string }>}
  */

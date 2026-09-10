@@ -1,174 +1,75 @@
 # SPARC Modes Overview
 
-SPARC (Specification, Planning, Architecture, Review, Code) is a comprehensive development methodology with 17 specialized modes, all integrated with MCP tools for enhanced coordination and execution.
+SPARC (Specification, Pseudocode, Architecture, Refinement, Completion) is a structured
+development methodology. The modes below match the actual CLI output of `claude-flow sparc modes`.
 
 ## Available Modes
 
-### Core Orchestration Modes
-- **orchestrator**: Multi-agent task orchestration
-- **swarm-coordinator**: Specialized swarm management
-- **workflow-manager**: Process automation
-- **batch-executor**: Parallel task execution
+| Mode | Display Name | Description |
+|------|-------------|-------------|
+| `architect` | Architect | System design and architecture planning |
+| `code` | Auto-Coder | Clean, modular code implementation |
+| `tdd` | Tester (TDD) | Test-driven development with red-green-refactor |
+| `debug` | Debugger | Systematic debugging and troubleshooting |
+| `security-review` | Security Reviewer | Security analysis and vulnerability assessment |
+| `docs-writer` | Documentation Writer | Comprehensive documentation generation |
+| `integration` | System Integrator | System integration and coordination |
+| `post-deployment-monitoring-mode` | Deployment Monitor | Post-deployment monitoring and alerting |
+| `refinement-optimization-mode` | Optimizer | Performance optimization and refactoring |
+| `ask` | Ask | Interactive Q&A and consultation |
+| `devops` | DevOps | Deployment and infrastructure management |
+| `tutorial` | SPARC Tutorial | Guided SPARC methodology walkthrough |
+| `supabase-admin` | Supabase Admin | Supabase database and auth management |
+| `spec-pseudocode` | Specification Writer | Requirements and algorithmic planning |
+| `mcp` | MCP Integration | External service and MCP tool integration |
+| `sparc` | SPARC Orchestrator | Full SPARC methodology orchestration |
 
-### Development Modes  
-- **coder**: Autonomous code generation
-- **architect**: System design
-- **reviewer**: Code review
-- **tdd**: Test-driven development
-
-### Analysis and Research Modes
-- **researcher**: Deep research capabilities
-- **analyzer**: Code and data analysis
-- **optimizer**: Performance optimization
-
-### Creative and Support Modes
-- **designer**: UI/UX design
-- **innovator**: Creative problem solving
-- **documenter**: Documentation generation
-- **debugger**: Systematic debugging
-- **tester**: Comprehensive testing
-- **memory-manager**: Knowledge management
+> **Note:** These are the correct CLI identifiers for `sparc run` and `sparc info`.
+> Earlier versions of this file listed different names (e.g. `coder`, `orchestrator`, `innovator`)
+> that do not exist in the CLI. Use the names from the table above.
 
 ## Usage
 
-### Option 1: Using MCP Tools (Preferred in Claude Code)
-```javascript
-// Execute SPARC mode directly
-mcp__claude-flow__sparc_mode {
-  mode: "<mode>",
-  task_description: "<task>",
-  options: {
-    // mode-specific options
-  }
-}
-
-// Initialize swarm for advanced coordination
-mcp__claude-flow__swarm_init {
-  topology: "hierarchical",
-  strategy: "auto",
-  maxAgents: 8
-}
-
-// Spawn specialized agents
-mcp__claude-flow__agent_spawn {
-  type: "<agent-type>",
-  capabilities: ["<capability1>", "<capability2>"]
-}
-
-// Monitor execution
-mcp__claude-flow__swarm_monitor {
-  swarmId: "current",
-  interval: 5000
-}
-```
-
-### Option 2: Using NPX CLI (Fallback when MCP not available)
+### List all modes
 ```bash
-# Use when running from terminal or MCP tools unavailable
-npx claude-flow sparc run <mode> "task description"
-
-# For alpha features
-npx claude-flow@alpha sparc run <mode> "task description"
-
-# List all modes
 npx claude-flow sparc modes
-
-# Get help for a mode
-npx claude-flow sparc help <mode>
-
-# Run with options
-npx claude-flow sparc run <mode> "task" --parallel --monitor
 ```
 
-### Option 3: Local Installation
+### Get info on a mode
 ```bash
-# If claude-flow is installed locally
-./claude-flow sparc run <mode> "task description"
+npx claude-flow sparc info <mode>
 ```
 
-## Common Workflows
+### Run a mode
+```bash
+npx claude-flow sparc run <mode> "task description"
+```
 
-### Full Development Cycle
+### Examples
+```bash
+# Design system architecture
+npx claude-flow sparc run architect "design microservices for payment processing"
 
-#### Using MCP Tools (Preferred)
+# Implement a feature
+npx claude-flow sparc run code "implement user authentication"
+
+# Write tests
+npx claude-flow sparc run tdd "create tests for registration flow"
+
+# Debug an issue
+npx claude-flow sparc run debug "fix memory leak in dashboard component"
+
+# Security audit
+npx claude-flow sparc run security-review "audit API endpoints for OWASP top 10"
+
+# Optimize performance
+npx claude-flow sparc run refinement-optimization-mode "reduce bundle size"
+```
+
+### Using MCP Tools (when inside Claude Code)
 ```javascript
-// 1. Initialize development swarm
-mcp__claude-flow__swarm_init {
-  topology: "hierarchical",
-  maxAgents: 12
-}
-
-// 2. Architecture design
 mcp__claude-flow__sparc_mode {
   mode: "architect",
   task_description: "design microservices"
 }
-
-// 3. Implementation
-mcp__claude-flow__sparc_mode {
-  mode: "coder",
-  task_description: "implement services"
-}
-
-// 4. Testing
-mcp__claude-flow__sparc_mode {
-  mode: "tdd",
-  task_description: "test all services"
-}
-
-// 5. Review
-mcp__claude-flow__sparc_mode {
-  mode: "reviewer",
-  task_description: "review implementation"
-}
-```
-
-#### Using NPX CLI (Fallback)
-```bash
-# 1. Architecture design
-npx claude-flow sparc run architect "design microservices"
-
-# 2. Implementation
-npx claude-flow sparc run coder "implement services"
-
-# 3. Testing
-npx claude-flow sparc run tdd "test all services"
-
-# 4. Review
-npx claude-flow sparc run reviewer "review implementation"
-```
-
-### Research and Innovation
-
-#### Using MCP Tools (Preferred)
-```javascript
-// 1. Research phase
-mcp__claude-flow__sparc_mode {
-  mode: "researcher",
-  task_description: "research best practices"
-}
-
-// 2. Innovation
-mcp__claude-flow__sparc_mode {
-  mode: "innovator",
-  task_description: "propose novel solutions"
-}
-
-// 3. Documentation
-mcp__claude-flow__sparc_mode {
-  mode: "documenter",
-  task_description: "document findings"
-}
-```
-
-#### Using NPX CLI (Fallback)
-```bash
-# 1. Research phase
-npx claude-flow sparc run researcher "research best practices"
-
-# 2. Innovation
-npx claude-flow sparc run innovator "propose novel solutions"
-
-# 3. Documentation
-npx claude-flow sparc run documenter "document findings"
 ```

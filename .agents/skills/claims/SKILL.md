@@ -98,3 +98,22 @@ coordinator posts `ClaimAck` naming the authoritative owner.
 must be both cross-host visible and runtime-enforced, mirror the two — publish the federation claim
 message *and* call `claims_claim`. See the `cross-host-federation` skill (ruflo-bbs-federation plugin)
 for the transport.
+
+### Scoping a claim stream to a channel (ADR-386)
+
+By default every claim event lands in the shared swarm stream, where any relay member reads it. To
+keep a team's ownership ledger separate — or unreadable by the rest of the relay — publish claim
+messages into a channel instead:
+
+```
+npx ruflo federation channel --action create --name platform-team --visibility private
+npx ruflo federation channel --action grant --channel prv:<hex> --pubkey <teammate 64-hex>
+npx ruflo federation channel --action publish --channel prv:<hex> \
+  --type ClaimIssued --payload '{"resourceId":"repo/foo","ttlSeconds":7200}'
+npx ruflo federation channel --action read --channel prv:<hex>
+```
+
+Reduction rules are unchanged; only the audience changes. Two caveats before relying on it: a private
+channel hides content but **not metadata** (the relay still sees who published and when), and a claim
+nobody outside the channel can read cannot arbitrate against a claim made outside it. If ownership
+must be swarm-wide, keep it on the open stream. See the `open-federation` skill for channel mechanics.

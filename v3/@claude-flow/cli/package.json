@@ -138,7 +138,8 @@
     "agentdb": "^3.0.0-alpha.17",
     "agentic-flow": "^3.0.0-alpha.1",
     "better-sqlite3": "^12.9.0",
-    "ruvector": "^0.2.27"
+    "ruvector": "^0.2.27",
+    "nostr-tools": "^2.7.0"
   },
   "peerDependencies": {
     "@metaharness/router": "^0.4.0",

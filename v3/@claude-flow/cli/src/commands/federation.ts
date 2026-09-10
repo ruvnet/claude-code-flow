@@ -32,6 +32,9 @@ export const federationCommand: Command = {
     { name: 'gateway', description: 'Gateway base URL (takes precedence over RUFLO_X_GATEWAY_URL; default https://x.ruv.io)', type: 'string' },
   ],
   subcommands: [
+    { name: 'join', description: 'Join the open swarm with YOUR OWN key using an invite code (generates ~/.ruflo/nostr.key if absent, claims via NIP-98, verifies via NIP-42)',
+      options: [{ name: 'code', description: 'Invite code (v2.…) — a bearer secret, keep it private', type: 'string', required: true }],
+      action: (ctx) => run(ctx, 'x_federation_join', { code: ctx.flags.code }, 'Join federation') },
     { name: 'sync', description: 'Fetch recent verified swarm messages',
       options: [{ name: 'since', description: 'Look-back seconds (default 3600)', type: 'number' }, { name: 'limit', description: 'Max messages', type: 'number' }, { name: 'type', description: 'Filter by message type', type: 'string' }],
       action: (ctx) => run(ctx, 'x_federation_sync', { sinceSeconds: ctx.flags.since, limit: ctx.flags.limit, type: ctx.flags.type }, 'Federation sync') },
@@ -49,5 +52,5 @@ export const federationCommand: Command = {
       action: (ctx) => { let payload: unknown; try { payload = JSON.parse(String(ctx.flags.payload)); } catch { output.printError('--payload must be JSON'); return Promise.resolve({ success: false, exitCode: 1 }); }
         return run(ctx, 'x_federation_publish', { msgType: ctx.flags.type, payload }, 'Published'); } },
   ],
-  action: async (ctx) => { output.printInfo('Usage: ruflo federation <sync|roster|claims|registry|invite|admit|publish>'); void ctx; return { success: true }; },
+  action: async (ctx) => { output.printInfo('Usage: ruflo federation <join|sync|roster|claims|registry|invite|admit|publish>'); void ctx; return { success: true }; },
 };

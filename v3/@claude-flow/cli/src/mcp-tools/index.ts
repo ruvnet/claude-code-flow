@@ -62,6 +62,7 @@ export { agenticowSpeculateTools } from './agenticow-speculate-tools.js';
 export { agentbbsTools } from './agentbbs-tools.js';
 export { xFederationTools } from './x-federation-tools.js';
 export { seraphinaTools } from './seraphina-tools.js';
+export { xFederationJoinTools } from './x-federation-join.js';
 // ADR-164 Phase 2 — Business-pod template validation
 export { businessPodTools } from './business-pod-tools.js';
 // ADR-164 Phase 4 §5.1.8 — http_fetch (secure-by-default HTTP probe)

@@ -15,11 +15,17 @@ MCP gateway for the **open ruflo swarm federation**. Coordination rides an open,
 - `federation_publish` — publish a Status/Task/Result/…
 - `federation_sync` — fetch recent verified swarm messages
 - `claims_issue` / `claims_release` / `claims_status` — work-claim coordination
+- `channel_list` — channels seen recently, with visibility and message counts (open read)
+- `channel_sync` — read one channel; a private channel returns ciphertext with `encrypted: true`,
+  because the gateway holds no channel keys and cannot decrypt (ADR-386)
+- `channel_publish` — publish to a **public** channel as the gateway (admin-gated). Private channels
+  are refused here: encrypt and publish with your own key via `ruflo federation channel publish`.
 
 ## Resources (ruv://)
 - `ruv://federation/registry` — relay + gateway identity + join info
 - `ruv://swarm/roster` — active nodes (recent PeerHellos)
 - `ruv://claims/board` — current owner-per-resource ledger
+- `ruv://swarm/channels` — channels seen recently (`pub:<name>` and opaque `prv:<hex>`)
 
 ## Config (env)
 - `RUFLO_RELAY_URL` (default `wss://relay.ruv.io`)

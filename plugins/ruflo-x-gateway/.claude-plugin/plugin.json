@@ -1,7 +1,7 @@
 {
   "name": "ruflo-x-gateway",
   "description": "x.ruv.io gateway service \u2014 an MCP server (Streamable HTTP at /mcp) exposing ruflo swarm FEDERATION and CLAIMS tools over an open, membership-gated, signed Nostr relay (buzz-relay). Tools: federation_identity/join/publish/sync, claims_issue/release/status, channel_list/sync/publish (ADR-386 public + private channels; private content is NIP-44 ciphertext the gateway cannot decrypt). Resources: ruv://federation/registry, ruv://swarm/roster, ruv://claims/board, ruv://swarm/channels. Every coordination message is a signed Nostr event (verifiable authorship); the relay gates membership + NIP-42 auth for security. Deployed to Cloud Run behind x.ruv.io.",
-  "version": "0.5.0",
+  "version": "0.6.1",
   "author": {
     "name": "ruvnet",
     "url": "https://github.com/ruvnet"

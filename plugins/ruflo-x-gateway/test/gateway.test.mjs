@@ -72,9 +72,48 @@ test('seraphina: compaction dedupes by from|type, extractJson survives fences, m
   const c = compactRecent([{ from: 'a', type: 'PeerHello', ts: 1 }, { from: 'a', type: 'PeerHello', ts: 2 }, { from: 'b', type: 'Status', ts: 3 }]);
   assert.equal(c.length, 2); assert.equal(c[0].from, 'b');
   const j = extractJson('sure:\n```json\n{"guidance":"g","proposals":[{"type":"Task"}],"risks":["r"]}\n```');
-  assert.equal(j.guidance, 'g'); assert.equal(j.proposals.length, 1); assert.deepEqual(j.risks, ['r']);
-  assert.deepEqual(extractJson('plain prose').proposals, []);
+  assert.equal(j.ok, true);
+  assert.equal(j.parsed.guidance, 'g'); assert.equal(j.parsed.proposals.length, 1); assert.deepEqual(j.parsed.risks, ['r']);
+  const bad = extractJson('plain prose');
+  assert.equal(bad.ok, false, 'non-JSON must be reported, not silently coerced');
+  assert.deepEqual(bad.parsed.proposals, []);
   await assert.rejects(askSeraphina('x', { roster: {}, claims: {}, recentMessages: [] }, {}), /SERAPHINA_METALLM_KEY/);
+});
+
+test('seraphina: a truncated reasoning reply is reported as degraded, not as "nothing to do"', async () => {
+  const { askSeraphina } = await import('../src/seraphina.mjs');
+  const origFetch = globalThis.fetch;
+  // Reproduces the live failure: the tier resolved to a reasoning model that spent the
+  // whole budget thinking, so stop_reason is max_tokens and no JSON was ever emitted.
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({
+    model: 'z-ai/glm-5.3-flash', stop_reason: 'max_tokens',
+    usage: { input_tokens: 550, output_tokens: 8000, reasoning_tokens: 8000 },
+    content: [{ type: 'text', text: 'Let me analyze this swarm snapshot. The operator wants' }],
+  }) });
+  try {
+    const r = await askSeraphina('status', { roster: { a: {} }, claims: {}, recentMessages: [] }, { key: 'k' });
+    assert.equal(r.degraded, true);
+    assert.equal(r.stopReason, 'max_tokens');
+    assert.equal(r.guidance, '', 'must not pass raw reasoning off as guidance');
+    assert.deepEqual(r.proposals, []);
+    assert.match(r.reason, /budget before emitting an answer/);
+    assert.match(r.hint, /cognitum-low/);
+  } finally { globalThis.fetch = origFetch; }
+});
+
+test('seraphina: a well-formed reply still parses and is not marked degraded', async () => {
+  const { askSeraphina } = await import('../src/seraphina.mjs');
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({ ok: true, json: async () => ({
+    model: 'anthropic/claude-sonnet-5', stop_reason: 'end_turn', usage: { input_tokens: 100, output_tokens: 50 },
+    content: [{ type: 'text', text: '{"guidance":"ship it","proposals":[{"type":"Task","forNode":"a"}],"risks":[]}' }],
+  }) });
+  try {
+    const r = await askSeraphina('status', { roster: { a: {} }, claims: {}, recentMessages: [] }, { key: 'k' });
+    assert.equal(r.degraded, undefined);
+    assert.equal(r.guidance, 'ship it');
+    assert.equal(r.proposals.length, 1);
+  } finally { globalThis.fetch = origFetch; }
 });
 test('hardening: publish bounds, bucket eviction, ws maxPayload/404, fetchManyOn single-connection', async () => {
   const { publish, MAX_PAYLOAD_BYTES, fetchManyOn } = await import('../src/nostr-federation.mjs');

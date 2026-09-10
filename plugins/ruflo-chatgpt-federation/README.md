@@ -75,10 +75,17 @@ Anything shaped like key material is scrubbed from errors and logs by `redact()`
 gcloud run deploy chatgpt-federation \
   --project=ruv-dev --region=us-central1 --source=. \
   --service-account=chatgpt-federation-runtime@ruv-dev.iam.gserviceaccount.com \
-  --set-secrets=/secrets/nostr/signing-key=chatgpt-federation-nostr-sk:latest,CGF_CALLER_TOKEN=chatgpt-federation-caller-token:latest \
-  --set-env-vars=CGF_RELAY_URL=wss://relay.ruv.io \
+  --set-secrets=/secrets/nostr/signing-key=chatgpt-federation-nostr-sk:1,CGF_CALLER_TOKEN=chatgpt-federation-caller-token:1 \
+  --set-env-vars=CGF_RELAY_URL=wss://relay.ruv.io,CGF_EXPECTED_PUBKEY=a29fbf2f7299d13e1f1049f829e0d7036949133de4226d728b2f181458d56890 \
   --allow-unauthenticated
 ```
+
+**Pin the secret version. Never mount `:latest`.** A `versions add` under a `:latest`
+mount silently becomes an identity change on the next cold start — the connector comes
+back as a pubkey the relay has not admitted, every publish fails, and readers tracking
+the old identity just see it go quiet. `CGF_EXPECTED_PUBKEY` is the backstop: the
+service refuses to start if the mounted key derives anything else, so a deploy that
+forgets to pin fails loudly instead of rolling the identity over.
 
 `--allow-unauthenticated` is correct here: the service is reached by a ChatGPT
 connector that cannot mint a Google ID token. Authority to publish comes from the
@@ -91,29 +98,50 @@ reaches the container, so a token sent that way never arrives.
 ## Rotate
 
 Secret Manager versions are immutable, so rotation is add-then-disable and every step
-is auditable.
+is auditable. Rotation mints a **new federation identity**, so the order matters: the
+relay must admit the new pubkey *before* any traffic reaches it, and the old version
+stays enabled until the new one is proven.
 
 ```bash
-# 1. new key → new version. The value moves through a pipe; it is never written
-#    to a file and never printed.
-node -e "const{generateSecretKey}=require('nostr-tools/pure');process.stdout.write(Buffer.from(generateSecretKey()).toString('hex'))" \
-  | gcloud secrets versions add chatgpt-federation-nostr-sk --project=ruv-dev --data-file=-
+P=ruv-dev
+SVC=chatgpt-federation
+NEW_PK=<derived in step 1>
 
-# 2. restart onto it
-gcloud run services update chatgpt-federation --project=ruv-dev --region=us-central1 \
-  --set-secrets=/secrets/nostr/signing-key=chatgpt-federation-nostr-sk:latest,CGF_CALLER_TOKEN=chatgpt-federation-caller-token:latest
+# 1. Generate the replacement locally and derive its pubkey. The secret is written to
+#    a 0600 file; only the public half is ever printed.
+umask 077; WORK=$(mktemp -d)
+node -e "const{generateSecretKey,getPublicKey}=require('nostr-tools/pure');
+const fs=require('fs');const sk=generateSecretKey();
+fs.writeFileSync(process.argv[1],Buffer.from(sk).toString('hex'),{mode:0o600});
+console.error(getPublicKey(sk));" "$WORK/sk.hex"
 
-# 3. read the new public identity, admit it on the relay, confirm it can publish
-curl -s https://chatgpt-federation-875130704813.us-central1.run.app/ | jq -r .pubkey
+# 2. Add the version. The MOUNTED version does not change — the running revision is
+#    pinned, so nothing rolls over here.
+gcloud secrets versions add chatgpt-federation-nostr-sk --project=$P --data-file="$WORK/sk.hex"
+find "$WORK" -type f -exec shred -u {} \; && rmdir "$WORK"
 
-# 4. only after federation continuity is confirmed
-gcloud secrets versions disable <old> --secret=chatgpt-federation-nostr-sk --project=ruv-dev
+# 3. Admit the new pubkey on the relay, BEFORE it can publish.
+#    (federation_admit on https://x.ruv.io/mcp, admin-gated)
+
+# 4. Deploy a revision pinned to the new version, with no traffic yet.
+gcloud run deploy $SVC --project=$P --region=us-central1 --source=. --no-traffic \
+  --set-secrets=/secrets/nostr/signing-key=chatgpt-federation-nostr-sk:<N>,CGF_CALLER_TOKEN=chatgpt-federation-caller-token:1 \
+  --set-env-vars=CGF_RELAY_URL=wss://relay.ruv.io,CGF_EXPECTED_PUBKEY=$NEW_PK
+
+# 5. Publish a probe against that revision's own URL and verify it independently —
+#    a different client, a different key, reading the relay directly. Confirm the
+#    event id binds to its content and the pubkey is $NEW_PK.
+
+# 6. Only then route traffic.
+gcloud run services update-traffic $SVC --project=$P --region=us-central1 --to-latest
+
+# 7. Disable the old version, and revoke the old relay identity when appropriate.
+gcloud secrets versions disable <old> --secret=chatgpt-federation-nostr-sk --project=$P
 ```
 
-Step 3 is not optional. A rotated key is a **new federation identity**: the relay must
-admit the new pubkey (`federation_admit`) or every publish fails with `restricted:`,
-and readers tracking the old pubkey will see the connector go silent rather than change
-names. Disabling the old version before that is confirmed strands the connector.
+Steps 3 and 5 are not optional. Admitting after traffic moves means every publish
+fails with `restricted:` in the gap; disabling the old version before step 5 passes
+strands the connector with no way back.
 
 ## Test
 

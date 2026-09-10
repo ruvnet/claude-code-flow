@@ -40,6 +40,24 @@ test('the signer exposes a public key and a sign function, and nothing else', ()
   assert.ok(!serialized.includes(skHex), 'secret must not survive serialization');
 });
 
+test('an unexpected identity fails startup rather than rolling over silently', () => {
+  const prev = process.env.CGF_EXPECTED_PUBKEY;
+  const other = getPublicKey(generateSecretKey());
+  try {
+    process.env.CGF_EXPECTED_PUBKEY = other;
+    assert.throws(() => loadSigner(keyPath), /refusing to start under an unexpected federation identity/);
+    // and the matching case still boots
+    process.env.CGF_EXPECTED_PUBKEY = getPublicKey(Uint8Array.from(Buffer.from(skHex, 'hex')));
+    assert.equal(loadSigner(keyPath).pubkey, process.env.CGF_EXPECTED_PUBKEY);
+  } finally { if (prev === undefined) delete process.env.CGF_EXPECTED_PUBKEY; else process.env.CGF_EXPECTED_PUBKEY = prev; }
+});
+
+test('the pin is opt-in: unset means no assertion', () => {
+  const prev = process.env.CGF_EXPECTED_PUBKEY;
+  try { delete process.env.CGF_EXPECTED_PUBKEY; assert.ok(loadSigner(keyPath).pubkey); }
+  finally { if (prev !== undefined) process.env.CGF_EXPECTED_PUBKEY = prev; }
+});
+
 test('redact scrubs anything shaped like key material', () => {
   assert.equal(redact(`leaked ${skHex} here`), 'leaked [redacted] here');
   assert.equal(redact(undefined), '');
@@ -54,7 +72,9 @@ test('no environment variable can supply the key value', async () => {
   // exposure a secret volume exists to remove, so the loader must not read one.
   const src = await import('node:fs').then((fs) => fs.readFileSync(new URL('../src/signing-key.mjs', import.meta.url), 'utf8'));
   const envReads = [...src.matchAll(/process\.env\.([A-Z0-9_]+)/g)].map((m) => m[1]);
-  assert.deepEqual(envReads, ['CGF_SIGNING_KEY_PATH']);
+  assert.deepEqual(envReads.sort(), ['CGF_EXPECTED_PUBKEY', 'CGF_SIGNING_KEY_PATH']);
+  // neither carries key material: one is a path, the other a PUBLIC key
+  assert.ok(!/process\.env\.[A-Z0-9_]*(SECRET|SK|PRIVATE|KEY_HEX)/.test(src));
 });
 
 // ---- tag compatibility with the gateway (ADR-386) ----

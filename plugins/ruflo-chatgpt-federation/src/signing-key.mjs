@@ -49,6 +49,16 @@ export function loadSigner(keyPath = process.env.CGF_SIGNING_KEY_PATH || DEFAULT
   }
   const sk = Uint8Array.from(Buffer.from(raw, 'hex'));
   const pubkey = getPublicKey(sk);
+  // Identity pinning. A rotated key is a NEW federation identity: readers tracking
+  // the old pubkey see this connector go silent, and the relay refuses its events
+  // until the new pubkey is admitted. Pinning the secret *version* on the mount is
+  // the primary guard; this is the backstop for the deploy that forgets to, where
+  // `:latest` would otherwise roll the identity over on the next cold start with no
+  // signal at all. Fail the deploy instead.
+  const expected = (process.env.CGF_EXPECTED_PUBKEY || '').trim().toLowerCase();
+  if (expected && expected !== pubkey) {
+    throw new Error(`mounted key derives ${pubkey}, expected ${expected} — refusing to start under an unexpected federation identity`);
+  }
   // `sk` is reachable only from the closure below. Nothing returns it.
   return {
     pubkey,

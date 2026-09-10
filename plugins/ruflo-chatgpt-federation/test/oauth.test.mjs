@@ -269,3 +269,37 @@ test('enforcing OAuth without an expected audience fails the deploy', async () =
     }
   }
 });
+
+test('ACCEPTANCE: session and other-client tokens get 401; ours succeeds with exactly two scopes', async () => {
+  // The stated bar. Three tokens, same issuer key, same signature validity —
+  // separated only by what they are addressed to.
+  const as = await fakeAuthServer();
+  try {
+    await withService(as, { required: true, publicUrl: 'https://cgf.example' }, async (port, svc) => {
+      // 1. A browser-session-shaped token: auth_web.rs mints these through the
+      //    unbound path, so they carry neither iss nor aud.
+      const session = await as.mintRaw({ scope: `${SCOPE_READ} ${SCOPE_PUBLISH}` });
+      const r1 = await call(port, 'federation_identity', {}, { authorization: `Bearer ${session}` });
+      assert.equal(r1.status, 401, 'a browser-session token must not authenticate here');
+      assert.match(r1.wwwAuth || '', /carries no iss or aud claim/);
+
+      // 2. A well-formed OAuth token for a DIFFERENT Cognitum client.
+      const other = await as.mint({ scope: `${SCOPE_READ} ${SCOPE_PUBLISH}`, audience: 'music-cognitum-one' });
+      const r2 = await call(port, 'channel_publish',
+        { channel: 'pub:announce', msgType: 'Status', payload: {} }, { authorization: `Bearer ${other}` });
+      assert.equal(r2.status, 401, 'another client\'s token must not act as the federation identity');
+
+      // 3. Ours: correct issuer, addressed to our client_id, exactly the two scopes.
+      const ours = await as.mint({ scope: `${SCOPE_READ} ${SCOPE_PUBLISH}`, audience: CLIENT_ID });
+      const r3 = await call(port, 'federation_identity', {}, { authorization: `Bearer ${ours}` });
+      assert.equal(r3.status, 200);
+      assert.equal(JSON.parse(toolText(r3.body)).pubkey, svc.pubkey);
+
+      // and it carries ONLY those two — a third scope must not ride along.
+      const decoded = JSON.parse(Buffer.from(ours.split('.')[1], 'base64url').toString());
+      assert.deepEqual(decoded.scope.split(' ').sort(), [SCOPE_PUBLISH, SCOPE_READ].sort());
+      assert.equal(decoded.aud, CLIENT_ID);
+      assert.equal(decoded.iss, as.issuer);
+    });
+  } finally { as.close(); }
+});

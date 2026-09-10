@@ -120,6 +120,17 @@ this design**.
 An unauthenticated or unverifiable request to `/mcp` gets `401` with
 `WWW-Authenticate: Bearer resource_metadata="…"`, which is what starts discovery.
 
+### Client binding, not resource binding — stated plainly
+
+This is **client-audience binding, not standards-style resource-audience binding**
+(RFC 8707). It is a deliberate, documented deviation, accepted for this dedicated
+integration because the connector is a single-tenant resource with its own OAuth
+client. It is not a pattern to copy into a multi-resource service, and it stops being
+safe the moment `federation:read`/`federation:publish` is granted to a second client.
+
+If `auth.cognitum.one` later implements resource indicators (console ADR-038, open),
+switch `CGF_OAUTH_CLIENT_ID` to the resource identifier and this paragraph goes away.
+
 ### Why the audience is a client id
 
 `auth.cognitum.one` binds `aud` to the **requesting OAuth client**

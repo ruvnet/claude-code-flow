@@ -17,6 +17,19 @@ test('claims: release by owner frees; release by non-owner ignored', () => {
   assert.deepEqual(reduceClaims([ev('ClaimIssued', 'A', 'r1', 1), ev('ClaimReleased', 'A', 'r1', 2)]), {});
   assert.equal(reduceClaims([ev('ClaimIssued', 'A', 'r1', 1), ev('ClaimReleased', 'B', 'r1', 2)]).r1.owner, 'A');
 });
+test('claims: ttl expiry frees the resource and lets a later claim win', () => {
+  // A claims at t=10 with a 60s lease; B claims at t=100 (after expiry) -> B owns it.
+  const l = reduceClaims([ev('ClaimIssued', 'A', 'r1', 10, { ttlSeconds: 60 }), ev('ClaimIssued', 'B', 'r1', 100, { ttlSeconds: 600 })], 150);
+  assert.equal(l.r1.owner, 'B'); assert.equal(l.r1.ttlSeconds, 600); assert.ok(l.r1.expiresAt);
+  // A's lease still live when B claims -> A keeps it.
+  assert.equal(reduceClaims([ev('ClaimIssued', 'A', 'r1', 10, { ttlSeconds: 600 }), ev('ClaimIssued', 'B', 'r1', 100)], 150).r1.owner, 'A');
+  // Disconnected worker: lease expired relative to `now`, nobody released -> resource is free.
+  assert.deepEqual(reduceClaims([ev('ClaimIssued', 'A', 'r1', 10, { ttlSeconds: 60 })], 200), {});
+  // No ttl -> never expires.
+  assert.equal(reduceClaims([ev('ClaimIssued', 'A', 'r1', 10)], 10_000_000).r1.owner, 'A');
+  // A release of an already-expired claim is a no-op, not an error.
+  assert.deepEqual(reduceClaims([ev('ClaimIssued', 'A', 'r1', 10, { ttlSeconds: 60 }), ev('ClaimReleased', 'A', 'r1', 500)], 600), {});
+});
 test('claims: handoff only by current owner', () => {
   assert.equal(reduceClaims([ev('ClaimIssued', 'A', 'r1', 1), ev('ClaimHandoff', 'A', 'r1', 2, { toNode: 'C' })]).r1.owner, 'C');
   assert.equal(reduceClaims([ev('ClaimIssued', 'A', 'r1', 1), ev('ClaimHandoff', 'B', 'r1', 2, { toNode: 'C' })]).r1.owner, 'A');

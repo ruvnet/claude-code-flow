@@ -76,18 +76,39 @@ console.log('\noauth discovery');
     ? ok('AS is a public client (no client secret)') : no('AS is a public client');
 }
 {
-  // A registered client gets a real OAuth error page; an unknown one is rejected
-  // outright. This distinguishes "client row landed" from "not deployed yet"
-  // without completing a sign-in.
+  // Does the client row exist? Distinguish it by the REASON the AS gives, not by
+  // the status code or the page title — every rejection is a 400 titled
+  // "Invalid OAuth Request", so a title check cannot tell a registered client
+  // from an unknown one. An unknown client says "Unknown client_id"; a
+  // registered one renders its consent page naming the app.
+  //
+  // `state` is required in practice: omit it and even a known-good client is
+  // rejected, which reads exactly like "the client is not registered".
   const q = new URLSearchParams({ client_id: CLIENT_ID, response_type: 'code',
-    redirect_uri: 'https://chatgpt.com/connector/oauth/rsmLSzfP7w_t',
+    redirect_uri: process.env.CGF_REDIRECT_URI || 'https://chatgpt.com/connector/oauth/rsmLSzfP7w_t',
     code_challenge: 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM', code_challenge_method: 'S256',
-    scope: 'federation:read federation:publish' });
-  const r = await fetch(`${AS}/oauth/authorize?${q}`, { redirect: 'manual' });
-  const t = r.status < 400 ? '' : await r.text().catch(() => '');
-  /Invalid OAuth Request/i.test(t)
-    ? no('AS accepts client_id=' + CLIENT_ID, 'still rejected — client row not deployed')
-    : ok('AS accepts client_id=' + CLIENT_ID, `http ${r.status}`);
+    scope: 'federation:read federation:publish', state: 'e2e' });
+  const html = await (await fetch(`${AS}/oauth/authorize?${q}`)).text().catch(() => '');
+  const text = html.replace(/<(script|style)[\s\S]*?<\/\1>/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  if (/Unknown client_id/.test(text)) {
+    no(`AS knows client_id=${CLIENT_ID}`, 'Unknown client_id — the migration has not reached this database');
+  } else if (/is requesting access/i.test(text)) {
+    ok(`AS knows client_id=${CLIENT_ID}`, 'renders its consent page, so redirect_uri and both scopes were accepted');
+  } else {
+    no(`AS knows client_id=${CLIENT_ID}`, `unexpected response: ${text.slice(0, 90)}`);
+  }
+
+  // Control: the same probe against a client that cannot exist must say so.
+  // Without this, a change to the error page would silently turn the check above
+  // into one that always passes.
+  const cq = new URLSearchParams({ client_id: 'e2e-nonexistent-client', response_type: 'code',
+    redirect_uri: 'https://example.com/cb', code_challenge: 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM',
+    code_challenge_method: 'S256', scope: 'federation:read', state: 'e2e' });
+  const ctext = (await (await fetch(`${AS}/oauth/authorize?${cq}`)).text().catch(() => ''))
+    .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  /Unknown client_id/.test(ctext)
+    ? ok('control: an unknown client_id is reported as unknown')
+    : no('control: an unknown client_id is reported as unknown', 'the probe above cannot be trusted');
 }
 
 // ---- 3. token rejection (the security bar) ----

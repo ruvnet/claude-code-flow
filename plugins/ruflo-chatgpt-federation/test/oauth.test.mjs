@@ -338,3 +338,22 @@ test('protected-resource metadata echoes the identifier the client asked about',
     });
   } finally { as.close(); }
 });
+
+test('the auth-mode log line never contains token material', async () => {
+  const as = await fakeAuthServer();
+  const lines = [];
+  const orig = console.log;
+  console.log = (...a) => { lines.push(a.join(' ')); };
+  try {
+    await withService(as, { required: true, publicUrl: 'https://cgf.example' }, async (port) => {
+      const tok = await as.mint({ scope: `${SCOPE_READ} ${SCOPE_PUBLISH}`, audience: CLIENT_ID });
+      await call(port, 'federation_identity', {}, { authorization: `Bearer ${tok}` });
+      const line = lines.find((l) => l.startsWith('mcp auth='));
+      assert.ok(line, 'an auth line is emitted');
+      assert.match(line, /auth=oauth/);
+      assert.match(line, /scopes=federation:read\+federation:publish/);
+      assert.ok(!line.includes(tok), 'the token must never appear in a log line');
+      assert.ok(!/user-1/.test(line), 'the raw subject must not appear either');
+    });
+  } finally { console.log = orig; as.close(); }
+});

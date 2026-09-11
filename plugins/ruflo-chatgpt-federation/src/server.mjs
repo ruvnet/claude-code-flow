@@ -21,7 +21,7 @@
  * output, a resource, or a log line.
  */
 import { createServer } from 'node:http';
-import { timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual, createHash } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
@@ -195,6 +195,15 @@ export function createPublisherService({ relay, keyPath, port } = {}) {
       if (rateLimited(req)) return res.writeHead(429, { 'content-type': 'application/json' }).end('{"error":"rate limited"}');
       let body; try { body = await readBody(req); } catch { return res.writeHead(413, { 'content-type': 'application/json' }).end('{"error":"payload too large"}'); }
       const auth = await authContext(req);
+      // One line per call, so "is OAuth actually being used?" is answerable from
+      // logs instead of inferred. Never the token: only the mode, the granted
+      // scopes, and a truncated hash of the subject — enough to correlate calls
+      // from one identity, not enough to identify or replay anyone.
+      try {
+        const sub = auth.subject ? createHash('sha256').update(auth.subject).digest('hex').slice(0, 12) : '-';
+        console.log(`mcp auth=${auth.mode} scopes=${(auth.scopes || []).join('+') || '-'} sub=${sub}` +
+          (auth.mode === 'denied' ? ` reason=${redact(auth.error)}` : ''));
+      } catch { /* logging must never break a request */ }
       if (auth.mode === 'denied') {
         // 401 + WWW-Authenticate is what starts a client's OAuth discovery.
         res.writeHead(401, { 'content-type': 'application/json',

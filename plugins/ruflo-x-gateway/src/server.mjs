@@ -86,7 +86,7 @@ export function createGateway({ relay, keyFile, port } = {}) {
     // ---- Seraphina: swarm queen guidance (admin-gated: it spends meta-llm budget) ----
     mcp.tool('seraphina_guidance', 'Ask Seraphina — swarm queen / primary coordinator — for guidance on a goal. Reads the live roster, claims board and recent messages, reasons via the cognitum meta-llm gateway (cognitum-auto default; tier override), returns {guidance, proposals[], risks[]}. Admin-gated because it spends meta-llm budget. Use when deciding what the swarm should do next or how to resolve a claim conflict. Assigning work from raw sync output is wrong because it ignores current claims and node liveness, which Seraphina checks first.',
       { goal: z.string(), tier: z.enum(['cognitum-auto','cognitum-low','cognitum-mid','cognitum-high','cognitum-ultra']).optional(), adminToken: z.string().optional().describe('Optional. Lifts the shared budget cap and allows the high/ultra tiers. Never put this in a browser — it also authorises gateway-identity writes.'), sinceSeconds: z.number().optional(), limit: z.number().optional() },
-      (async ({ goal, tier, sinceSeconds, limit, adminToken }) => {
+      (async ({ goal, tier, sinceSeconds, limit, adminToken }, extra) => {
         // Seraphina reads and advises; it writes nothing and carries no authority,
         // so it is bounded by budget rather than by a bearer secret a browser
         // cannot hold. Every WRITE tool above stays admin-gated.
@@ -104,7 +104,12 @@ export function createGateway({ relay, keyFile, port } = {}) {
         ]);
         const roster = {}; for (const h of hellos) roster[h.pubkey] = { from: h.from, platform: h.platform, lastSeen: h.ts };
         const claims = reduceClaims(ev.filter((e) => String(e.type).startsWith('Claim')));
-        const result = await askSeraphina(goal, { roster, claims, recentMessages: recent }, { key: process.env.SERAPHINA_METALLM_KEY, tier: effectiveTier });
+        const progressToken = extra?._meta?.progressToken;
+        let progress = 0;
+        const onGuidance = progressToken === undefined ? undefined : async (guidance) => {
+          await extra.sendNotification({ method: 'notifications/progress', params: { progressToken, progress: ++progress, message: JSON.stringify({ type: 'guidance', text: guidance }) } });
+        };
+        const result = await askSeraphina(goal, { roster, claims, recentMessages: recent }, { key: process.env.SERAPHINA_METALLM_KEY, tier: effectiveTier, onGuidance, signal: extra?.signal });
         return text({ ...result, budget: allow.admin ? 'admin (uncapped)' : `shared daily budget, ${allow.remainingToday} calls left today` });
       }));
     // ---- ruv:// resources (open) ----

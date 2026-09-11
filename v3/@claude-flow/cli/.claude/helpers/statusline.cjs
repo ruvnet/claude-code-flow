@@ -25,6 +25,29 @@ const path = require('path');
 const { execSync } = require('child_process');
 const os = require('os');
 
+// #2897 — on Android (Termux + PRoot Linux), bionic libc hard-aborts
+// (SIGABRT) any platform binary that touches tzdata/ICU when
+// ANDROID_TZDATA_ROOT is unset, and PRoot doesn't export Android's
+// runtime env roots. sqlite3 is one such binary, so every sqlite3 shell-out
+// below via safeExec() died silently (safeExec swallows the throw and
+// returns ''), permanently pinning Vectors/HNSW at 0 with no error surfaced.
+// Detect Android via /apex/com.android.tzdata and backfill the roots it
+// needs — existing env values always win (the `||` pattern), so a
+// correctly-configured ambient environment is never overridden, and this
+// is a no-op everywhere /apex/com.android.tzdata doesn't exist.
+const EXEC_ENV = (() => {
+  const e = Object.assign({}, process.env);
+  try {
+    if (fs.existsSync('/apex/com.android.tzdata')) {
+      e.ANDROID_ROOT = e.ANDROID_ROOT || '/system';
+      e.ANDROID_DATA = e.ANDROID_DATA || '/data';
+      e.ANDROID_TZDATA_ROOT = e.ANDROID_TZDATA_ROOT || '/apex/com.android.tzdata';
+      e.ANDROID_I18N_ROOT = e.ANDROID_I18N_ROOT || '/apex/com.android.i18n';
+    }
+  } catch { /* not Android, or /apex unreadable -- leave env untouched */ }
+  return e;
+})();
+
 // Configuration
 const CONFIG = {
   maxAgents: 15,
@@ -673,6 +696,7 @@ function safeExec(cmd, timeoutMs) {
     return execSync(cmd, {
       encoding: 'utf-8',
       timeout: timeoutMs || 2000,
+      env: EXEC_ENV,
       stdio: ['pipe', 'pipe', 'pipe'],
       // Windows: without this, every execSync spawns cmd.exe /d /s /c which
       // flashes a visible console window every render (~1/min via the 60s

@@ -4,8 +4,8 @@
  * Proves the WAL-safe snapshot is consistent, non-destructive, rotated, and
  * degrades cleanly when there's nothing to back up.
  */
-import { describe, it, expect, beforeEach } from 'vitest';
-import { mkdtempSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { mkdtempSync, existsSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -72,5 +72,44 @@ describe.skipIf(!haveNative)('backupMemoryDb', () => {
     const r = await backupMemoryDb({ dbPath: join(workdir, 'nope.db') });
     expect(r.backedUp).toBe(false);
     expect(r.skipped).toBe('no-db');
+  });
+
+  it('marks a healthy source clean and untagged (#2895)', async () => {
+    const dbPath = join(workdir, 'memory.db');
+    seedDb(dbPath, 5);
+    const r = await backupMemoryDb({ dbPath, timestamp: 1_700_000_000_000 });
+    expect(r.backedUp).toBe(true);
+    expect(r.sourceCorrupt).toBe(false);
+    expect(r.sourceIntegrity?.toLowerCase()).toBe('ok');
+    expect(r.path).not.toContain('CORRUPT');
+  });
+
+  it('#2895 — still backs up a corrupt source, but tags it CORRUPT and warns instead of reporting a clean success', async () => {
+    const dbPath = join(workdir, 'memory.db');
+    // Garbage bytes: not a valid SQLite file at all (truncated/invalid header).
+    writeFileSync(dbPath, Buffer.from('this is not a sqlite database, just garbage bytes '.repeat(20)));
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const r = await backupMemoryDb({ dbPath, timestamp: 1_700_000_000_000 });
+
+      // (a) a backup file is still created
+      expect(r.backedUp).toBe(true);
+      expect(existsSync(r.path!)).toBe(true);
+
+      // (b) it's tagged/marked as corrupt in the result and the filename
+      expect(r.sourceCorrupt).toBe(true);
+      expect(r.sourceIntegrity).toBeTruthy();
+      expect(r.sourceIntegrity?.toLowerCase()).not.toBe('ok');
+      expect(r.path).toMatch(/\.CORRUPT\.db$/);
+      // Still discoverable by the same rotation/restore glob.
+      expect(/^memory-.*\.db$/.test(join(r.path!).split(/[\\/]/).pop()!)).toBe(true);
+
+      // (c) a warning is emitted (unconditional — not gated behind --verbose)
+      expect(warnSpy).toHaveBeenCalled();
+      expect(warnSpy.mock.calls.some(args => String(args[0]).includes('integrity check'))).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 });

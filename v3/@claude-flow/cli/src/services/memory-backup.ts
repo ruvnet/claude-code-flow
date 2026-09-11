@@ -36,6 +36,14 @@ export interface BackupResult {
   rotatedAway?: string[];
   gcsUri?: string;
   skipped?: string;
+  /** Result of `PRAGMA integrity_check` on the SOURCE DB before snapshotting it. */
+  sourceIntegrity?: string;
+  /** True when the source failed its integrity check (or couldn't be opened at
+   *  all). The snapshot is still taken — a corrupt-but-present DB beats none —
+   *  but is tagged `*.CORRUPT.db` so `restoreMemoryDbFromBackup` skips it in
+   *  favor of an older clean snapshot instead of silently rotating the last
+   *  good one out of the retention window (#2895). */
+  sourceCorrupt?: boolean;
 }
 
 export function defaultMemoryDbPath(cwd: string = process.cwd()): string {
@@ -61,7 +69,31 @@ export async function backupMemoryDb(opts: BackupOptions = {}): Promise<BackupRe
 
   const destDir = opts.destDir ?? path.join(path.dirname(dbPath), 'backups');
   try { fs.mkdirSync(destDir, { recursive: true }); } catch { /* */ }
-  const destPath = path.join(destDir, `memory-${fileStamp(opts.timestamp ?? Date.now())}.db`);
+
+  // Verify the SOURCE before snapshotting it (#2895). Without this, a corrupt
+  // .swarm/memory.db gets copied forward every night, reported as a success,
+  // and the last clean snapshot silently rotates out of the retention window.
+  // Mirrors the check restoreMemoryDbFromBackup() already runs on the way out.
+  let sourceIntegrity = 'unknown';
+  try {
+    const srcDb = new Database(dbPath, { readonly: true });
+    sourceIntegrity = String(srcDb.pragma('integrity_check', { simple: true }) ?? '');
+    srcDb.close();
+  } catch (e) {
+    sourceIntegrity = `unreadable: ${(e as Error)?.message ?? e}`;
+  }
+  const sourceCorrupt = sourceIntegrity.toLowerCase() !== 'ok';
+  if (sourceCorrupt) {
+    // Unconditional — this is not a "verbose" nice-to-have, it's the whole
+    // point of the check: a silently-corrupt backup is worse than a loud one.
+    console.warn(
+      `memory-backup: source DB ${dbPath} failed integrity check (${sourceIntegrity}) — ` +
+      `backing it up anyway (a corrupt snapshot beats none), tagged CORRUPT so restore skips it.`,
+    );
+  }
+
+  const stamp = fileStamp(opts.timestamp ?? Date.now());
+  const destPath = path.join(destDir, sourceCorrupt ? `memory-${stamp}.CORRUPT.db` : `memory-${stamp}.db`);
 
   // WAL-safe online backup: read-only source, consistent snapshot to destPath.
   let db: any;
@@ -106,7 +138,7 @@ export async function backupMemoryDb(opts: BackupOptions = {}): Promise<BackupRe
         if (opts.verbose) {
           console.log(`memory DB backed up (byte-copy, encrypted-at-rest) → ${destPath} (${Math.round(copiedBytes / 1024)} KB)`);
         }
-        return { backedUp: true, path: destPath, sizeBytes: copiedBytes, rotatedAway, gcsUri };
+        return { backedUp: true, path: destPath, sizeBytes: copiedBytes, rotatedAway, gcsUri, sourceIntegrity, sourceCorrupt };
       }
     } catch { /* byte-copy also failed — report the original error */ }
     return { backedUp: false, skipped: `backup failed: ${(e as Error)?.message ?? e}` };
@@ -144,7 +176,7 @@ export async function backupMemoryDb(opts: BackupOptions = {}): Promise<BackupRe
       (gcsUri ? `, offsite ${gcsUri}` : ''),
     );
   }
-  return { backedUp: true, path: destPath, sizeBytes, rotatedAway, gcsUri };
+  return { backedUp: true, path: destPath, sizeBytes, rotatedAway, gcsUri, sourceIntegrity, sourceCorrupt };
 }
 
 export interface RestoreResult {

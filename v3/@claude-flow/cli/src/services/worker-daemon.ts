@@ -1830,7 +1830,12 @@ export class WorkerDaemon extends EventEmitter {
         rotatedAway: r.rotatedAway?.length ?? 0,
         gcsUri: r.gcsUri,
         skipped: r.skipped,
+        sourceIntegrity: r.sourceIntegrity,
+        sourceCorrupt: r.sourceCorrupt ?? false,
       };
+      if (r.sourceCorrupt) {
+        this.log('warn', `Backup worker: source memory DB failed integrity check (${r.sourceIntegrity}) — backed up anyway, tagged CORRUPT.`);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.log('warn', `Backup worker failed: ${message}`);

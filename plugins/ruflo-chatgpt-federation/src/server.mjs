@@ -80,7 +80,13 @@ export function createPublisherService({ relay, keyPath, port } = {}) {
   // asserted, which is only acceptable while OAuth is not yet enforced.
   const OAUTH_CLIENT_ID = (process.env.CGF_OAUTH_CLIENT_ID || '').trim();
   const resourceUrl = () => (process.env.CGF_PUBLIC_URL || '').replace(/\/$/, '');
-  const prmUrl = () => `${resourceUrl()}/.well-known/oauth-protected-resource`;
+  // RFC 9728 §5.1: point at the metadata for the resource the client actually
+  // requested. A client using <base>/mcp must be sent to the /mcp-suffixed
+  // document, whose `resource` is <base>/mcp — sending it to the bare document
+  // hands back an identifier it never asked about, which is the same mismatch
+  // that silently stalls setup.
+  const prmUrl = (pathname) => `${resourceUrl()}/.well-known/oauth-protected-resource`
+    + (pathname === '/mcp' ? '/mcp' : '');
 
   /**
    * Resolve what this request is allowed to do.
@@ -174,7 +180,7 @@ export function createPublisherService({ relay, keyPath, port } = {}) {
         tools: ['federation_identity', 'channel_sync', 'channel_publish'],
         authorization: { type: 'oauth2', issuer: OAUTH_ISSUER, clientId: OAUTH_CLIENT_ID || null,
           scopes: [SCOPE_READ, SCOPE_PUBLISH],
-          protectedResourceMetadata: prmUrl(),
+          protectedResourceMetadata: prmUrl('/mcp'),
           enforced: OAUTH_REQUIRED,
           transitionalHeader: OAUTH_REQUIRED ? null : 'x-caller-token' } }));
     }
@@ -207,7 +213,7 @@ export function createPublisherService({ relay, keyPath, port } = {}) {
       if (auth.mode === 'denied') {
         // 401 + WWW-Authenticate is what starts a client's OAuth discovery.
         res.writeHead(401, { 'content-type': 'application/json',
-          'www-authenticate': challengeHeader(prmUrl(), { error: auth.error, description: auth.description }) });
+          'www-authenticate': challengeHeader(prmUrl(url.pathname), { error: auth.error, description: auth.description }) });
         return res.end(JSON.stringify({ error: auth.error, error_description: auth.description }));
       }
       const mcp = buildMcp(req, auth); const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });

@@ -108,7 +108,8 @@ test('with OAuth required, an unauthenticated call gets 401 and a discovery poin
     await withService(as, { required: true, publicUrl: 'https://cgf.example' }, async (port) => {
       const r = await call(port, 'federation_identity');
       assert.equal(r.status, 401);
-      assert.match(r.wwwAuth, /resource_metadata="https:\/\/cgf\.example\/\.well-known\/oauth-protected-resource"/);
+      // …/mcp was requested, so the pointer carries the /mcp suffix.
+      assert.match(r.wwwAuth, /resource_metadata="https:\/\/cgf\.example\/\.well-known\/oauth-protected-resource\/mcp"/);
     });
   } finally { as.close(); }
 });
@@ -227,7 +228,7 @@ test('the service info advertises the authorization server and enforcement state
         assert.equal(info.authorization.issuer, as.issuer);
         assert.deepEqual(info.authorization.scopes, [SCOPE_READ, SCOPE_PUBLISH]);
         assert.equal(info.authorization.protectedResourceMetadata,
-          'https://cgf.example/.well-known/oauth-protected-resource');
+          'https://cgf.example/.well-known/oauth-protected-resource/mcp');
         assert.equal(info.authorization.enforced, required);
         assert.equal(info.authorization.transitionalHeader, required ? null : 'x-caller-token');
       });
@@ -356,4 +357,18 @@ test('the auth-mode log line never contains token material', async () => {
       assert.ok(!/user-1/.test(line), 'the raw subject must not appear either');
     });
   } finally { console.log = orig; as.close(); }
+});
+
+test('the 401 challenge points at the metadata for the path that was requested', async () => {
+  const as = await fakeAuthServer();
+  try {
+    await withService(as, { required: true, publicUrl: 'https://cgf.example' }, async (port) => {
+      const r = await call(port, 'federation_identity');
+      assert.equal(r.status, 401);
+      // …/mcp was requested, so the pointer must be the /mcp-suffixed document,
+      // whose `resource` matches the identifier the client is using.
+      assert.match(r.wwwAuth || '',
+        /resource_metadata="https:\/\/cgf\.example\/\.well-known\/oauth-protected-resource\/mcp"/);
+    });
+  } finally { as.close(); }
 });

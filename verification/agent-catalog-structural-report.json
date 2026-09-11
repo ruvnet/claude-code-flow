@@ -1,0 +1,810 @@
+{
+  "generatedAt": "2026-08-28T04:53:48.881Z",
+  "total": 108,
+  "passed": 108,
+  "failed": 0,
+  "duplicates": [
+    {
+      "name": "code-analyzer",
+      "count": 2
+    },
+    {
+      "name": "database-specialist",
+      "count": 2
+    },
+    {
+      "name": "backend-dev",
+      "count": 2
+    },
+    {
+      "name": "pr-manager",
+      "count": 2
+    },
+    {
+      "name": "sublinear-goal-planner",
+      "count": 2
+    },
+    {
+      "name": "goal-planner",
+      "count": 2
+    },
+    {
+      "name": "project-coordinator",
+      "count": 2
+    },
+    {
+      "name": "python-specialist",
+      "count": 2
+    },
+    {
+      "name": "production-validator",
+      "count": 2
+    },
+    {
+      "name": "tdd-london-swarm",
+      "count": 2
+    },
+    {
+      "name": "typescript-specialist",
+      "count": 2
+    }
+  ],
+  "results": [
+    {
+      "file": ".claude/agents/analysis/analyze-code-quality.md",
+      "name": "code-analyzer",
+      "description": "Advanced code quality analysis agent for comprehensive code reviews and improvements",
+      "bodyChars": 1397,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/analysis/code-analyzer.md",
+      "name": "analyst",
+      "description": "Advanced code quality analysis agent for comprehensive code reviews and improvements",
+      "bodyChars": 5122,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/analysis/code-review/analyze-code-quality.md",
+      "name": "code-analyzer",
+      "description": "Advanced code quality analysis agent for comprehensive code reviews and improvements",
+      "bodyChars": 1397,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/architecture/system-design/arch-system-design.md",
+      "name": "system-architect",
+      "description": "Expert agent for system architecture design, patterns, and high-level technical decisions",
+      "bodyChars": 1182,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/base-template-generator.md",
+      "name": "base-template-generator",
+      "description": "Use this agent when you need to create foundational templates, boilerplate code, or starter configurations for new projects, components, or features. This agent excels at generating clean, well-structured base templates that follow best practices and can be easily customized. Examples: <example>Context: User needs to start a new React component and wants a solid foundation. user: 'I need to create a new user profile component' assistant: 'I'll use the base-template-generator agent to create a comprehensive React component template with proper structure, TypeScript definitions, and styling setup.' <commentary>Since the user needs a foundational template for a new component, use the base-template-generator agent to create a well-structured starting point.</commentary></example> <example>Context: User is setting up a new API endpoint and needs a template. user: 'Can you help me set up a new REST API endpoint for user management?' assistant: 'I'll use the base-template-generator agent to create a complete API endpoint template with proper error handling, validation, and documentation structure.' <commentary>The user needs a foundational template for an API endpoint, so use the base-template-generator agent to provide a comprehensive starting point.</commentary></example>",
+      "bodyChars": 2516,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/consensus/byzantine-coordinator.md",
+      "name": "byzantine-coordinator",
+      "description": "Coordinates Byzantine fault-tolerant consensus protocols with malicious actor detection",
+      "bodyChars": 1666,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/consensus/crdt-synchronizer.md",
+      "name": "crdt-synchronizer",
+      "description": "Implements Conflict-free Replicated Data Types for eventually consistent state synchronization",
+      "bodyChars": 25311,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/consensus/gossip-coordinator.md",
+      "name": "gossip-coordinator",
+      "description": "Coordinates gossip-based consensus protocols for scalable eventually consistent systems",
+      "bodyChars": 1736,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/consensus/performance-benchmarker.md",
+      "name": "performance-benchmarker",
+      "description": "Implements comprehensive performance benchmarking for distributed consensus protocols",
+      "bodyChars": 27362,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/consensus/quorum-manager.md",
+      "name": "quorum-manager",
+      "description": "Implements dynamic quorum adjustment and intelligent membership management",
+      "bodyChars": 28096,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/consensus/raft-manager.md",
+      "name": "raft-manager",
+      "description": "Manages Raft consensus algorithm with leader election and log replication",
+      "bodyChars": 1670,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/consensus/security-manager.md",
+      "name": "security-manager",
+      "description": "Implements comprehensive security mechanisms for distributed consensus protocols",
+      "bodyChars": 19575,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/core/coder.md",
+      "name": "coder",
+      "description": "Implementation specialist for writing clean, efficient code",
+      "bodyChars": 7350,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/core/planner.md",
+      "name": "planner",
+      "description": "Strategic planning and task orchestration agent",
+      "bodyChars": 4232,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/core/researcher.md",
+      "name": "researcher",
+      "description": "Deep research and information gathering specialist",
+      "bodyChars": 5058,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/core/reviewer.md",
+      "name": "reviewer",
+      "description": "Code review and quality assurance specialist",
+      "bodyChars": 7534,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/core/tester.md",
+      "name": "tester",
+      "description": "Comprehensive testing and quality assurance specialist",
+      "bodyChars": 8150,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/custom/test-long-runner.md",
+      "name": "test-long-runner",
+      "description": "Test agent that can run for 30+ minutes on complex tasks",
+      "bodyChars": 1497,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/data/ml/data-ml-model.md",
+      "name": "ml-developer",
+      "description": "Specialized agent for machine learning model development, training, and deployment",
+      "bodyChars": 1767,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/database-specialist.md",
+      "name": "database-specialist",
+      "description": "Database design and optimization specialist",
+      "bodyChars": 238,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/development/backend/dev-backend-api.md",
+      "name": "backend-dev",
+      "description": "Specialized agent for backend API development, including REST and GraphQL endpoints",
+      "bodyChars": 801,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/development/dev-backend-api.md",
+      "name": "backend-dev",
+      "description": "Specialized agent for backend API development with self-learning and pattern recognition",
+      "bodyChars": 5226,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/devops/ci-cd/ops-cicd-github.md",
+      "name": "cicd-engineer",
+      "description": "Specialized agent for GitHub Actions CI/CD pipeline creation and optimization",
+      "bodyChars": 1222,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/documentation/api-docs/docs-api-openapi.md",
+      "name": "api-docs",
+      "description": "Expert agent for creating and maintaining OpenAPI/Swagger documentation",
+      "bodyChars": 1497,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/dual-mode/codex-coordinator.md",
+      "name": "codex-coordinator",
+      "description": "Coordinates multiple headless Codex workers for parallel execution",
+      "bodyChars": 6820,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/dual-mode/codex-worker.md",
+      "name": "codex-worker",
+      "description": "Headless Codex background worker for parallel task execution with self-learning",
+      "bodyChars": 5321,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/dual-mode/dual-orchestrator.md",
+      "name": "dual-orchestrator",
+      "description": "Orchestrates Claude Code (interactive) + Codex (headless) for hybrid workflows",
+      "bodyChars": 6903,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/flow-nexus/app-store.md",
+      "name": "flow-nexus-app-store",
+      "description": "| Application marketplace and template management specialist. Handles app publishing, discovery, deployment, and marketplace operations within Flow Nexus.",
+      "bodyChars": 3788,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/flow-nexus/authentication.md",
+      "name": "flow-nexus-auth",
+      "description": "| Flow Nexus authentication and user management specialist. Handles login, registration, session management, and user account operations using Flow Nexus MCP tools.",
+      "bodyChars": 2568,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/flow-nexus/challenges.md",
+      "name": "flow-nexus-challenges",
+      "description": "| Coding challenges and gamification specialist. Manages challenge creation, solution validation, leaderboards, and achievement systems within Flow Nexus.",
+      "bodyChars": 3730,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/flow-nexus/neural-network.md",
+      "name": "flow-nexus-neural",
+      "description": "| Neural network training and deployment specialist. Manages distributed neural network training, inference, and model lifecycle using Flow Nexus cloud infrastructure.",
+      "bodyChars": 3600,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/flow-nexus/payments.md",
+      "name": "flow-nexus-payments",
+      "description": "| Credit management and billing specialist. Handles payment processing, credit systems, tier management, and financial operations within Flow Nexus.",
+      "bodyChars": 3608,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/flow-nexus/sandbox.md",
+      "name": "flow-nexus-sandbox",
+      "description": "| E2B sandbox deployment and management specialist. Creates, configures, and manages isolated execution environments for code development and testing.",
+      "bodyChars": 2870,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/flow-nexus/swarm.md",
+      "name": "flow-nexus-swarm",
+      "description": "| AI swarm orchestration and management specialist. Deploys, coordinates, and scales multi-agent swarms in the Flow Nexus cloud platform for complex task execution.",
+      "bodyChars": 3320,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/flow-nexus/user-tools.md",
+      "name": "flow-nexus-user-tools",
+      "description": "| User management and system utilities specialist. Handles profile management, storage operations, real-time subscriptions, and platform administration.",
+      "bodyChars": 4142,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/flow-nexus/workflow.md",
+      "name": "flow-nexus-workflow",
+      "description": "| Event-driven workflow automation specialist. Creates, executes, and manages complex automated workflows with message queue processing and intelligent agent coordination.",
+      "bodyChars": 3539,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/github/code-review-swarm.md",
+      "name": "code-review-swarm",
+      "description": "| Deploy specialized AI agents to perform comprehensive, intelligent code reviews that go beyond traditional static analysis",
+      "bodyChars": 11720,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/github/github-modes.md",
+      "name": "github-modes",
+      "description": "| Comprehensive GitHub integration modes for workflow orchestration, PR management, and repository coordination with batch optimization",
+      "bodyChars": 5833,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/github/issue-tracker.md",
+      "name": "issue-tracker",
+      "description": "| Intelligent issue management and project coordination with automated tracking, progress monitoring, and team coordination",
+      "bodyChars": 8489,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/github/multi-repo-swarm.md",
+      "name": "multi-repo-swarm",
+      "description": "Cross-repository swarm orchestration for organization-wide automation and intelligent collaboration",
+      "bodyChars": 12256,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/github/pr-manager.md",
+      "name": "pr-manager",
+      "description": "| Comprehensive pull request management with swarm coordination for automated reviews, testing, and merge workflows",
+      "bodyChars": 5248,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/github/project-board-sync.md",
+      "name": "project-board-sync",
+      "description": "| Synchronize AI swarms with GitHub Projects for visual task management, progress tracking, and team coordination",
+      "bodyChars": 10595,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/github/release-manager.md",
+      "name": "release-manager",
+      "description": "| Automated release coordination and deployment with ruv-swarm orchestration for seamless version management, testing, and deployment across multiple packages",
+      "bodyChars": 11425,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/github/release-swarm.md",
+      "name": "release-swarm",
+      "description": "| Orchestrate complex software releases using AI swarms that handle everything from changelog generation to multi-platform deployment",
+      "bodyChars": 13153,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/github/repo-architect.md",
+      "name": "repo-architect",
+      "description": "| Repository structure optimization and multi-repo management with ruv-swarm coordination for scalable project architecture and development workflows",
+      "bodyChars": 11043,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/github/swarm-issue.md",
+      "name": "swarm-issue",
+      "description": "| GitHub issue-based swarm coordination agent that transforms issues into intelligent multi-agent tasks with automatic decomposition and progress tracking",
+      "bodyChars": 14005,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/github/swarm-pr.md",
+      "name": "swarm-pr",
+      "description": "| Pull request swarm management agent that coordinates multi-agent code review, validation, and integration workflows with automated PR lifecycle management",
+      "bodyChars": 10573,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/github/sync-coordinator.md",
+      "name": "sync-coordinator",
+      "description": "| Multi-repository synchronization coordinator that manages version alignment, dependency synchronization, and cross-package integration with intelligent swarm orchestration",
+      "bodyChars": 15214,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/github/workflow-automation.md",
+      "name": "workflow-automation",
+      "description": "| GitHub Actions workflow automation agent that creates intelligent, self-organizing CI/CD pipelines with adaptive multi-agent coordination and automated optimization",
+      "bodyChars": 15178,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/goal/agent.md",
+      "name": "sublinear-goal-planner",
+      "description": "| Goal-Oriented Action Planning (GOAP) specialist that dynamically creates intelligent plans to achieve complex objectives. Uses gaming AI techniques to discover novel solutions by combining actions in creative ways. Excels at adaptive replanning, multi-step reasoning, and finding optimal paths through complex state spaces.",
+      "bodyChars": 25501,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/goal/code-goal-planner.md",
+      "name": "code-goal-planner",
+      "description": "Code-centric Goal-Oriented Action Planning specialist that creates intelligent plans for software development objectives. Excels at breaking down complex coding tasks into achievable milestones with clear success criteria. Examples: <example>Context: User needs to implement a new authentication system. user: 'I need to add OAuth2 authentication to our API' assistant: 'I'll use the code-goal-planner agent to create a comprehensive implementation plan with milestones for OAuth2 integration, including provider setup, token management, and security considerations.' <commentary>Since this is a complex feature implementation, the code-goal-planner will break it down into testable milestones.</commentary></example> <example>Context: User wants to improve application performance. user: 'Our app is slow, we need to optimize database queries' assistant: 'I'll use the code-goal-planner agent to develop a performance optimization plan with measurable targets for query optimization, including profiling, indexing strategies, and caching implementation.' <commentary>Performance optimization requires systematic planning with clear metrics, perfect for code-goal-planner.</commentary></example>",
+      "bodyChars": 13370,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/goal/goal-planner.md",
+      "name": "goal-planner",
+      "description": "| Goal-Oriented Action Planning (GOAP) specialist that dynamically creates intelligent plans to achieve complex objectives. Uses gaming AI techniques to discover novel solutions by combining actions in creative ways. Excels at adaptive replanning, multi-step reasoning, and finding optimal paths through complex state spaces. Examples: <example>Context: User needs to optimize a complex workflow with many dependencies. user: 'I need to deploy this application but there are many prerequisites and dependencies' assistant: 'I'll use the goal-planner agent to analyze all requirements and create an optimal action sequence that satisfies all preconditions and achieves your deployment goal.' <commentary>Complex multi-step planning with dependencies requires the goal-planner agent's GOAP algorithm to find the optimal path.</commentary></example> <example>Context: User has a high-level goal but isn't sure of the steps. user: 'Make my application production-ready' assistant: 'I'll use the goal-planner agent to break down this goal into concrete actions, analyze preconditions, and create an adaptive plan that achieves production readiness.' <commentary>High-level goals that need intelligent decomposition and planning benefit from the goal-planner agent's capabilities.</commentary></example>",
+      "bodyChars": 7646,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/hive-mind/collective-intelligence-coordinator.md",
+      "name": "collective-intelligence-coordinator",
+      "description": "| Orchestrates distributed cognitive processes across the hive mind, ensuring coherent collective decision-making through memory synchronization and consensus protocols",
+      "bodyChars": 3712,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/hive-mind/queen-coordinator.md",
+      "name": "queen-coordinator",
+      "description": "| The sovereign orchestrator of hierarchical hive operations, managing strategic decisions, resource allocation, and maintaining hive coherence through centralized-decentralized hybrid control",
+      "bodyChars": 5047,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/hive-mind/scout-explorer.md",
+      "name": "scout-explorer",
+      "description": "| Information reconnaissance specialist that explores unknown territories, gathers intelligence, and reports findings to the hive mind through continuous memory updates",
+      "bodyChars": 6188,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/hive-mind/swarm-memory-manager.md",
+      "name": "swarm-memory-manager",
+      "description": "| Manages distributed memory across the hive mind, ensuring data consistency, persistence, and efficient retrieval through advanced caching and synchronization protocols",
+      "bodyChars": 4745,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/hive-mind/worker-specialist.md",
+      "name": "worker-specialist",
+      "description": "| Dedicated task execution specialist that carries out assigned work with precision, continuously reporting progress through memory coordination",
+      "bodyChars": 5304,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/MIGRATION_SUMMARY.md",
+      "name": "Migration Summary",
+      "description": "Complete migration plan for converting command-based system to intelligent agent-based system",
+      "bodyChars": 7365,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/neural/safla-neural.md",
+      "name": "safla-neural",
+      "description": "| Self-Aware Feedback Loop Algorithm (SAFLA) neural specialist that creates intelligent, memory-persistent AI systems with self-learning capabilities. Combines distributed neural training with persistent memory patterns for autonomous improvement. Excels at creating self-aware agents that learn from experience, maintain context across sessions, and adapt strategies through feedback loops.",
+      "bodyChars": 2396,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/optimization/benchmark-suite.md",
+      "name": "Benchmark Suite",
+      "description": "Comprehensive performance benchmarking, regression detection and performance validation",
+      "bodyChars": 20104,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/optimization/load-balancer.md",
+      "name": "Load Balancing Coordinator",
+      "description": "Dynamic task distribution, work-stealing algorithms and adaptive load balancing",
+      "bodyChars": 12498,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/optimization/performance-monitor.md",
+      "name": "Performance Monitor",
+      "description": "Real-time metrics collection, bottleneck analysis, SLA monitoring and anomaly detection",
+      "bodyChars": 20057,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/optimization/resource-allocator.md",
+      "name": "Resource Allocator",
+      "description": "Adaptive resource allocation, predictive scaling and intelligent capacity planning",
+      "bodyChars": 19890,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/optimization/topology-optimizer.md",
+      "name": "Topology Optimizer",
+      "description": "Dynamic swarm topology reconfiguration and communication pattern optimization",
+      "bodyChars": 25180,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/payments/agentic-payments.md",
+      "name": "agentic-payments",
+      "description": "| Multi-agent payment authorization specialist for autonomous AI commerce with cryptographic verification and Byzantine consensus",
+      "bodyChars": 5091,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/project-coordinator.md",
+      "name": "project-coordinator",
+      "description": "Coordinates multi-agent workflows for this project",
+      "bodyChars": 75,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/python-specialist.md",
+      "name": "python-specialist",
+      "description": "Python development specialist",
+      "bodyChars": 223,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/reasoning/agent.md",
+      "name": "sublinear-goal-planner",
+      "description": "| Goal-Oriented Action Planning (GOAP) specialist that dynamically creates intelligent plans to achieve complex objectives. Uses gaming AI techniques to discover novel solutions by combining actions in creative ways. Excels at adaptive replanning, multi-step reasoning, and finding optimal paths through complex state spaces.",
+      "bodyChars": 25501,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/reasoning/goal-planner.md",
+      "name": "goal-planner",
+      "description": "| Goal-Oriented Action Planning (GOAP) specialist that dynamically creates intelligent plans to achieve complex objectives. Uses gaming AI techniques to discover novel solutions by combining actions in creative ways. Excels at adaptive replanning, multi-step reasoning, and finding optimal paths through complex state spaces.",
+      "bodyChars": 2942,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/security-auditor.md",
+      "name": "security-auditor",
+      "description": "Security audit and hardening specialist",
+      "bodyChars": 253,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/sona/sona-learning-optimizer.md",
+      "name": "sona-learning-optimizer",
+      "description": "SONA-powered self-optimizing agent with LoRA fine-tuning and EWC++ memory preservation",
+      "bodyChars": 1643,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/sparc/architecture.md",
+      "name": "architecture",
+      "description": "SPARC Architecture phase specialist for system design",
+      "bodyChars": 10711,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/sparc/pseudocode.md",
+      "name": "pseudocode",
+      "description": "SPARC Pseudocode phase specialist for algorithm design",
+      "bodyChars": 7954,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/sparc/refinement.md",
+      "name": "refinement",
+      "description": "SPARC Refinement phase specialist for iterative improvement",
+      "bodyChars": 13598,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/sparc/specification.md",
+      "name": "specification",
+      "description": "SPARC Specification phase specialist for requirements analysis",
+      "bodyChars": 6643,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/specialized/mobile/spec-mobile-react-native.md",
+      "name": "mobile-dev",
+      "description": "Expert agent for React Native mobile application development across iOS and Android",
+      "bodyChars": 2049,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/sublinear/consensus-coordinator.md",
+      "name": "consensus-coordinator",
+      "description": "| Distributed consensus agent that uses sublinear solvers for fast agreement protocols in multi-agent systems. Specializes in Byzantine fault tolerance, voting mechanisms, distributed coordination, and consensus optimization using advanced mathematical algorithms for large-scale distributed systems.",
+      "bodyChars": 12451,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/sublinear/matrix-optimizer.md",
+      "name": "matrix-optimizer",
+      "description": "| Expert agent for matrix analysis and optimization using sublinear algorithms. Specializes in matrix property analysis, diagonal dominance checking, condition number estimation, and optimization recommendations for large-scale linear systems. Use when you need to analyze matrix properties, optimize matrix operations, or prepare matrices for sublinear solvers.",
+      "bodyChars": 6788,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/sublinear/pagerank-analyzer.md",
+      "name": "pagerank-analyzer",
+      "description": "| Expert agent for graph analysis and PageRank calculations using sublinear algorithms. Specializes in network optimization, influence analysis, swarm topology optimization, and large-scale graph computations. Use for social network analysis, web graph analysis, recommendation systems, and distributed system topology design.",
+      "bodyChars": 11204,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/sublinear/performance-optimizer.md",
+      "name": "performance-optimizer",
+      "description": "| System performance optimization agent that identifies bottlenecks and optimizes resource allocation using sublinear algorithms. Specializes in computational performance analysis, system optimization, resource management, and efficiency maximization across distributed systems and cloud infrastructure.",
+      "bodyChars": 14363,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/sublinear/trading-predictor.md",
+      "name": "trading-predictor",
+      "description": "| Advanced financial trading agent that leverages temporal advantage calculations to predict and execute trades before market data arrives. Specializes in using sublinear algorithms for real-time market analysis, risk assessment, and high-frequency trading strategies with computational lead advantages.",
+      "bodyChars": 9568,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/swarm/adaptive-coordinator.md",
+      "name": "adaptive-coordinator",
+      "description": "| Dynamic topology switching coordinator with self-organizing swarm patterns and real-time optimization",
+      "bodyChars": 14242,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/swarm/hierarchical-coordinator.md",
+      "name": "hierarchical-coordinator",
+      "description": "Queen-led hierarchical swarm coordination with specialized worker delegation",
+      "bodyChars": 9825,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/swarm/mesh-coordinator.md",
+      "name": "mesh-coordinator",
+      "description": "Peer-to-peer mesh network swarm with distributed decision making and fault tolerance",
+      "bodyChars": 11644,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/templates/automation-smart-agent.md",
+      "name": "smart-agent",
+      "description": "Intelligent agent coordination and dynamic spawning specialist",
+      "bodyChars": 4746,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/templates/coordinator-swarm-init.md",
+      "name": "swarm-init",
+      "description": "Swarm initialization and topology optimization specialist",
+      "bodyChars": 2875,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/templates/github-pr-manager.md",
+      "name": "pr-manager",
+      "description": "Complete pull request lifecycle management and GitHub workflow coordination",
+      "bodyChars": 3798,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/templates/implementer-sparc-coder.md",
+      "name": "sparc-coder",
+      "description": "Transform specifications into working code with TDD practices",
+      "bodyChars": 6594,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/templates/memory-coordinator.md",
+      "name": "memory-coordinator",
+      "description": "Manage persistent memory across sessions and facilitate cross-agent memory sharing",
+      "bodyChars": 3718,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/templates/migration-plan.md",
+      "name": "migration-planner",
+      "description": "Comprehensive migration plan for converting commands to agent-based system",
+      "bodyChars": 18194,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/templates/orchestrator-task.md",
+      "name": "task-orchestrator",
+      "description": "Central coordination agent for task decomposition, execution planning, and result synthesis",
+      "bodyChars": 3451,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/templates/performance-analyzer.md",
+      "name": "perf-analyzer",
+      "description": "Performance bottleneck analyzer for identifying and resolving workflow inefficiencies",
+      "bodyChars": 4652,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/templates/sparc-coordinator.md",
+      "name": "sparc-coord",
+      "description": "SPARC methodology orchestrator for systematic development phase coordination",
+      "bodyChars": 4029,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/testing/production-validator.md",
+      "name": "production-validator",
+      "description": "Production validation specialist ensuring applications are fully implemented and deployment-ready",
+      "bodyChars": 11264,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/testing/tdd-london-swarm.md",
+      "name": "tdd-london-swarm",
+      "description": "TDD London School specialist for mock-driven development within swarm coordination",
+      "bodyChars": 6514,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/testing/unit/tdd-london-swarm.md",
+      "name": "tdd-london-swarm",
+      "description": "TDD London School specialist for mock-driven development within swarm coordination",
+      "bodyChars": 6514,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/testing/validation/production-validator.md",
+      "name": "production-validator",
+      "description": "Production validation specialist ensuring applications are fully implemented and deployment-ready",
+      "bodyChars": 11264,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/typescript-specialist.md",
+      "name": "typescript-specialist",
+      "description": "TypeScript development specialist",
+      "bodyChars": 250,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/v3/database-specialist.md",
+      "name": "database-specialist",
+      "description": "Database design and optimization specialist",
+      "bodyChars": 243,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/v3/project-coordinator.md",
+      "name": "project-coordinator",
+      "description": "Coordinates multi-agent workflows for this project",
+      "bodyChars": 75,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/v3/python-specialist.md",
+      "name": "python-specialist",
+      "description": "Python development specialist",
+      "bodyChars": 228,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/v3/test-architect.md",
+      "name": "test-architect",
+      "description": "Testing and quality assurance specialist",
+      "bodyChars": 255,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/v3/typescript-specialist.md",
+      "name": "typescript-specialist",
+      "description": "TypeScript development specialist",
+      "bodyChars": 255,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/v3/v3-integration-architect.md",
+      "name": "v3-integration-architect",
+      "description": "| V3 Integration Architect for deep agentic-flow@alpha integration. Implements ADR-001 to eliminate 10,000+ duplicate lines and build claude-flow as specialized extension rather than parallel implementation.",
+      "bodyChars": 9266,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/v3/v3-memory-specialist.md",
+      "name": "v3-memory-specialist",
+      "description": "| V3 Memory Specialist for unifying 6+ memory systems into AgentDB with HNSW indexing. Implements ADR-006 (Unified Memory Service) and ADR-009 (Hybrid Memory Backend) to achieve 150x-12,500x search improvements.",
+      "bodyChars": 7860,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/v3/v3-performance-engineer.md",
+      "name": "v3-performance-engineer",
+      "description": "| V3 Performance Engineer for achieving aggressive performance targets. Responsible for 2.49x-7.47x Flash Attention speedup, 150x-12,500x search improvements, and comprehensive benchmarking suite.",
+      "bodyChars": 11567,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/v3/v3-queen-coordinator.md",
+      "name": "v3-queen-coordinator",
+      "description": "| V3 Queen Coordinator for 15-agent concurrent swarm orchestration, GitHub issue management, and cross-agent coordination. Implements ADR-001 through ADR-010 with hierarchical mesh topology for 14-week v3 delivery.",
+      "bodyChars": 2146,
+      "issues": []
+    },
+    {
+      "file": ".claude/agents/v3/v3-security-architect.md",
+      "name": "v3-security-architect",
+      "description": "| V3 Security Architect responsible for complete security overhaul, threat modeling, and CVE remediation planning. Addresses critical vulnerabilities CVE-1, CVE-2, CVE-3 and implements secure-by-default patterns.",
+      "bodyChars": 4434,
+      "issues": []
+    }
+  ]
+}

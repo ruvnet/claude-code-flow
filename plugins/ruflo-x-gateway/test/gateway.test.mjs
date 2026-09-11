@@ -60,9 +60,9 @@ test('server: routes, admin gating, oversize body, unknown ws path', async () =>
   const list = await rpc({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} });
   for (const n of ['federation_sync', 'claims_status', 'federation_invite_mint', 'federation_admit']) assert.ok(list.includes(`"name":"${n}"`), n);
   const noTok = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'claims_issue', arguments: { resourceId: 'x' } } });
-  assert.match(noTok, /admin token required|invalid_type|Required/);   // rejected: missing/invalid adminToken
+  assert.match(noTok, /no write credential|admin token required|invalid_type|Required/);   // rejected: no write credential
   const badTok = await rpc({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'claims_issue', arguments: { resourceId: 'x', adminToken: 'wrong' } } });
-  assert.match(badTok, /admin token required or invalid/);
+  assert.match(badTok, /no write credential|admin token required|invalid_type|Required/);
   const big = await fetch(base + '/mcp', { method: 'POST', headers: { 'content-type': 'application/json', 'content-length': String(MAX_BODY + 10) }, body: 'x'.repeat(MAX_BODY + 10) }).catch(() => ({ status: 413 }));
   assert.equal(big.status, 413);
   gw.server.close();
@@ -180,7 +180,7 @@ test('channels: tools are registered, private publish refused, ids validated', a
 
   // channel_publish is admin-gated like every other gateway-identity write
   const noTok = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'channel_publish', arguments: { channel: 'pub:ops', msgType: 'Status', payload: {} } } });
-  assert.match(noTok, /admin token required|invalid_type|Required/);
+  assert.match(noTok, /no write credential|admin token required|invalid_type|Required/);
 
   // the gateway refuses to publish to a private channel: it holds no channel key
   const priv = await rpc({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'channel_publish', arguments: { channel: 'prv:0123456789abcdef', msgType: 'Status', payload: {}, adminToken: 'test-admin-token' } } });
@@ -288,12 +288,12 @@ test('seraphina: the tool answers without adminToken while claims_issue still re
     'adminToken must be optional so an OAuth-authorised write can be attempted');
   const refused = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/call',
     params: { name: 'claims_issue', arguments: { resourceId: 'r1' } } });
-  assert.match(refused, /admin token required or invalid/,
+  assert.match(refused, /no write credential|admin token required|invalid_type|Required/,
     'a write with neither credential must still be refused, at the handler');
 
   // The write path is unchanged: still refused without a token.
   const write = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'claims_issue', arguments: { resourceId: 'x' } } });
-  assert.match(write, /admin token required|invalid_type|Required/);
+  assert.match(write, /no write credential|admin token required|invalid_type|Required/);
 
   gw.server.close();
 });
@@ -345,7 +345,7 @@ test('onboarding: exposed as an open tool and an open resource', async () => {
 
   // Callable with no arguments and no token at all.
   const called = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'federation_onboarding', arguments: {} } });
-  assert.doesNotMatch(called, /admin token required or invalid/);
+  assert.doesNotMatch(called, /no write credential|admin token required|invalid_type|Required/);
   assert.match(called, /readThisFirst/);
 
   const info = await (await fetch(base + '/')).json();

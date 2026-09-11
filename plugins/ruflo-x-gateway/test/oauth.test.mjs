@@ -165,7 +165,7 @@ test('a read-only token cannot write', async () => {
       const tok = await as.mint({ scope: SCOPE_READ, audience: CLIENT_ID });
       const r = await call(port, 'federation_publish',
         { msgType: 'Status', payload: {} }, { authorization: `Bearer ${tok}` });
-      assert.match(toolText(r), /admin token required/);
+      assert.match(toolText(r), /lacks swarm:publish/);
     });
   } finally { as.close(); }
 });
@@ -175,7 +175,7 @@ test('an anonymous write is still refused', async () => {
   try {
     await withGateway(as, async (port) => {
       const r = await call(port, 'federation_publish', { msgType: 'Status', payload: {} });
-      assert.match(toolText(r), /admin token required/);
+      assert.match(toolText(r), /no write credential/);
     });
   } finally { as.close(); }
 });
@@ -286,7 +286,7 @@ test('swarm:publish may post, but may NOT change relay membership', async () => 
         ['federation_invite_mint', { ttlSecs: 60, maxUses: 1 }],
       ]) {
         const r = await call(port, name, args, auth);
-        assert.match(toolText(r), /admin token required/,
+        assert.match(toolText(r), /no write credential|admin token/,
           `${name} must not be reachable with swarm:publish alone`);
       }
     });
@@ -317,6 +317,38 @@ test('every write tool documents the OAuth path, not just the admin token', asyn
         assert.match(t.description, /swarm:publish|admin token is OPTIONAL/,
           `${t.name} must state whether an OAuth token can authorise it`);
       }
+    });
+  } finally { as.close(); }
+});
+
+test('a write refused for a missing scope says so, and does not blame the admin token', async () => {
+  // The old message was "admin token required or invalid" for every refusal,
+  // including a perfectly valid token that simply lacked swarm:publish. That
+  // sends the caller hunting for a broken credential, and invites them to paste
+  // an admin token into a browser to make it go away.
+  const as = await fakeAuthServer();
+  try {
+    await withGateway(as, async (port) => {
+      const readOnly = await as.mint({ scope: SCOPE_READ, audience: CLIENT_ID });
+      const r = await call(port, 'federation_publish', { msgType: 'Status', payload: {} },
+        { authorization: `Bearer ${readOnly}` });
+      const body = toolText(r);
+      assert.match(body, /lacks swarm:publish/, 'must name the missing scope');
+      assert.match(body, /swarm:read/, 'must report what the token actually holds');
+      assert.match(body, /Re-authorise/, 'must say how to fix it');
+      assert.doesNotMatch(body, /admin token required/, 'must not blame the admin token');
+      assert.match(body, /Do NOT paste an admin token/, 'must warn against the wrong remedy');
+    });
+  } finally { as.close(); }
+});
+
+test('a write with no credential at all still refuses, with its own message', async () => {
+  const as = await fakeAuthServer();
+  try {
+    await withGateway(as, async (port) => {
+      const body = toolText(await call(port, 'federation_publish', { msgType: 'Status', payload: {} }));
+      assert.match(body, /no write credential/);
+      assert.match(body, /swarm:publish/);
     });
   } finally { as.close(); }
 });

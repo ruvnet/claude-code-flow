@@ -79,10 +79,34 @@ export function createGateway({ relay, keyFile, port } = {}) {
   // Either credential may authorise a write: the long-standing admin token, or
   // an access token carrying swarm:publish. `auth` is per-request, closed over
   // by buildMcp.
+  // Say WHY the write was refused. "admin token required or invalid" is true of
+  // every refusal and useful for none: a caller holding a valid token that is
+  // merely missing a scope reads it as a broken credential and goes looking in
+  // the wrong place. This distinction cost several round trips to diagnose from
+  // logs that only the operator could see.
+  const refusedWrite = (auth) => {
+    if (auth?.mode === 'oauth') {
+      const held = (auth.scopes || []).join(' ') || '(none)';
+      return { isError: true, content: [{ type: 'text', text: JSON.stringify({
+        error: `access token lacks ${SCOPE_PUBLISH}`,
+        granted_scopes: held,
+        remedy: `This token was granted ${held}. Re-authorise this connection and approve `
+          + `${SCOPE_PUBLISH} — an already-issued token cannot gain a scope, and refreshing it `
+          + `keeps the original grant. Do NOT paste an admin token: it authorises every gateway write.`,
+      }) }] };
+    }
+    return { isError: true, content: [{ type: 'text', text: JSON.stringify({
+      error: 'no write credential',
+      remedy: `Authorise with an OAuth access token carrying ${SCOPE_PUBLISH} (see the `
+        + `WWW-Authenticate challenge on a 401), or supply the gateway admin token if you are a `
+        + `service-side caller.`,
+    }) }] };
+  };
+
   const gated = (auth, fn) => async (args) =>
     (checkAdmin(args.adminToken) || (auth?.mode === 'oauth' && hasScope(auth.scopes, SCOPE_PUBLISH)))
       ? fn(args)
-      : denied();
+      : refusedWrite(auth);
 
   // Membership changes are NOT publishing. `swarm:publish` says "may post a
   // message"; admitting a member or minting an invite decides who may join the

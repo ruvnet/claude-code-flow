@@ -372,3 +372,25 @@ test('the 401 challenge points at the metadata for the path that was requested',
     });
   } finally { as.close(); }
 });
+
+test('no tool accepts a credential as an argument', async () => {
+  // Submission requirement, and the right rule regardless: a credential passed
+  // as a tool argument is model-generated — it lands in the model's context and
+  // in tool-call transcripts, and makes authority something the model can be
+  // persuaded to supply. Authentication is the transport's job.
+  const as = await fakeAuthServer();
+  try {
+    await withService(as, { required: false, publicUrl: 'https://cgf.example' }, async (port) => {
+      const r = await fetch(`http://127.0.0.1:${port}/mcp`, { method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
+      const raw = await r.text();
+      const line = raw.split('\n').find((l) => l.startsWith('data: '));
+      for (const t of JSON.parse(line ? line.slice(6) : raw).result.tools) {
+        const props = Object.keys(t.inputSchema?.properties || {});
+        const creds = props.filter((k) => /token|secret|password|apikey|api_key|credential/i.test(k));
+        assert.deepEqual(creds, [], `${t.name} exposes credential argument(s): ${creds.join(', ')}`);
+      }
+    });
+  } finally { as.close(); }
+});

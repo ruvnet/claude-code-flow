@@ -107,12 +107,13 @@ export function createPublisherService({ relay, keyPath, port } = {}) {
   }
 
   function buildMcp(req, auth) {
-    // A dedicated header, not Authorization: Cloud Run consumes `Authorization`
-    // for its own IAM check and answers 401 before the request reaches this
-    // container, so a token sent that way never arrives. The header is still the
-    // preferred channel — it stays out of the model's context and out of
-    // tool-call transcripts — with the argument as a fallback for clients that
-    // cannot set headers on an MCP connection.
+    // Credentials arrive ONLY through the transport, never as a tool argument.
+    // An argument is model-generated: it puts the credential in the model's
+    // context and in tool-call transcripts, and makes authority something the
+    // model can be talked into supplying. Authentication belongs to middleware;
+    // the tool receives an already-authenticated identity.
+    // (This header is the retired transitional path, dead while OAuth is
+    // enforced, and kept only so a pre-OAuth deployment can still be rolled back.)
     const header = String(req?.headers?.['x-caller-token'] || '').trim();
     const mcp = new McpServer({ name: 'ruflo-chatgpt-federation', version: VERSION });
 
@@ -133,13 +134,12 @@ export function createPublisherService({ relay, keyPath, port } = {}) {
       'Sign a message with this connector\'s own key and publish it to a public swarm channel over its own NIP-42 authenticated relay connection. Use when this connector has something the federation needs — a status, a finding, a result. Requires the caller token; public (pub:) channels only, because publishing to a private channel needs a channel key this connector deliberately does not hold.',
       { channel: z.string().describe('Public channel id, e.g. "pub:announce".'),
         msgType: z.string().describe('Message type, e.g. "Status", "Result", "Question".'),
-        payload: z.record(z.any()).describe('Message body. Never put secrets or credentials here — channel content is readable by every relay member.'),
-        callerToken: z.string().optional().describe('Caller token, if not supplied as an x-caller-token header.') },
-      async ({ channel, msgType, payload, callerToken }) => {
+        payload: z.record(z.any()).describe('Message body. Never put secrets or credentials here — channel content is readable by every relay member.') },
+      async ({ channel, msgType, payload }) => {
         // OAuth scope is the real gate. The caller token remains a transitional
         // fallback and only while OAuth is not yet mandatory.
         const viaOauth = auth.mode === 'oauth' && hasScope(auth.scopes, SCOPE_PUBLISH);
-        const viaLegacy = auth.mode === 'legacy' && checkCaller(callerToken ?? header);
+        const viaLegacy = auth.mode === 'legacy' && checkCaller(header);
         if (!viaOauth && !viaLegacy) {
           const why = auth.mode === 'oauth'
             ? `access token lacks ${SCOPE_PUBLISH}`

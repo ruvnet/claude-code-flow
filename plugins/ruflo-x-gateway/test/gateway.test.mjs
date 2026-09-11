@@ -278,8 +278,18 @@ test('seraphina: the tool answers without adminToken while claims_issue still re
   const sera = JSON.parse(list.slice(list.indexOf('{'))).result.tools.find((t) => t.name === 'seraphina_guidance');
   assert.ok(sera, 'seraphina_guidance must be registered');
   assert.ok(!(sera.inputSchema.required || []).includes('adminToken'), 'adminToken must not be required');
+  // adminToken is no longer REQUIRED in the schema — ADR-388 added a second write
+  // credential (an access token carrying swarm:publish), and a required argument
+  // would reject every OAuth-authorised write at validation before the handler
+  // could consider the token. The protection moved to the handler, so assert it
+  // THERE rather than dropping it: with neither credential, the write is refused.
   const gatedWrite = JSON.parse(list.slice(list.indexOf('{'))).result.tools.find((t) => t.name === 'claims_issue');
-  assert.ok((gatedWrite.inputSchema.required || []).includes('adminToken'), 'writes must still require it');
+  assert.ok(!(gatedWrite.inputSchema.required || []).includes('adminToken'),
+    'adminToken must be optional so an OAuth-authorised write can be attempted');
+  const refused = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/call',
+    params: { name: 'claims_issue', arguments: { resourceId: 'r1' } } });
+  assert.match(refused, /admin token required or invalid/,
+    'a write with neither credential must still be refused, at the handler');
 
   // The write path is unchanged: still refused without a token.
   const write = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'claims_issue', arguments: { resourceId: 'x' } } });

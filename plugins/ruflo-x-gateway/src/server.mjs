@@ -18,6 +18,8 @@ import { mintInvite, admitMember } from './relay-admin.mjs';
 import { attachWsProxy } from './ws-proxy.mjs';
 import { onboardingGuide } from './onboarding.mjs';
 import { askSeraphina } from './seraphina.mjs';
+import { protectedResourceMetadata, challengeHeader, verifyAccessToken, hasScope, SCOPE_READ, SCOPE_PUBLISH } from './oauth.mjs';
+import { createHash } from 'node:crypto';
 
 export function createGateway({ relay, keyFile, port } = {}) {
   const RELAY = relay || process.env.RUFLO_RELAY_URL || 'wss://relay.ruv.io';
@@ -25,12 +27,58 @@ export function createGateway({ relay, keyFile, port } = {}) {
   // Pre-0.3.2 clients pinned the raw Cloud Run host; it stays routable, but relay.ruv.io is canonical.
   const LEGACY_RELAY = 'wss://buzz-relay-186366152200.us-central1.run.app';
   const { sk, pubkey } = loadIdentity(keyFile || process.env.RUFLO_NOSTR_KEY || '/data/nostr-gateway.key');
+  // ---- OAuth 2.1 (ADR-388). Additive: the admin token keeps working, and an
+  // unauthenticated read keeps working, because this gateway is the federation's
+  // open front door and closing it would strand every existing participant.
+  // What OAuth adds is a second, per-user way to earn write authority.
+  const OAUTH_ISSUER = process.env.RUFLO_OAUTH_ISSUER || 'https://auth.cognitum.one';
+  const OAUTH_JWKS = process.env.RUFLO_OAUTH_JWKS_URI || `${OAUTH_ISSUER}/.well-known/jwks.json`;
+  // The audience this resource pins. auth.cognitum.one binds `aud` to the
+  // requesting client_id, so this is what stops a token minted for another
+  // Cognitum resource — the ChatGPT Federation connector included — from being
+  // replayed here as its holder.
+  const OAUTH_CLIENT_ID = (process.env.RUFLO_OAUTH_CLIENT_ID || '').trim();
+  const PUBLIC_URL = (process.env.RUFLO_PUBLIC_URL || 'https://x.ruv.io').replace(/\/$/, '');
+  // Accepting bearer tokens with no audience to pin them to would honour ANY
+  // token this issuer ever minted, for any Cognitum app — a confused deputy with
+  // write access to the federation identity. Refuse to offer OAuth at all rather
+  // than offer it unsafely; the admin-token path is unaffected.
+  const OAUTH_ENABLED = OAUTH_CLIENT_ID.length > 0;
+  if (!OAUTH_ENABLED && String(process.env.RUFLO_OAUTH_REQUIRE || '') === 'true') {
+    throw new Error('RUFLO_OAUTH_REQUIRE=true needs RUFLO_OAUTH_CLIENT_ID — refusing to enforce OAuth without an audience to bind to');
+  }
+  const prmUrl = (pathname) => `${PUBLIC_URL}/.well-known/oauth-protected-resource`
+    + (pathname === '/mcp' ? '/mcp' : '');
+
+  async function oauthContext(req) {
+    const bearer = String(req?.headers?.authorization || '').match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+    if (!bearer) return { mode: 'anonymous', scopes: [] };
+    if (!OAUTH_ENABLED) {
+      return { mode: 'denied', error: 'invalid_request',
+        description: 'this deployment has no OAuth audience configured and will not accept bearer tokens' };
+    }
+    const v = await verifyAccessToken(bearer, { issuer: OAUTH_ISSUER, jwksUri: OAUTH_JWKS,
+      audience: OAUTH_CLIENT_ID || undefined });
+    return v.ok ? { mode: 'oauth', scopes: v.scopes, subject: v.subject }
+                : { mode: 'denied', error: v.error, description: v.description };
+  }
+
   const text = (o) => ({ content: [{ type: 'text', text: JSON.stringify(o) }] });
   const denied = () => ({ isError: true, content: [{ type: 'text', text: JSON.stringify({ error: 'admin token required or invalid' }) }] });
-  const gated = (fn) => async (args) => (checkAdmin(args.adminToken) ? fn(args) : denied());
-  const adminArg = { adminToken: z.string().describe('Gateway admin token (RUFLO_ADMIN_TOKEN). Required for any write made with the gateway identity.') };
+  // Either credential may authorise a write: the long-standing admin token, or
+  // an access token carrying swarm:publish. `auth` is per-request, closed over
+  // by buildMcp.
+  const gated = (auth, fn) => async (args) =>
+    (checkAdmin(args.adminToken) || (auth?.mode === 'oauth' && hasScope(auth.scopes, SCOPE_PUBLISH)))
+      ? fn(args)
+      : denied();
+  // OPTIONAL, deliberately: there are now two ways to earn write authority, and a
+  // required adminToken would make every OAuth-authorised write fail at schema
+  // validation before the handler could consider the token at all. The handler
+  // is what enforces — absent BOTH credentials it still refuses.
+  const adminArg = { adminToken: z.string().optional().describe('Gateway admin token (RUFLO_ADMIN_TOKEN). One of two accepted write credentials; the other is an access token carrying swarm:publish in the Authorization header.') };
 
-  function buildMcp(req) {
+  function buildMcp(req, auth = { mode: 'anonymous', scopes: [] }) {
     const mcp = new McpServer({ name: 'ruflo-x-gateway', version: '0.7.0' });
     // ---- open reads ----
     mcp.tool('federation_identity', 'Gateway Nostr pubkey + relay. Open read.', {}, async () => text({ pubkey, relay: RELAY, httpBase: HTTP_BASE }));
@@ -42,22 +90,22 @@ export function createGateway({ relay, keyFile, port } = {}) {
     // ---- admin-gated writes (use the GATEWAY identity) ----
     mcp.tool('federation_join', 'Publish a signed PeerHello AS THE GATEWAY. Admin-gated. Users should join with their own key via invite→claim instead.',
       { name: z.string(), platform: z.string().optional(), note: z.string().optional(), ...adminArg },
-      gated(async ({ name, platform, note }) => text({ ok: true, eventId: await publish(RELAY, sk, 'PeerHello', { from: name, platform, note }) })));
+      gated(auth, async ({ name, platform, note }) => text({ ok: true, eventId: await publish(RELAY, sk, 'PeerHello', { from: name, platform, note }) })));
     mcp.tool('federation_publish', 'Publish a signed coordination message AS THE GATEWAY (Status/Task/Result…). Admin-gated.',
       { msgType: z.string(), payload: z.record(z.any()), ...adminArg },
-      gated(async ({ msgType, payload }) => text({ ok: true, eventId: await publish(RELAY, sk, msgType, payload) })));
+      gated(auth, async ({ msgType, payload }) => text({ ok: true, eventId: await publish(RELAY, sk, msgType, payload) })));
     mcp.tool('claims_issue', 'Issue a work claim AS THE GATEWAY. Admin-gated. One owner per resourceId.',
       { resourceId: z.string(), ttlSeconds: z.number().optional(), ...adminArg },
-      gated(async ({ resourceId, ttlSeconds }) => text({ ok: true, eventId: await publish(RELAY, sk, 'ClaimIssued', { from: pubkey, resourceId, ttlSeconds }), resourceId })));
+      gated(auth, async ({ resourceId, ttlSeconds }) => text({ ok: true, eventId: await publish(RELAY, sk, 'ClaimIssued', { from: pubkey, resourceId, ttlSeconds }), resourceId })));
     mcp.tool('claims_release', 'Release a gateway-held work claim. Admin-gated.',
       { resourceId: z.string(), ...adminArg },
-      gated(async ({ resourceId }) => text({ ok: true, eventId: await publish(RELAY, sk, 'ClaimReleased', { from: pubkey, resourceId }), resourceId })));
+      gated(auth, async ({ resourceId }) => text({ ok: true, eventId: await publish(RELAY, sk, 'ClaimReleased', { from: pubkey, resourceId }), resourceId })));
     mcp.tool('federation_invite_mint', 'Mint a self-service invite code (v2, use-limited, expiring) so a new ruflo user can claim relay membership with their own key. Admin-gated; the gateway must hold relay admin role.',
       { ttlSecs: z.number().optional(), maxUses: z.number().optional(), ...adminArg },
-      gated(async ({ ttlSecs, maxUses }) => text(await mintInvite(HTTP_BASE, sk, { ttlSecs, maxUses }))));
+      gated(auth, async ({ ttlSecs, maxUses }) => text(await mintInvite(HTTP_BASE, sk, { ttlSecs, maxUses }))));
     mcp.tool('federation_admit', 'Admit a pubkey as a relay member directly (NIP-43 kind 9030). Admin-gated.',
       { pubkey: z.string(), role: z.enum(['member', 'admin']).optional(), ...adminArg },
-      gated(async ({ pubkey: pk, role }) => text(await admitMember(RELAY, sk, pk, role))));
+      gated(auth, async ({ pubkey: pk, role }) => text(await admitMember(RELAY, sk, pk, role))));
     // ---- ADR-386 channels ----
     mcp.tool('channel_list', 'List swarm channels seen recently, with visibility, message count and publisher count. Open read. Public channel ids carry their name (pub:<name>); private ids are opaque (prv:<hex>) and reveal nothing about the topic. Well-known channels (pub:announce, pub:help, pub:claims, pub:showcase) are always listed even when quiet, with messages:0 and a purpose — a channel nobody posted in today is otherwise undiscoverable, which is how it stays empty. Use when you want to find where coordination is happening before reading a stream. Reading the flat firehose with federation_sync instead is wrong once channels are in use, because it mixes unrelated work and cannot show you private traffic exists at all.',
       { sinceSeconds: z.number().optional(), limit: z.number().optional() },
@@ -71,7 +119,7 @@ export function createGateway({ relay, keyFile, port } = {}) {
       });
     mcp.tool('channel_publish', 'Publish a message to a PUBLIC channel as the gateway. Admin-gated. Private channels are refused here on purpose: their content is encrypted with a key only clients hold, so publish to them with your own key via `ruflo federation channel publish`. Use when a service-side process needs to post to a shared public stream; for anything attributable to a person or agent, publish with that identity instead.',
       { channel: z.string(), msgType: z.string(), payload: z.record(z.any()), ...adminArg },
-      gated(async ({ channel, msgType, payload }) => {
+      gated(auth, async ({ channel, msgType, payload }) => {
         // Refuse private BEFORE normalising, so a prv: id gets the real reason rather
         // than a name-validation error from the public-id helper.
         if (isPrivateChannel(channel)) throw new Error('private channels cannot be published by the gateway — it holds no channel key (ADR-386); publish with your own key via `ruflo federation channel publish`');
@@ -125,14 +173,51 @@ export function createGateway({ relay, keyFile, port } = {}) {
 
   const server = createServer(async (req, res) => {
     securityHeaders(res);
+    // A browser-origin MCP client must preflight before it can POST, and cannot
+    // read the challenge unless WWW-Authenticate is exposed — without that it
+    // never learns where to authenticate.
+    res.setHeader('access-control-allow-origin', '*');
+    res.setHeader('access-control-expose-headers', 'www-authenticate, mcp-session-id, mcp-protocol-version');
     const url = new URL(req.url, `http://${req.headers.host || 'x'}`);
+    if (req.method === 'OPTIONS') {
+      res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
+      res.setHeader('access-control-allow-headers',
+        'content-type, authorization, mcp-session-id, mcp-protocol-version, accept');
+      res.setHeader('access-control-max-age', '86400');
+      return res.writeHead(204).end();
+    }
+    // RFC 9728. `resource` echoes the identifier the client asked about: a client
+    // using <base>/mcp must get <base>/mcp back, not the bare origin.
+    if (url.pathname === '/.well-known/oauth-protected-resource'
+      || url.pathname === '/.well-known/oauth-protected-resource/mcp') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      return res.end(JSON.stringify(protectedResourceMetadata({
+        resource: url.pathname.endsWith('/mcp') ? `${PUBLIC_URL}/mcp` : PUBLIC_URL,
+        issuer: OAUTH_ISSUER })));
+    }
     if (url.pathname === '/health') return res.writeHead(200).end('ok');
     if (url.pathname === '/' && req.method === 'GET') { res.writeHead(200, { 'content-type': 'application/json' });
-      return res.end(JSON.stringify({ service: 'ruflo-x-gateway', version: '0.7.0', mcp: '/mcp', ws: ['/', '/relay'], relay: RELAY, canonicalRelay: RELAY, legacyRelay: LEGACY_RELAY, authNote: 'When connecting via wss://x.ruv.io, sign the NIP-42 AUTH `relay` tag with canonicalRelay (the relay verifies it strictly).', gatewayPubkey: pubkey, resources: ['ruv://federation/registry', 'ruv://federation/onboarding', 'ruv://swarm/roster', 'ruv://claims/board', 'ruv://swarm/channels'] })); }
+      return res.end(JSON.stringify({ service: 'ruflo-x-gateway', version: '0.7.0', mcp: '/mcp', ws: ['/', '/relay'], relay: RELAY, canonicalRelay: RELAY, legacyRelay: LEGACY_RELAY, authNote: 'When connecting via wss://x.ruv.io, sign the NIP-42 AUTH `relay` tag with canonicalRelay (the relay verifies it strictly).', gatewayPubkey: pubkey, resources: ['ruv://federation/registry', 'ruv://federation/onboarding', 'ruv://swarm/roster', 'ruv://claims/board', 'ruv://swarm/channels'],
+        authorization: { type: 'oauth2', issuer: OAUTH_ISSUER, clientId: OAUTH_CLIENT_ID || null,
+          scopes: [SCOPE_READ, SCOPE_PUBLISH], protectedResourceMetadata: prmUrl('/mcp'),
+          note: 'Additive: reads stay open and adminToken still works; an access token with swarm:publish is an alternative write credential.' } })); }
     if (url.pathname === '/mcp') {
       if (rateLimited(req)) return res.writeHead(429, { 'content-type': 'application/json' }).end('{"error":"rate limited"}');
       let body; try { body = await readBody(req); } catch { return res.writeHead(413, { 'content-type': 'application/json' }).end('{"error":"payload too large"}'); }
-      const mcp = buildMcp(req); const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+      const auth = await oauthContext(req);
+      if (auth.mode === 'denied') {
+        // A bearer was presented and did not verify. Refuse it — never fall back
+        // to anonymous, which would silently downgrade a caller that believes it
+        // is authenticated.
+        res.writeHead(401, { 'content-type': 'application/json',
+          'www-authenticate': challengeHeader(prmUrl(url.pathname), { error: auth.error, description: auth.description }) });
+        return res.end(JSON.stringify({ error: auth.error, error_description: auth.description }));
+      }
+      try {
+        const sub = auth.subject ? createHash('sha256').update(auth.subject).digest('hex').slice(0, 12) : '-';
+        console.log(`mcp auth=${auth.mode} scopes=${(auth.scopes || []).join('+') || '-'} sub=${sub}`);
+      } catch { /* logging must never break a request */ }
+      const mcp = buildMcp(req, auth); const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
       res.on('close', () => { transport.close(); mcp.close(); });
       await mcp.connect(transport);
       let parsed; try { parsed = body ? JSON.parse(body) : undefined; } catch { return res.writeHead(400, { 'content-type': 'application/json' }).end('{"error":"invalid json"}'); }

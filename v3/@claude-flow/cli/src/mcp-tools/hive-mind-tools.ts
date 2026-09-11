@@ -617,6 +617,22 @@ export const hiveMindTools: MCPTool[] = [
           return { action, error: 'voterId is required for voting' };
         }
 
+        // voterId was previously trusted as-is: any caller-supplied string
+        // was recorded into proposal.votes and counted toward
+        // calculateRequiredVotes()'s threshold (derived from
+        // state.workers.length), with no check that it named a worker who
+        // actually joined this hive-mind. That let a single caller cross
+        // any strategy's quorum (raft/bft/quorum alike) by voting under
+        // fabricated ids — a Sybil attack on consensus, not merely a
+        // double-vote. Require the voter to be a registered worker.
+        if (!state.workers.includes(voterId)) {
+          return {
+            action,
+            error: `Voter ${voterId} is not a registered hive-mind worker`,
+            proposalId: proposal.proposalId,
+          };
+        }
+
         const voteValue = input.vote as boolean;
         const proposalStrategy = proposal.strategy || 'raft';
         const required = calculateRequiredVotes(

@@ -6,6 +6,7 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { type MCPTool, getProjectCwd } from './types.js';
 import { validateIdentifier, validateText } from './validate-input.js';
 
@@ -30,6 +31,14 @@ interface HiveState {
     electedAt: string;
     term: number;
   };
+  // Capability token minted by hive-mind_init. join/leave/vote all require
+  // it (see requireHiveToken below) -- previously these mutated state.workers
+  // and proposal.votes for any caller, with nothing standing between an
+  // unauthenticated MCP caller and the hive's membership/consensus state.
+  // Undefined means no token was ever minted (state predates this field, or
+  // the hive was never initialized): fail-closed, not fail-open -- no token
+  // means no caller is authorized, not "any caller is".
+  hiveToken?: string;
   workers: string[];
   consensus: {
     pending: ConsensusProposal[];
@@ -157,6 +166,38 @@ function tryResolveProposal(
   }
 
   return null;
+}
+
+/**
+ * Verify a caller-supplied hiveToken against the one minted by hive-mind_init,
+ * using a constant-time comparison (bearer-token capability check -- callers
+ * that never joined, and callers that guess/omit the token, get identical
+ * rejection). Returns an error string on failure, or null on success.
+ */
+function requireHiveToken(state: HiveState, suppliedToken: unknown): string | null {
+  if (!state.hiveToken) {
+    return 'Hive-mind has no capability token minted (re-run hive-mind_init)';
+  }
+  if (typeof suppliedToken !== 'string' || !suppliedToken) {
+    return 'hiveToken is required';
+  }
+  const expected = Buffer.from(state.hiveToken, 'utf-8');
+  const actual = Buffer.from(suppliedToken, 'utf-8');
+  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
+    return 'Invalid hiveToken';
+  }
+  return null;
+}
+
+/**
+ * Read the current hiveToken directly off disk, for same-machine callers
+ * that already have filesystem access to hive state (the CLI's own
+ * `hive-mind join/leave/consensus` subcommands) -- NOT exposed over any MCP
+ * tool response (in particular, not hive-mind_status), since that's a
+ * remote-reachable surface a capability token must not leak through.
+ */
+export function getHiveTokenForCli(): string | undefined {
+  return loadHiveState().hiveToken;
 }
 
 function getHiveDir(): string {
@@ -330,6 +371,14 @@ export const hiveMindTools: MCPTool[] = [
         electedAt: new Date().toISOString(),
         term: 1,
       };
+      // Mint a capability token on first init; a re-init (topology/consensus
+      // change on an already-initialized hive) keeps the existing token and
+      // roster rather than silently invalidating workers who already hold
+      // it -- only re-generated if somehow absent (e.g. state predates this
+      // field).
+      if (!state.hiveToken) {
+        state.hiveToken = randomBytes(32).toString('hex');
+      }
 
       saveHiveState(state);
 
@@ -340,6 +389,7 @@ export const hiveMindTools: MCPTool[] = [
         consensus: state.consensusStrategy,
         queenId,
         status: 'initialized',
+        hiveToken: state.hiveToken,
         config: {
           topology: state.topology,
           consensus: state.consensusStrategy,
@@ -462,8 +512,9 @@ export const hiveMindTools: MCPTool[] = [
       properties: {
         agentId: { type: 'string', description: 'Agent ID to join' },
         role: { type: 'string', enum: ['worker', 'specialist', 'scout'], description: 'Agent role in hive' },
+        hiveToken: { type: 'string', description: 'Capability token minted by hive-mind_init' },
       },
-      required: ['agentId'],
+      required: ['agentId', 'hiveToken'],
     },
     handler: async (input) => {
       const state = loadHiveState();
@@ -473,6 +524,14 @@ export const hiveMindTools: MCPTool[] = [
 
       if (!state.initialized) {
         return { success: false, error: 'Hive-mind not initialized' };
+      }
+
+      // Fail-closed: an unrecognized/missing token makes no membership
+      // change at all -- state.workers is untouched, not just left
+      // unsaved (the write below never happens on this path).
+      const tokenError = requireHiveToken(state, input.hiveToken);
+      if (tokenError) {
+        return { success: false, agentId, error: tokenError };
       }
 
       if (!state.workers.includes(agentId)) {
@@ -497,14 +556,22 @@ export const hiveMindTools: MCPTool[] = [
       type: 'object',
       properties: {
         agentId: { type: 'string', description: 'Agent ID to remove' },
+        hiveToken: { type: 'string', description: 'Capability token minted by hive-mind_init' },
       },
-      required: ['agentId'],
+      required: ['agentId', 'hiveToken'],
     },
     handler: async (input) => {
       const state = loadHiveState();
       const agentId = input.agentId as string;
 
       { const v = validateIdentifier(agentId, 'agentId'); if (!v.valid) return { success: false, agentId, error: v.error }; }
+
+      // Fail-closed: a denied caller makes no membership change -- the
+      // splice/save below is unreachable on this path.
+      const tokenError = requireHiveToken(state, input.hiveToken);
+      if (tokenError) {
+        return { success: false, agentId, error: tokenError };
+      }
 
       const index = state.workers.indexOf(agentId);
       if (index > -1) {
@@ -534,6 +601,7 @@ export const hiveMindTools: MCPTool[] = [
         value: { description: 'Proposal value (for propose)' },
         vote: { type: 'boolean', description: 'Vote (true=for, false=against)' },
         voterId: { type: 'string', description: 'Voter agent ID' },
+        hiveToken: { type: 'string', description: 'Capability token minted by hive-mind_init (required to vote)' },
         strategy: { type: 'string', enum: ['bft', 'raft', 'quorum'], description: 'Consensus strategy (default: raft)' },
         quorumPreset: { type: 'string', enum: ['unanimous', 'majority', 'supermajority'], description: 'Quorum threshold preset (for quorum strategy, default: majority)' },
         term: { type: 'number', description: 'Term number (for raft strategy)' },
@@ -615,6 +683,14 @@ export const hiveMindTools: MCPTool[] = [
         const voterId = input.voterId as string;
         if (!voterId) {
           return { action, error: 'voterId is required for voting' };
+        }
+
+        // Fail-closed: a denied caller records no vote at all -- the
+        // votes[voterId] write below is unreachable on this path, and
+        // nothing about the proposal (vote tallies, status) changes.
+        const tokenError = requireHiveToken(state, input.hiveToken);
+        if (tokenError) {
+          return { action, error: tokenError, proposalId: proposal.proposalId };
         }
 
         // voterId was previously trusted as-is: any caller-supplied string

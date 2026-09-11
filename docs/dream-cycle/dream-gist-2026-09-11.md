@@ -77,8 +77,8 @@ Deep researcher's independently-scored candidates (0.25·fit+0.20·testability+0
 | Field | Value |
 |---|---|
 | Session commit | `df87b0db338a8632f14e243169208be1d7faa164` |
-| Gist SHA-256 (pre-witness content) | `d45dda7156486467d10c3da16c8d84430bf81e74a13d61717ef6e44132208ad9` |
-| Witness stamp | `46560a41f9411483b131fd4f4311f2d463027725090729719ce13d08ea60c665` |
+| Gist SHA-256 (pre-witness content) | `21b04a6c8b9d90f2050b62e427dca3d046f0f648a4832d5bf76d2863796c232f` |
+| Witness stamp | `55d67b4a8204225dd5db3dbd9a81d31d67a0045c6f1d3c36b3ab88bbc9a65f11` |
 
 Verifier procedure: fetch this file from the branch, strip the witness table's filled values back to `PENDING`, SHA-256 it, concatenate with the session commit above, SHA-256 again — result must equal the witness stamp.
 
@@ -88,3 +88,14 @@ Verifier procedure: fetch this file from the branch, strip the witness table's f
 2. **Authenticate `hive-mind_join`/`hive-mind_leave`** (disclosed follow-up from tonight's own adversarial critique) — closes the remaining forged-*join* Sybil path tonight's fix does not.
 3. **Fix `ToolOutputGuardrail`'s one-level-deep scan** (deep researcher's top-scored candidate, 4.75) — strong pick for tomorrow night regardless of DEEP surface.
 4. **Prioritize merging #3103/#3139/#3152** — three ACCEPT-graded security fixes sitting unmerged mean `main`'s actual security posture lags its own evaluated evidence by 10-11 days.
+
+## Addendum (2026-09-11, post-review)
+
+ruvnet reviewed PR #3291 at `b275fdd0` and **REJECT**ed: the roster-membership check alone was "useful but insufficient" since `hive-mind_join`/`hive-mind_leave` remained unauthenticated (the exact caveat this gist and the adversarial critique above already disclosed, now correctly elevated to a blocking gate rather than a follow-up), and the "Test Suite" CI check failed twice on the exact head due to the cold-install issue diagnosed above.
+
+Both addressed, not just documented:
+
+1. **Capability-bound join/leave/vote.** `hive-mind_init` now mints a random 32-byte `hiveToken` (`node:crypto` `randomBytes`, returned once in the init response), stored in `state.hiveToken`. `hive-mind_join`, `hive-mind_leave`, and `hive-mind_consensus`'s `vote` action all now require a matching `hiveToken` (constant-time `timingSafeEqual` comparison), fail-closed: a missing/wrong token makes **zero** state change — no roster write, no vote write — verified by 3 new tests that reload `state.json` fresh off disk after each denial (standing in for a restart/reopen, per the reviewer's explicit ask) and assert `workers`/`votes` are unchanged. The CLI's own `hive-mind join/leave/consensus` subcommands are unaffected for legitimate local use: a new `getHiveTokenForCli()` export reads the token directly off the same-machine state file (never returned by `hive-mind_status`, so the token doesn't leak through any MCP-reachable read surface) and the CLI command handlers now pass it through automatically. `hive-mind_init` itself is intentionally left unauthenticated, matching the reviewer's literal scope ("join/leave and vote") — bootstrapping trust for who may call `init` is a materially different, larger problem than binding capabilities to already-initialized state, and out of scope for tonight.
+2. **CI cold-install fixed at the root, not routed around.** `@claude-flow/security` (a root npm-workspace member per `package.json`'s `workspaces` array) had no `prepare`/`postinstall` script — only `prepublishOnly`, which `npm ci` never runs — so a fresh checkout's root `npm ci` never built its `dist/`, causing `ERR_MODULE_NOT_FOUND` in `doctor.js` → `policy-runtime.ts` → `@claude-flow/security`. Confirmed via a real root `npm ci` in this session (824 packages, `dist/index.js` freshly built, timestamped) and reproduced on an unrelated PR (#3266)'s own first-run history. Added `"prepare": "npm run build"` to `v3/@claude-flow/security/package.json` — standard npm lifecycle, runs automatically on `npm ci`/`npm install` for every future checkout, not just this PR's. Full `@claude-flow/cli` suite re-run after both fixes: **28 failed / 2884 passed** (was 46/2863) — the ~18-test improvement is exactly the `@claude-flow/security`-dependent tests the `prepare` script now fixes; the remaining 28 are pre-existing, unrelated `@claude-flow/neural`/`@claude-flow/mcp` workspace-resolution gaps (confirmed by name, not just count). Zero "hive" failures throughout.
+
+Updated evaluation: 6/6 new/updated tests pass against the candidate, 6/6 fail appropriately against a stash-isolated baseline (join/leave/vote all silently succeed pre-fix); `tsc --noEmit` clean on every touched file.

@@ -15,6 +15,7 @@ import { mkdir, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { resolveClaudeLaunchCommand } from '../runtime/claude-command.js';
+import { getHiveTokenForCli } from '../mcp-tools/hive-mind-tools.js';
 
 // Worker type definitions for prompt generation
 interface HiveWorker {
@@ -1178,7 +1179,7 @@ const joinCommand: Command = {
       return { success: false, exitCode: 1 };
     }
     try {
-      const result = await callMCPTool<{ success: boolean; agentId: string; totalWorkers: number; error?: string }>('hive-mind_join', { agentId, role: ctx.flags.role });
+      const result = await callMCPTool<{ success: boolean; agentId: string; totalWorkers: number; error?: string }>('hive-mind_join', { agentId, role: ctx.flags.role, hiveToken: getHiveTokenForCli() });
       if (!result.success) { output.printError(result.error || 'Failed'); return { success: false, exitCode: 1 }; }
       output.printSuccess(`Agent ${agentId} joined hive (${result.totalWorkers} workers)`);
       return { success: true, data: result };
@@ -1195,7 +1196,7 @@ const leaveCommand: Command = {
     const agentId = ctx.args[0] || ctx.flags['agent-id'] as string || ctx.flags.agentId as string;
     if (!agentId) { output.printError('Agent ID required.'); return { success: false, exitCode: 1 }; }
     try {
-      const result = await callMCPTool<{ success: boolean; agentId: string; remainingWorkers: number; error?: string }>('hive-mind_leave', { agentId });
+      const result = await callMCPTool<{ success: boolean; agentId: string; remainingWorkers: number; error?: string }>('hive-mind_leave', { agentId, hiveToken: getHiveTokenForCli() });
       if (!result.success) { output.printError(result.error || 'Failed'); return { success: false, exitCode: 1 }; }
       output.printSuccess(`Agent ${agentId} left hive (${result.remainingWorkers} remaining)`);
       return { success: true, data: result };
@@ -1218,7 +1219,7 @@ const consensusCommand: Command = {
   action: async (ctx: CommandContext): Promise<CommandResult> => {
     const action = ctx.flags.action as string || 'list';
     try {
-      const result = await callMCPTool<Record<string, unknown>>('hive-mind_consensus', { action, proposalId: ctx.flags.proposalId, type: ctx.flags.type, value: ctx.flags.value, vote: ctx.flags.vote === 'yes', voterId: ctx.flags.voterId });
+      const result = await callMCPTool<Record<string, unknown>>('hive-mind_consensus', { action, proposalId: ctx.flags.proposalId, type: ctx.flags.type, value: ctx.flags.value, vote: ctx.flags.vote === 'yes', voterId: ctx.flags.voterId, hiveToken: getHiveTokenForCli() });
       if (ctx.flags.format === 'json') { output.printJson(result); return { success: true, data: result }; }
       if (action === 'list') {
         output.writeln(output.bold('\nPending Proposals'));

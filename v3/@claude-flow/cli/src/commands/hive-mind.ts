@@ -11,7 +11,7 @@ import { output } from '../output.js';
 import { select, confirm, input } from '../prompt.js';
 import { callMCPTool, MCPClientError } from '../mcp-client.js';
 import { spawn as childSpawn } from 'child_process';
-import { mkdir, writeFile } from 'fs/promises';
+import { mkdir, writeFile, readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { resolveClaudeLaunchCommand } from '../runtime/claude-command.js';
@@ -44,6 +44,23 @@ const CONSENSUS_STRATEGIES = [
   { value: 'crdt', label: 'CRDT', hint: 'Conflict-free replicated data' },
   { value: 'quorum', label: 'Quorum', hint: 'Simple majority voting' }
 ];
+
+/**
+ * Resolve the --objective-file flag value from a parsed flags map.
+ *
+ * #570: read a (possibly multi-line) objective from a file instead of
+ * forcing users to quote/escape it on the shell command line.
+ *
+ * Dual-reads both the kebab-case key and the parser-normalized camelCase
+ * key (see #2269 / hive-mind-skip-permissions.test.ts): CommandParser
+ * stores flags under the normalized camelCase key, but some callers
+ * (tests, programmatic invocations) hand-build the flags object with the
+ * kebab key, so both are accepted defensively.
+ */
+export function resolveObjectiveFile(flags: Record<string, unknown>): string | undefined {
+  const value = flags['objective-file'] ?? flags.objectiveFile;
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
 
 /**
  * Group workers by their type for prompt generation
@@ -614,6 +631,16 @@ const spawnCommand: Command = {
       type: 'string'
     },
     {
+      // #570: quoting/escaping a multi-line objective directly on the shell
+      // command line is brittle. Read it from a file instead, which
+      // preserves newlines natively and needs no shell-specific workarounds.
+      // Takes precedence over --objective/-o when both are given.
+      name: 'objective-file',
+      short: 'f',
+      description: 'Read the objective from a file (supports multi-line objectives; overrides --objective)',
+      type: 'string'
+    },
+    {
       name: 'dangerously-skip-permissions',
       description: 'Skip permission prompts in Claude Code (use with caution)',
       type: 'boolean',
@@ -648,6 +675,7 @@ const spawnCommand: Command = {
     { command: 'claude-flow hive-mind spawn -n 3 -r specialist', description: 'Spawn 3 specialists' },
     { command: 'claude-flow hive-mind spawn -t coder -p my-coder', description: 'Spawn coder with custom prefix' },
     { command: 'claude-flow hive-mind spawn --claude -o "Build a REST API"', description: 'Launch Claude Code with objective' },
+    { command: 'claude-flow hive-mind spawn --claude -f objective.txt', description: 'Launch Claude Code with a multi-line objective read from a file' },
     { command: 'claude-flow hive-mind spawn -n 5 --claude -o "Research AI patterns"', description: 'Spawn workers and launch Claude Code' }
   ],
   action: async (ctx: CommandContext): Promise<CommandResult> => {
@@ -658,6 +686,19 @@ const spawnCommand: Command = {
     const prefix = (ctx.flags.prefix as string) || 'hive-worker';
     const launchClaude = ctx.flags.claude as boolean;
     let objective = (ctx.flags.objective as string) || ctx.args.join(' ');
+
+    // #570: --objective-file wins over --objective/positional args when given.
+    const objectiveFile = resolveObjectiveFile(ctx.flags as Record<string, unknown>);
+    if (objectiveFile) {
+      try {
+        objective = (await readFile(objectiveFile, 'utf8')).trim();
+      } catch (err) {
+        output.printError(
+          `Failed to read objective file "${objectiveFile}": ${err instanceof Error ? err.message : String(err)}`
+        );
+        return { success: false, exitCode: 1 };
+      }
+    }
 
     output.printInfo(`Spawning ${count} ${role} agent(s)...`);
 

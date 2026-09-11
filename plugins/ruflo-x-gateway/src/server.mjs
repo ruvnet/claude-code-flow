@@ -83,6 +83,14 @@ export function createGateway({ relay, keyFile, port } = {}) {
     (checkAdmin(args.adminToken) || (auth?.mode === 'oauth' && hasScope(auth.scopes, SCOPE_PUBLISH)))
       ? fn(args)
       : denied();
+
+  // Membership changes are NOT publishing. `swarm:publish` says "may post a
+  // message"; admitting a member or minting an invite decides who may join the
+  // federation at all. A self-registered client can obtain swarm:publish with
+  // nothing but a sign-in, so letting that scope grant membership control would
+  // make the registration gate the only thing standing between a stranger and
+  // the relay roster. These stay admin-token only.
+  const adminOnly = (fn) => async (args) => (checkAdmin(args.adminToken) ? fn(args) : denied());
   // OPTIONAL, deliberately: there are now two ways to earn write authority, and a
   // required adminToken would make every OAuth-authorised write fail at schema
   // validation before the handler could consider the token at all. The handler
@@ -99,24 +107,24 @@ export function createGateway({ relay, keyFile, port } = {}) {
     mcp.tool('claims_status', 'Current owner-per-resource claims ledger from recent verified claim events. Open read.', {},
       async () => { const ev = await fetchRecent(RELAY, sk, { sinceSeconds: 86400, limit: 500 }); return text(reduceClaims(ev.filter((e) => String(e.type).startsWith('Claim')))); });
     // ---- admin-gated writes (use the GATEWAY identity) ----
-    mcp.tool('federation_join', 'Publish a signed PeerHello AS THE GATEWAY. Admin-gated. Users should join with their own key via invite→claim instead.',
+    mcp.tool('federation_join', 'Publish a signed PeerHello AS THE GATEWAY. Authorised by an OAuth access token carrying swarm:publish, or by the admin token. Almost always the wrong tool for a person: it announces the GATEWAY, not you. Join with your own key via invite→claim — see federation_onboarding.',
       { name: z.string(), platform: z.string().optional(), note: z.string().optional(), ...adminArg },
       gated(auth, async ({ name, platform, note }) => text({ ok: true, eventId: await publish(RELAY, sk, 'PeerHello', { from: name, platform, note }) })));
-    mcp.tool('federation_publish', 'Publish a signed coordination message AS THE GATEWAY (Status/Task/Result…). Admin-gated.',
+    mcp.tool('federation_publish', 'Publish a signed coordination message AS THE GATEWAY (Status/Task/Result…). Authorised by an OAuth access token carrying swarm:publish, or by the admin token for service-side callers. Use when a gateway-identity message is what you want; to speak AS YOURSELF publish with your own key over the relay — see federation_onboarding. Never ask a person to paste the admin token: it also authorises every other gateway write.',
       { msgType: z.string(), payload: z.record(z.any()), ...adminArg },
       gated(auth, async ({ msgType, payload }) => text({ ok: true, eventId: await publish(RELAY, sk, msgType, payload) })));
-    mcp.tool('claims_issue', 'Issue a work claim AS THE GATEWAY. Admin-gated. One owner per resourceId.',
+    mcp.tool('claims_issue', 'Issue a work claim AS THE GATEWAY. One owner per resourceId. Authorised by an OAuth access token carrying swarm:publish, or by the admin token. Use to reserve a resource so two agents do not both act on it; claiming on behalf of another identity is wrong because the ledger records the GATEWAY as owner.',
       { resourceId: z.string(), ttlSeconds: z.number().optional(), ...adminArg },
       gated(auth, async ({ resourceId, ttlSeconds }) => text({ ok: true, eventId: await publish(RELAY, sk, 'ClaimIssued', { from: pubkey, resourceId, ttlSeconds }), resourceId })));
-    mcp.tool('claims_release', 'Release a gateway-held work claim. Admin-gated.',
+    mcp.tool('claims_release', 'Release a gateway-held work claim. Authorised by an OAuth access token carrying swarm:publish, or by the admin token. Only releases claims the GATEWAY holds — a claim issued by another identity must be released by that identity.',
       { resourceId: z.string(), ...adminArg },
       gated(auth, async ({ resourceId }) => text({ ok: true, eventId: await publish(RELAY, sk, 'ClaimReleased', { from: pubkey, resourceId }), resourceId })));
-    mcp.tool('federation_invite_mint', 'Mint a self-service invite code (v2, use-limited, expiring) so a new ruflo user can claim relay membership with their own key. Admin-gated; the gateway must hold relay admin role.',
+    mcp.tool('federation_invite_mint', 'Mint a self-service invite code (v2, use-limited, expiring) so a new ruflo user can claim relay membership with their own key. Requires the admin token — an OAuth swarm:publish token is NOT sufficient, because minting invites grants relay membership rather than publishing a message. The gateway must hold the relay admin role. An invite code is a bearer secret: send it to one person directly, never to a channel.',
       { ttlSecs: z.number().optional(), maxUses: z.number().optional(), ...adminArg },
-      gated(auth, async ({ ttlSecs, maxUses }) => text(await mintInvite(HTTP_BASE, sk, { ttlSecs, maxUses }))));
-    mcp.tool('federation_admit', 'Admit a pubkey as a relay member directly (NIP-43 kind 9030). Admin-gated.',
+      adminOnly(async ({ ttlSecs, maxUses }) => text(await mintInvite(HTTP_BASE, sk, { ttlSecs, maxUses }))));
+    mcp.tool('federation_admit', 'Admit a pubkey as a relay member directly (NIP-43 kind 9030). Requires the admin token — an OAuth swarm:publish token is NOT sufficient, because admission changes who may join rather than publishing a message. Prefer federation_invite_mint so the newcomer proves possession of their own key.',
       { pubkey: z.string(), role: z.enum(['member', 'admin']).optional(), ...adminArg },
-      gated(auth, async ({ pubkey: pk, role }) => text(await admitMember(RELAY, sk, pk, role))));
+      adminOnly(async ({ pubkey: pk, role }) => text(await admitMember(RELAY, sk, pk, role))));
     // ---- ADR-386 channels ----
     mcp.tool('channel_list', 'List swarm channels seen recently, with visibility, message count and publisher count. Open read. Public channel ids carry their name (pub:<name>); private ids are opaque (prv:<hex>) and reveal nothing about the topic. Well-known channels (pub:announce, pub:help, pub:claims, pub:showcase) are always listed even when quiet, with messages:0 and a purpose — a channel nobody posted in today is otherwise undiscoverable, which is how it stays empty. Use when you want to find where coordination is happening before reading a stream. Reading the flat firehose with federation_sync instead is wrong once channels are in use, because it mixes unrelated work and cannot show you private traffic exists at all.',
       { sinceSeconds: z.number().optional(), limit: z.number().optional() },
@@ -128,7 +136,7 @@ export function createGateway({ relay, keyFile, port } = {}) {
         const messages = await fetchChannel(RELAY, sk, { channelId: channel, sinceSeconds, limit });
         return text({ channel, visibility: isPrivateChannel(channel) ? 'private' : 'public', count: messages.length, messages });
       });
-    mcp.tool('channel_publish', 'Publish a message to a PUBLIC channel as the gateway. Admin-gated. Private channels are refused here on purpose: their content is encrypted with a key only clients hold, so publish to them with your own key via `ruflo federation channel publish`. Use when a service-side process needs to post to a shared public stream; for anything attributable to a person or agent, publish with that identity instead.',
+    mcp.tool('channel_publish', 'Publish a message to a PUBLIC channel as the gateway. Authorised by an OAuth access token carrying swarm:publish, or by the admin token for service-side callers. Private channels are refused here on purpose: their content is encrypted with a key only clients hold, so publish to them with your own key via `ruflo federation channel publish`. Use when a service-side process needs to post to a shared public stream; for anything attributable to a person or agent, publish with that identity instead.',
       { channel: z.string(), msgType: z.string(), payload: z.record(z.any()), ...adminArg },
       gated(auth, async ({ channel, msgType, payload }) => {
         // Refuse private BEFORE normalising, so a prv: id gets the real reason rather
@@ -142,8 +150,8 @@ export function createGateway({ relay, keyFile, port } = {}) {
       "How to join and publish as yourself, and which identity signs what. Open — no token. Use when you are new here, when a publish was refused for a credential, or before telling someone to paste a token anywhere. Reaching for federation_publish to speak as a person is the usual wrong turn: it signs as the GATEWAY, which is why it is gated; you publish with your own key over the relay connection. This never generates or asks for a secret key — it returns the code for you to run locally, because a service that mints your key has seen it.",
       {},
       async () => text(onboardingGuide({ relay: RELAY, httpBase: HTTP_BASE, gatewayPubkey: pubkey, defaultChannels: DEFAULT_CHANNELS })));
-    // ---- Seraphina: swarm queen guidance (admin-gated: it spends meta-llm budget) ----
-    mcp.tool('seraphina_guidance', 'Ask Seraphina — swarm queen / primary coordinator — for guidance on a goal. Reads the live roster, claims board and recent messages, reasons via the cognitum meta-llm gateway (cognitum-auto default; tier override), returns {guidance, proposals[], risks[]}. Admin-gated because it spends meta-llm budget. Use when deciding what the swarm should do next or how to resolve a claim conflict. Assigning work from raw sync output is wrong because it ignores current claims and node liveness, which Seraphina checks first.',
+    // ---- Seraphina: swarm queen guidance (OPEN, bounded by a shared budget) ----
+    mcp.tool('seraphina_guidance', 'Ask Seraphina — swarm queen / primary coordinator — for guidance on a goal. Reads the live roster, claims board and recent messages, reasons via the cognitum meta-llm gateway (cognitum-auto default; tier override), returns {guidance, proposals[], risks[]}. Open to anyone, bounded by a shared daily/hourly budget rather than a credential, because it reads and advises and writes nothing. The admin token is OPTIONAL: it lifts that cap and unlocks the high/ultra tiers — it is not required to ask. Use when deciding what the swarm should do next or how to resolve a claim conflict. Assigning work from raw sync output is wrong because it ignores current claims and node liveness, which Seraphina checks first.',
       { goal: z.string(), tier: z.enum(['cognitum-auto','cognitum-low','cognitum-mid','cognitum-high','cognitum-ultra']).optional(), adminToken: z.string().optional().describe('Optional. Lifts the shared budget cap and allows the high/ultra tiers. Never put this in a browser — it also authorises gateway-identity writes.'), sinceSeconds: z.number().optional(), limit: z.number().optional() },
       (async ({ goal, tier, sinceSeconds, limit, adminToken }) => {
         // Seraphina reads and advises; it writes nothing and carries no authority,

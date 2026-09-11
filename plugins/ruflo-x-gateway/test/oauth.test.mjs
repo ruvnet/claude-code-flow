@@ -264,3 +264,59 @@ test('GET /mcp is refused immediately instead of hanging a stateless stream', as
     });
   } finally { as.close(); }
 });
+
+test('swarm:publish may post, but may NOT change relay membership', async () => {
+  // Publishing and deciding who may join are different powers. A self-registered
+  // client can obtain swarm:publish with nothing but a sign-in, so if that scope
+  // also admitted members, the registration gate would be the only thing between
+  // a stranger and the relay roster.
+  const as = await fakeAuthServer();
+  try {
+    await withGateway(as, async (port) => {
+      const tok = await as.mint({ scope: `${SCOPE_READ} ${SCOPE_PUBLISH}`, audience: CLIENT_ID });
+      const auth = { authorization: `Bearer ${tok}` };
+
+      // Allowed: posting.
+      const pub = await call(port, 'federation_publish', { msgType: 'Status', payload: {} }, auth);
+      assert.doesNotMatch(toolText(pub), /admin token required/, 'swarm:publish must be able to post');
+
+      // Refused: membership control.
+      for (const [name, args] of [
+        ['federation_admit', { pubkey: 'a'.repeat(64), role: 'member' }],
+        ['federation_invite_mint', { ttlSecs: 60, maxUses: 1 }],
+      ]) {
+        const r = await call(port, name, args, auth);
+        assert.match(toolText(r), /admin token required/,
+          `${name} must not be reachable with swarm:publish alone`);
+      }
+    });
+  } finally { as.close(); }
+});
+
+test('every write tool documents the OAuth path, not just the admin token', async () => {
+  // A description saying only "Admin-gated" leads a model to ask a person for
+  // the admin token — which also authorises every other gateway write and must
+  // never be pasted into a browser.
+  const as = await fakeAuthServer();
+  try {
+    await withGateway(as, async (port) => {
+      const r = await fetch(`http://127.0.0.1:${port}/mcp`, { method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }) });
+      const raw = await r.text();
+      const line = raw.split('\n').find((l) => l.startsWith('data: '));
+      for (const t of JSON.parse(line ? line.slice(6) : raw).result.tools) {
+        if (!('adminToken' in (t.inputSchema?.properties || {}))) continue;
+        // "Admin-gated" is now always an incomplete answer: either an OAuth
+        // token also authorises the tool, or the admin token is required and
+        // the description must say the scope is not sufficient — or, as with
+        // seraphina_guidance, the tool is not gated at all and the phrase was
+        // simply wrong. Every tool must state its real authorisation.
+        assert.ok(!/Admin-gated/.test(t.description),
+          `${t.name} says "Admin-gated", which no longer describes how it is authorised`);
+        assert.match(t.description, /swarm:publish|admin token is OPTIONAL/,
+          `${t.name} must state whether an OAuth token can authorise it`);
+      }
+    });
+  } finally { as.close(); }
+});

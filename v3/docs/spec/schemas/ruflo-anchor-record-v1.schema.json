@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/ruvnet/ruflo/v3/docs/spec/schemas/ruflo-anchor-record-v1.schema.json",
-  "title": "RufloAnchorRecordV1 (PROPOSED-EXTENSION)",
-  "description": "PROPOSED-EXTENSION - NOT part of ADR-322C. ADR-322C defines records and their verification but is silent on how a record is anchored into a foreign chain. ruvnet/rvm#35 and ruvnet/autogenous#10 both need a pointer format, so this is the minimal placeholder for that need. It requires its own ADR before any repo depends on it. Do not treat conformance to this file as conformance to ADR-322C.",
+  "title": "RufloAnchorRecordV1",
+  "description": "Accepted per ADR-322D (2026-08-29) - an extension to, not part of, ADR-322C. ADR-322C defines records and their verification but is silent on how a record is anchored into a foreign chain; this fills that gap. Consumed by two merged downstream implementations built against this exact shape: ruvnet/rvm#37 and ruvnet/autogenous#13 (tracking ruvnet/rvm#35 and ruvnet/autogenous#10). Do not treat conformance to this file as conformance to ADR-322C itself -- they are separate contracts.",
   "type": "object",
   "required": ["payload"],
   "additionalProperties": false,
@@ -24,7 +24,7 @@
         "algorithm": { "const": "ed25519" },
         "domain": {
           "const": "ruflo/flywheel-anchor/v1",
-          "description": "PROPOSED-EXTENSION signing domain. Distinct from ruflo/flywheel-receipt/v1 so an anchor signature can never be replayed as a receipt signature, per ADR-322 section Persistence and key boundaries."
+          "description": "Signing domain, accepted per ADR-322D. Distinct from ruflo/flywheel-receipt/v1 so an anchor signature can never be replayed as a receipt signature, per ADR-322 section Persistence and key boundaries."
         },
         "publicKeyPem": { "type": "string", "pattern": "^-----BEGIN PUBLIC KEY-----" },
         "signatureBase64": { "type": "string", "pattern": "^[A-Za-z0-9+/]{86}==$" }

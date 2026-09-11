@@ -8,9 +8,15 @@
   implementing source under `v3/@claude-flow/cli/src/services/`.
 - **Audience**: external implementers (`ruvnet/rvm#35`, `ruvnet/autogenous#10`,
   `ruvnet/RuVector#840`) producing or verifying these records **without reading
-  ruflo's source**. Tracked by `ruvnet/ruflo#3066`.
-- **`PROPOSED-EXTENSION`** marks anything *not* in ADR-322C: a minimal placeholder
+  ruflo's source**. Tracked by `ruvnet/ruflo#3066` (closed 2026-08-20).
+- **`PROPOSED-EXTENSION`** marked anything *not* in ADR-322C: a minimal placeholder
   for a consumer need 322C does not address, requiring its own ADR before use.
+  The one extension this doc defines (record type 3, §9) cleared that bar on
+  2026-08-29 via [ADR-322D](../adr/ADR-322D-cross-repo-anchor-record-accepted.md)
+  — both downstream consumers (`rvm#37`, `autogenous#13`) had already merged
+  against this exact shape, so the label now reads as stale rather than as an
+  open precondition. Kept as a term for any *future* extension this doc
+  doesn't yet define.
 
 ## 1. Record types
 
@@ -18,7 +24,7 @@
 |---|---|---|---|---|
 | 1 | Evaluation receipt | `ruflo.flywheel-receipt/v1` | `ruflo/flywheel-receipt/v1` | Implemented (`flywheel-receipt.ts:18`) |
 | 2 | Promotion commit + ledger head | *(unnamed in 322C)* | `ruflo/flywheel-ledger-head/v1` | **Commit implemented unsigned**; head signing **specified but not implemented** — see §7 |
-| 3 | Cross-repo anchor record | `ruflo.anchor-record/v1` | `ruflo/flywheel-anchor/v1` | `PROPOSED-EXTENSION` — see §9 |
+| 3 | Cross-repo anchor record | `ruflo.anchor-record/v1` | `ruflo/flywheel-anchor/v1` | **Accepted — implemented, consumed by `rvm#37` and `autogenous#13` (both merged)** — see [ADR-322D](../adr/ADR-322D-cross-repo-anchor-record-accepted.md), §9 |
 
 A third domain-separation string exists but is **not** a signing domain:
 `"ruflo/bootstrap/v1"`, the seed prefix for the paired bootstrap (ADR-322C
@@ -223,11 +229,11 @@ names is a phase-3 artifact.
   without a compatibility ADR. Pin `schemaVersion` + `gateVersion` strings, not
   git SHAs.
 
-## 9. `PROPOSED-EXTENSION`: cross-repo anchoring
+## 9. Cross-repo anchoring — **Accepted** ([ADR-322D](../adr/ADR-322D-cross-repo-anchor-record-accepted.md))
 
 ADR-322C defines records and their verification but **no pointer format** for
-anchoring one into a foreign chain. `rvm#35` and `autogenous#10` both need one.
-Minimal placeholder in `schemas/ruflo-anchor-record-v1.schema.json`:
+anchoring one into a foreign chain. `rvm#35` and `autogenous#10` both needed
+one. Shape, in `schemas/ruflo-anchor-record-v1.schema.json`:
 
 - `anchoredContentId` / `anchoredSchemaVersion` — the `sha256:` ID of the anchored
   record and what kind of record it is.
@@ -238,5 +244,15 @@ Minimal placeholder in `schemas/ruflo-anchor-record-v1.schema.json`:
 - Signing domain `ruflo/flywheel-anchor/v1` — distinct so an anchor signature can
   never be replayed as a receipt signature (§4).
 
-Nothing above is decided. It needs an ADR before `rvm`, `autogenous`, or
-`ruvector` depends on it.
+**No longer a placeholder.** `rvm#37` ("verify and anchor ruflo ADR-322C
+receipts into the witness chain") and `autogenous#13` ("export promotion
+evidence in the ruflo ADR-322C receipt shape") are both merged, built against
+exactly this shape. ADR-322D promotes this record from `PROPOSED-EXTENSION`
+to Accepted to match — schema unchanged, since two live consumers already
+depend on it as specified.
+
+Scope note carried over from ADR-322D: this is ruflo's own flywheel receipts
+anchoring into `rvm`/`autogenous`'s witness chains specifically. It is not the
+same thing as `ruvnet/LatentMesh`'s separate, still-unwired aspiration to have
+RVF/RVM gate its own candidate cognition — a different "RVM" relationship
+that this section does not cover.

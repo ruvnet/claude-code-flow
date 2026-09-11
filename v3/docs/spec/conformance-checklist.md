@@ -88,8 +88,9 @@ consequences of the same rules.
 - [ ] **C4** An anchored record's stated assurance is the assurance it carries,
   not the assurance of the chain it landed in. A service-side record anchored into
   a hypervisor chain does not acquire hypervisor-side guarantees
-  (`rvm` ADR-285). Uses the `PROPOSED-EXTENSION` field in
-  [`schemas/ruflo-anchor-record-v1.schema.json`](./schemas/ruflo-anchor-record-v1.schema.json).
+  (`rvm` ADR-285). Uses the `assuranceLevel` field in
+  [`schemas/ruflo-anchor-record-v1.schema.json`](./schemas/ruflo-anchor-record-v1.schema.json)
+  (ADR-322D — Accepted).
 - [ ] **C5** No dependency edge is introduced between `rvm-witness` and
   `autogenous`'s witness crate in either direction — both consume this contract
   independently (`rvm#35`, `autogenous#10`).

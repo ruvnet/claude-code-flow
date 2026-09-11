@@ -83,7 +83,10 @@ const openaiBaseUrl = config.OPENAI_BASE_URL
 	: undefined;
 const isHFRouter = openaiBaseUrl === "https://router.huggingface.co/v1";
 
-const listSchema = z
+// Exported for tests — validates parsing/passthrough behavior for both the
+// HF-router `providers[].supports_tools` shape and the generic
+// OpenAI-compatible `capabilities.tool_calling` shape (#2900).
+export const listSchema = z
 	.object({
 		data: z.array(
 			z.object({
@@ -92,6 +95,9 @@ const listSchema = z
 				providers: z
 					.array(z.object({ supports_tools: z.boolean().optional() }).passthrough())
 					.optional(),
+				// Generic OpenAI-compatible tool-calling signal (non-HF-router providers,
+				// e.g. `{ "id": "...", "capabilities": { "tool_calling": true } }`).
+				capabilities: z.object({ tool_calling: z.boolean().optional() }).passthrough().optional(),
 				architecture: z
 					.object({
 						input_modalities: z.array(z.string()).optional(),
@@ -102,6 +108,19 @@ const listSchema = z
 		),
 	})
 	.passthrough();
+
+// Exported for tests — a model supports tools if either an HF-router-style
+// provider advertises `supports_tools`, or the model itself advertises a
+// generic `capabilities.tool_calling` signal. Fails closed when neither is
+// present (#2900).
+export const deriveSupportsTools = (m: {
+	providers?: Array<{ supports_tools?: boolean } | null | undefined> | null;
+	capabilities?: { tool_calling?: boolean } | null;
+}): boolean =>
+	Boolean(
+		(m.providers ?? []).some((p) => p?.supports_tools === true) ||
+			m.capabilities?.tool_calling === true
+	);
 
 function getChatPromptRender(_m: ModelConfig): (inputs: ChatTemplateInput) => string {
 	// Minimal template to support legacy "completions" flow if ever used.
@@ -345,8 +364,9 @@ const buildModels = async (): Promise<ProcessedModel[]> => {
 			const supportsImageInput =
 				inputModalities.includes("image") || inputModalities.includes("vision");
 
-			// If any provider supports tools, consider the model as supporting tools
-			const supportsTools = Boolean((m.providers ?? []).some((p) => p?.supports_tools === true));
+			// A model supports tools if any provider advertises it (HF router), or the
+			// model itself advertises a generic tool-calling capability (#2900).
+			const supportsTools = deriveSupportsTools(m);
 			return {
 				id: m.id,
 				name: m.id,
@@ -382,9 +402,7 @@ const buildModels = async (): Promise<ProcessedModel[]> => {
 			const filteredAndOrdered: ModelConfig[] = [];
 			for (const override of overrides) {
 				const matchKey = override.name?.trim() || override.id?.trim() || "";
-				const found = modelsRaw.find(
-					(model) => model.id === matchKey || model.name === matchKey
-				);
+				const found = modelsRaw.find((model) => model.id === matchKey || model.name === matchKey);
 				if (found) {
 					const { id, name, ...rest } = override;
 					void id;

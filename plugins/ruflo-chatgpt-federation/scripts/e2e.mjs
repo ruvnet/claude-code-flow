@@ -40,17 +40,33 @@ async function mcp(method, params, headers = {}) {
 }
 const toolBody = (r) => { try { return JSON.parse(r.body.result.content[0].text); } catch { return null; } };
 
+// Enforcement state decides what an unauthenticated call is SUPPOSED to do, so
+// read it before asserting anything: under enforcement a 401 here is the correct
+// answer, not a defect.
+const info = await (await fetch(`${SERVICE}/`)).json();
+const enforced = info.authorization.enforced === true;
+const accessToken = process.env.CGF_ACCESS_TOKEN;
+const authed = accessToken ? { authorization: `Bearer ${accessToken}` } : {};
+
 // ---- 1. connector identity and surface ----
-console.log('\nconnector');
-{
-  const r = await mcp('tools/list', {});
+console.log(`\nconnector  (oauth ${enforced ? 'ENFORCED' : 'not enforced'}${accessToken ? ', token supplied' : ''})`);
+if (enforced && !accessToken) {
+  // The service's own advertisement is public and unauthenticated, so the
+  // surface is still checkable — just not through the MCP endpoint.
+  info.pubkey === PUBKEY ? ok('service info reports the pinned pubkey', PUBKEY.slice(0, 16) + '…')
+                         : no('service info reports the pinned pubkey', `got ${info.pubkey}`);
+  JSON.stringify(info.tools.slice().sort()) === JSON.stringify(['channel_publish', 'channel_sync', 'federation_identity'])
+    ? ok('service info advertises exactly three tools', info.tools.join(', '))
+    : no('service info advertises exactly three tools', JSON.stringify(info.tools));
+  todo('tools/list and federation_identity over MCP',
+    'OAuth is enforced — set CGF_ACCESS_TOKEN to exercise the MCP surface directly');
+} else {
+  const r = await mcp('tools/list', {}, authed);
   const names = (r.body?.result?.tools ?? []).map((t) => t.name).sort();
   names.length === 3 && names.join() === 'channel_publish,channel_sync,federation_identity'
     ? ok('exposes exactly three tools', names.join(', '))
     : no('exposes exactly three tools', `got ${JSON.stringify(names)}`);
-}
-{
-  const b = toolBody(await mcp('tools/call', { name: 'federation_identity', arguments: {} }));
+  const b = toolBody(await mcp('tools/call', { name: 'federation_identity', arguments: {} }, authed));
   b?.pubkey === PUBKEY ? ok('federation_identity returns the pinned pubkey', PUBKEY.slice(0, 16) + '…')
                        : no('federation_identity returns the pinned pubkey', `got ${b?.pubkey}`);
 }
@@ -114,32 +130,51 @@ console.log('\noauth discovery');
 // ---- 3. token rejection (the security bar) ----
 console.log('\ntoken rejection');
 {
+  // An unverifiable bearer: refused either way, but under enforcement this is
+  // the same code path that refuses a browser-session token (no iss/aud) and
+  // another client's token (wrong aud).
   const r = await mcp('tools/call', { name: 'federation_identity', arguments: {} },
     { authorization: 'Bearer not.a.real.token' });
-  const info = await (await fetch(`${SERVICE}/`)).json();
-  if (!info.authorization.enforced) {
-    todo('enforced rejection of session/other-client tokens',
-      'CGF_OAUTH_REQUIRED is false; flip it after the auth-code flow passes');
-    r.status === 401 && /resource_metadata=/.test(r.wwwAuth || '')
-      ? ok('an unverifiable bearer is already refused with a discovery pointer')
-      : no('an unverifiable bearer is refused', `status ${r.status}`);
-  } else {
-    r.status === 401 ? ok('an unverifiable bearer is refused under enforcement')
-                     : no('an unverifiable bearer is refused under enforcement', `status ${r.status}`);
-  }
+  r.status === 401 && /resource_metadata=/.test(r.wwwAuth || '')
+    ? ok('an unverifiable bearer is refused, with a discovery pointer')
+    : no('an unverifiable bearer is refused', `status ${r.status}`);
 }
-todo('authorization-code + PKCE flow with a real sign-in',
-  'needs a human at auth.cognitum.one — run it from the ChatGPT connector');
+if (enforced) {
+  ok('OAuth is ENFORCED — reads are closed and the transitional header is shut');
+  // Prove the transitional door is actually shut rather than merely unadvertised.
+  const r = await mcp('tools/call', { name: 'federation_identity', arguments: {} });
+  r.status === 401
+    ? ok('an unauthenticated call is challenged')
+    : no('an unauthenticated call is challenged', `status ${r.status}`);
+  if (process.env.CGF_CALLER_TOKEN) {
+    const c = await mcp('tools/call', { name: 'channel_publish',
+      arguments: { channel: CHANNEL, msgType: 'Status', payload: {} } },
+      { 'x-caller-token': process.env.CGF_CALLER_TOKEN });
+    c.status === 401
+      ? ok('the retired caller token no longer authorises publishing')
+      : no('the retired caller token no longer authorises publishing', `status ${c.status}`);
+  }
+} else {
+  no('OAuth is enforced', 'CGF_OAUTH_REQUIRED is not true — reads are open and x-caller-token still publishes');
+}
 
 // ---- 4. publish, read back, dedupe ----
-const caller = process.env.CGF_CALLER_TOKEN;
-if (!caller) {
-  todo('publish / read-back / duplicate check', 'set CGF_CALLER_TOKEN (or use an OAuth token) to run these');
+// Under enforcement only a scoped OAuth access token can publish. Obtaining one
+// needs an interactive sign-in, so this section runs from a token supplied in the
+// environment; otherwise it reports PENDING rather than failing, because "we did
+// not exercise this" and "this is broken" must not look alike.
+const caller = enforced ? null : process.env.CGF_CALLER_TOKEN;
+const publishHeaders = accessToken ? { authorization: `Bearer ${accessToken}` }
+                     : caller ? { 'x-caller-token': caller } : null;
+if (!publishHeaders) {
+  todo('publish / read-back / duplicate check',
+    enforced ? 'OAuth is enforced — set CGF_ACCESS_TOKEN to a token with federation:publish'
+             : 'set CGF_CALLER_TOKEN to run these');
 } else {
   console.log('\npublish and verify');
   const marker = `e2e-${Date.now()}`;
   const r = await mcp('tools/call', { name: 'channel_publish', arguments: {
-    channel: CHANNEL, msgType: 'Status', payload: { from: 'e2e', marker } } }, { 'x-caller-token': caller });
+    channel: CHANNEL, msgType: 'Status', payload: { from: 'e2e', marker } } }, publishHeaders);
   const b = toolBody(r);
   b?.ok ? ok('published', b.eventId.slice(0, 16) + '…') : no('published', JSON.stringify(b));
 
@@ -189,7 +224,7 @@ if (!caller) {
 
     // Dedupe: the same marker must appear exactly once.
     const sync = toolBody(await mcp('tools/call', { name: 'channel_sync',
-      arguments: { channel: CHANNEL, sinceSeconds: 600, limit: 200 } }));
+      arguments: { channel: CHANNEL, sinceSeconds: 600, limit: 200 } }, publishHeaders));
     const hits = (sync?.messages ?? []).filter((m) => m.marker === marker).length;
     hits === 1 ? ok('exactly one event carries this marker (no duplicates)')
                : no('exactly one event carries this marker', `found ${hits}`);

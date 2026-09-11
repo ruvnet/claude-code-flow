@@ -44,3 +44,16 @@ test('streamed truncation fails honestly even if JSON happens to be complete',as
  try{const result=await askSeraphina('test',{}, {key:'test',onGuidance:()=>{}});assert.equal(result.degraded,true);assert.equal(result.guidance,'');}
  finally{globalThis.fetch=original;}
 });
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+test('SDK carries progress token and guidance notifications before final result',async()=>{
+ const server=new McpServer({name:'test',version:'1'});const client=new Client({name:'test',version:'1'}); const seen=[];
+ server.tool('guidance',{},async(_args,extra)=>{
+  await readMessagesStream(response([start,block,delta('{"guidance":"hello'),delta(' world","proposals":[],"risks":[]}'),...end]),{signal:extra.signal,onGuidance:async text=>extra.sendNotification({method:'notifications/progress',params:{progressToken:extra._meta.progressToken,progress:text.length,message:JSON.stringify({type:'guidance',text})}})});
+  return {content:[{type:'text',text:'final'}]};
+ });
+ const [a,b]=InMemoryTransport.createLinkedPair();
+ try{await Promise.all([server.connect(a),client.connect(b)]);const result=await client.callTool({name:'guidance',arguments:{}},undefined,{onprogress:p=>seen.push(JSON.parse(p.message).text)});assert.deepEqual(seen,['hello','hello world']);assert.equal(result.content[0].text,'final');}
+ finally{await client.close();await server.close();}
+});

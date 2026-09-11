@@ -3,9 +3,11 @@ import { createMCPServer } from '../server.js';
 import type { ILogger, MCPRequest } from '../types.js';
 import {
   MCP_2026_07_28,
+  MCP_HEADER_MISMATCH,
   freezeRequestContext,
   getResponseTransportMetadata,
   principalFromSecret,
+  validateModernEnvelope,
   validateRoutingHeaders,
 } from '../request-context.js';
 
@@ -29,6 +31,17 @@ function initialize(id: number): MCPRequest {
   };
 }
 
+function modernParams(extra: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    ...extra,
+    _meta: {
+      'io.modelcontextprotocol/protocolVersion': MCP_2026_07_28,
+      'io.modelcontextprotocol/clientCapabilities': {},
+      'io.modelcontextprotocol/clientInfo': { name: 'test-client', version: '1.0.0' },
+    },
+  };
+}
+
 describe('request local MCP authority', () => {
   it('keeps concurrent legacy principals bound to distinct sessions', async () => {
     const server = createMCPServer({
@@ -37,11 +50,10 @@ describe('request local MCP authority', () => {
 
     server.registerTool({
       name: 'test/whoami',
-      description: 'Return request scoped identity',
+      description: 'Return request scoped session identity',
       inputSchema: { type: 'object', properties: {} },
       handler: async (_input, context) => ({
         sessionId: context?.sessionId,
-        principal: context?.metadata?.principal,
         requestContextId: context?.metadata?.requestContextId,
       }),
     });
@@ -83,9 +95,7 @@ describe('request local MCP authority', () => {
 
     const results = await Promise.all(calls);
     for (const [a, b] of results) {
-      expect((a.result as any).principal).toBe(principalA.subject);
       expect((a.result as any).sessionId).toBe(sessionA);
-      expect((b.result as any).principal).toBe(principalB.subject);
       expect((b.result as any).sessionId).toBe(sessionB);
     }
   });
@@ -111,20 +121,24 @@ describe('request local MCP authority', () => {
     expect(response.error?.code).toBe(-32002);
   });
 
-  it('allows modern stateless discovery without legacy initialization', async () => {
+  it('returns final-era stateless discovery bookkeeping without a legacy session', async () => {
     const server = createMCPServer({
       name: 'test', version: '1.0.0', transport: 'in-process',
     }, logger);
     const principal = principalFromSecret('modern-token');
     const response = await (server as any).handleRequest({
-      jsonrpc: '2.0', id: 7, method: 'server/discover',
+      jsonrpc: '2.0', id: 7, method: 'server/discover', params: modernParams(),
     }, freezeRequestContext({
       requestId: 'modern', transport: 'http', principal, protocolVersion: MCP_2026_07_28,
     }));
 
-    expect((response.result as any).protocolVersion).toBe(MCP_2026_07_28);
-    expect((response.result as any).transport.sessionsRequired).toBe(false);
+    expect((response.result as any).supportedVersions).toContain(MCP_2026_07_28);
     expect((response.result as any).capabilities.resources.subscribe).toBe(false);
+    expect((response.result as any).resultType).toBe('complete');
+    expect((response.result as any).ttlMs).toBe(0);
+    expect((response.result as any).cacheScope).toBe('private');
+    expect((response.result as any)._meta['io.modelcontextprotocol/serverInfo'].name).toBeTruthy();
+    expect(server.getSessions()).toHaveLength(0);
   });
 
   it('rejects initialize for the modern stateless protocol era', async () => {
@@ -143,13 +157,13 @@ describe('request local MCP authority', () => {
     expect(server.getSessions()).toHaveLength(0);
   });
 
-  it('fails closed on modern resource subscriptions until delivery can be targeted', async () => {
+  it('fails closed on methods removed from the stateless era', async () => {
     const server = createMCPServer({
       name: 'test', version: '1.0.0', transport: 'in-process',
     }, logger);
     const principal = principalFromSecret('modern-token');
     const response = await (server as any).handleRequest({
-      jsonrpc: '2.0', id: 10, method: 'resources/subscribe', params: { uri: 'ruv://test' },
+      jsonrpc: '2.0', id: 10, method: 'resources/subscribe', params: modernParams({ uri: 'ruv://test' }),
     }, freezeRequestContext({
       requestId: 'modern-subscribe',
       transport: 'http',
@@ -159,12 +173,85 @@ describe('request local MCP authority', () => {
 
     expect(response.error?.code).toBe(-32601);
   });
+
+  it('validates x-mcp-header annotated tool arguments before execution', async () => {
+    const server = createMCPServer({
+      name: 'test', version: '1.0.0', transport: 'in-process',
+    }, logger);
+    let calls = 0;
+    server.registerTool({
+      name: 'test/tenant',
+      description: 'Header bound tool',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          tenant: { type: 'string', 'x-mcp-header': 'tenant' } as any,
+        },
+      },
+      handler: async () => {
+        calls++;
+        return { ok: true };
+      },
+    });
+
+    const principal = principalFromSecret('modern-token');
+    const base = {
+      requestId: 'modern-tool',
+      transport: 'http' as const,
+      principal,
+      protocolVersion: MCP_2026_07_28,
+    };
+    const request: MCPRequest = {
+      jsonrpc: '2.0', id: 20, method: 'tools/call',
+      params: modernParams({ name: 'test/tenant', arguments: { tenant: 'alpha' } }),
+    };
+
+    const rejected = await (server as any).handleRequest(request, freezeRequestContext({
+      ...base,
+      paramHeaders: { tenant: 'beta' },
+    }));
+    expect(rejected.error?.code).toBe(MCP_HEADER_MISMATCH);
+    expect(calls).toBe(0);
+
+    const accepted = await (server as any).handleRequest(request, freezeRequestContext({
+      ...base,
+      paramHeaders: { tenant: 'alpha' },
+    }));
+    expect(accepted.error).toBeUndefined();
+    expect(calls).toBe(1);
+  });
 });
 
-describe('MCP routing header validation', () => {
+describe('MCP 2026 envelope and routing validation', () => {
+  it('requires matching protocol version and client capabilities', () => {
+    const request: MCPRequest = {
+      jsonrpc: '2.0', id: 1, method: 'server/discover', params: modernParams(),
+    };
+    expect(validateModernEnvelope(request, MCP_2026_07_28).valid).toBe(true);
+
+    const missingCapabilities: MCPRequest = {
+      jsonrpc: '2.0', id: 2, method: 'server/discover',
+      params: {
+        _meta: { 'io.modelcontextprotocol/protocolVersion': MCP_2026_07_28 },
+      },
+    };
+    expect(validateModernEnvelope(missingCapabilities, MCP_2026_07_28).valid).toBe(false);
+    expect(validateModernEnvelope(request, '2099-01-01').code).toBe(MCP_HEADER_MISMATCH);
+  });
+
+  it('requires Mcp-Method on modern HTTP routing', () => {
+    const request: MCPRequest = { jsonrpc: '2.0', id: 1, method: 'tools/list' };
+    const result = validateRoutingHeaders(request, { protocolVersion: MCP_2026_07_28 });
+    expect(result.valid).toBe(false);
+    expect(result.code).toBe(MCP_HEADER_MISMATCH);
+  });
+
   it('rejects method disagreement before dispatch', () => {
     const request: MCPRequest = { jsonrpc: '2.0', id: 1, method: 'tools/list' };
-    expect(validateRoutingHeaders(request, { routingMethod: 'tools/call' }).valid).toBe(false);
+    expect(validateRoutingHeaders(request, {
+      protocolVersion: MCP_2026_07_28,
+      routingMethod: 'tools/call',
+    }).valid).toBe(false);
   });
 
   it('rejects routed tool name disagreement before dispatch', () => {
@@ -172,16 +259,19 @@ describe('MCP routing header validation', () => {
       jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'safe-tool' },
     };
     expect(validateRoutingHeaders(request, {
+      protocolVersion: MCP_2026_07_28,
       routingMethod: 'tools/call', routingName: 'other-tool',
     }).valid).toBe(false);
   });
 
-  it('accepts matching routing metadata', () => {
+  it('accepts matching and base64 encoded routing metadata', () => {
     const request: MCPRequest = {
-      jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'safe-tool' },
+      jsonrpc: '2.0', id: 1, method: 'resources/read', params: { uri: 'ruv://alpha' },
     };
     expect(validateRoutingHeaders(request, {
-      routingMethod: 'tools/call', routingName: 'safe-tool',
+      protocolVersion: MCP_2026_07_28,
+      routingMethod: 'resources/read',
+      routingName: '=?base64?cnV2Oi8vYWxwaGE=?=',
     }).valid).toBe(true);
   });
 });

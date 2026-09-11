@@ -22,13 +22,16 @@ import type {
   ITransport,
   ILogger,
   ToolContext,
+  JSONSchema,
 } from './types.js';
 import { MCPServerError, ErrorCodes } from './types.js';
 import type { MCPRequestContext } from './request-context.js';
 import {
   MCP_2026_07_28,
+  MCP_HEADER_MISMATCH,
   attachResponseTransportMetadata,
   authorityKey,
+  decodeMcpHeaderValue,
   isModernStatelessContext,
 } from './request-context.js';
 import {
@@ -58,6 +61,23 @@ const DEFAULT_CONFIG: Partial<MCPServerConfig> = {
   requestTimeout: 30000,
   maxRequestSize: 10 * 1024 * 1024,
 };
+
+const MODERN_LEGACY_ONLY_METHODS = new Set([
+  'resources/subscribe',
+  'resources/unsubscribe',
+  'tasks/status',
+  'tasks/cancel',
+  'logging/setLevel',
+  'sampling/createMessage',
+]);
+
+const MODERN_CACHEABLE_METHODS = new Set([
+  'server/discover',
+  'tools/list',
+  'resources/list',
+  'resources/read',
+  'prompts/list',
+]);
 
 export interface IMCPServer {
   start(): Promise<void>;
@@ -195,7 +215,7 @@ export class MCPServer extends EventEmitter implements IMCPServer {
   async start(): Promise<void> {
     if (this.running) throw new MCPServerError('Server already running');
 
-    const startTime = performance.now();
+    const startedAt = performance.now();
     this.startTime = new Date();
 
     this.logger.info('Starting MCP server', {
@@ -238,7 +258,7 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       await this.registerBuiltInTools();
 
       this.running = true;
-      this.startupDuration = performance.now() - startTime;
+      this.startupDuration = performance.now() - startedAt;
       this.logger.info('MCP server started', {
         startupTime: `${this.startupDuration.toFixed(2)}ms`,
         tools: this.toolRegistry.getToolCount(),
@@ -332,7 +352,10 @@ export class MCPServer extends EventEmitter implements IMCPServer {
         metrics,
       };
     } catch (error) {
-      return { healthy: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      return {
+        healthy: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   }
 
@@ -380,7 +403,7 @@ export class MCPServer extends EventEmitter implements IMCPServer {
   }
 
   private async handleRequestScoped(request: MCPRequest): Promise<MCPResponse> {
-    const startTime = performance.now();
+    const startedAt = performance.now();
     this.requestStats.total++;
     const context = this.requestContext.getStore();
 
@@ -388,7 +411,6 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       id: request.id,
       method: request.method,
       requestContextId: context?.requestId,
-      principal: context?.principal.subject,
     });
 
     if (isModernStatelessContext(context) && request.method === 'initialize') {
@@ -433,8 +455,20 @@ export class MCPServer extends EventEmitter implements IMCPServer {
         if (session) this.sessionManager.updateActivity(session.id);
       }
 
-      const response = await this.routeRequest(request);
-      const duration = performance.now() - startTime;
+      if (isModernStatelessContext(context) && MODERN_LEGACY_ONLY_METHODS.has(request.method)) {
+        return this.createErrorResponse(
+          request.id,
+          ErrorCodes.METHOD_NOT_FOUND,
+          `Method is not available in MCP 2026-07-28: ${request.method}`
+        );
+      }
+
+      let response = await this.routeRequest(request);
+      if (isModernStatelessContext(context)) {
+        response = this.finalizeModernResponse(request.method, response);
+      }
+
+      const duration = performance.now() - startedAt;
       this.requestStats.successful++;
       this.requestStats.totalResponseTime += duration;
       this.logger.debug('Request completed', {
@@ -445,7 +479,7 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       });
       return response;
     } catch (error) {
-      const duration = performance.now() - startTime;
+      const duration = performance.now() - startedAt;
       this.requestStats.failed++;
       this.requestStats.totalResponseTime += duration;
       this.logger.error('Request failed', {
@@ -478,11 +512,14 @@ export class MCPServer extends EventEmitter implements IMCPServer {
     this.logger.debug('Handling notification', {
       method: notification.method,
       requestContextId: context?.requestId,
-      principal: context?.principal.subject,
     });
 
     switch (notification.method) {
       case 'initialized':
+        if (isModernStatelessContext(context)) {
+          this.logger.warn('Ignoring legacy initialized notification on modern stateless request');
+          return;
+        }
         this.logger.info('Client initialized notification received', {
           sessionId: this.resolveRequestSession()?.id,
         });
@@ -518,7 +555,6 @@ export class MCPServer extends EventEmitter implements IMCPServer {
     this.logger.info('Session initialized', {
       sessionId: session.id,
       clientInfo: params.clientInfo,
-      principal: this.requestContext.getStore()?.principal.subject,
     });
 
     return attachResponseTransportMetadata({
@@ -545,42 +581,50 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       case 'logging/setLevel': return this.handleLoggingSetLevel(request);
       case 'sampling/createMessage': return this.handleSamplingCreateMessage(request);
       case 'ping':
-        return { jsonrpc: '2.0', id: request.id, result: { pong: true, timestamp: Date.now() } };
+        return {
+          jsonrpc: '2.0',
+          id: request.id,
+          result: { pong: true, timestamp: Date.now() },
+        };
       default:
         if (this.toolRegistry.hasTool(request.method)) return this.handleToolExecution(request);
-        return this.createErrorResponse(request.id, ErrorCodes.METHOD_NOT_FOUND, `Method not found: ${request.method}`);
+        return this.createErrorResponse(
+          request.id,
+          ErrorCodes.METHOD_NOT_FOUND,
+          `Method not found: ${request.method}`
+        );
     }
   }
 
   private handleServerDiscover(request: MCPRequest): MCPResponse {
-    const modernCapabilities: MCPCapabilities = {
-      ...this.capabilities,
+    const capabilities: Record<string, unknown> = {
+      tools: this.capabilities.tools,
+      prompts: this.capabilities.prompts,
       resources: this.capabilities.resources
         ? { ...this.capabilities.resources, subscribe: false }
         : undefined,
     };
+
     return {
       jsonrpc: '2.0',
       id: request.id,
       result: {
-        protocolVersion: MCP_2026_07_28,
-        serverInfo: this.serverInfo,
-        capabilities: modernCapabilities,
-        transport: {
-          requestLocalAuthority: true,
-          sessionsRequired: false,
-          resourceSubscriptions: 'legacy-only-until-targeted-delivery',
-        },
+        supportedVersions: [MCP_2026_07_28],
+        capabilities,
+        instructions: 'Stateless request-local MCP endpoint. Legacy sessions remain available through the 2025-11-25 path.',
       },
     };
   }
 
   private handleToolsList(request: MCPRequest): MCPResponse {
-    const tools = this.toolRegistry.listTools().map((t) => ({
-      name: t.name,
-      description: t.description,
-      inputSchema: this.toolRegistry.getTool(t.name)?.inputSchema,
-    }));
+    const tools = this.toolRegistry.listTools()
+      .map((t) => ({
+        name: t.name,
+        description: t.description,
+        inputSchema: this.toolRegistry.getTool(t.name)?.inputSchema,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
     return { jsonrpc: '2.0', id: request.id, result: { tools } };
   }
 
@@ -589,6 +633,17 @@ export class MCPServer extends EventEmitter implements IMCPServer {
     if (!params?.name) {
       return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, 'Tool name is required');
     }
+
+    const tool = this.toolRegistry.getTool(params.name);
+    const headerError = this.validateToolParamHeaders(
+      tool?.inputSchema,
+      params.arguments || {},
+      this.requestContext.getStore()
+    );
+    if (headerError) {
+      return this.createErrorResponse(request.id, MCP_HEADER_MISMATCH, headerError);
+    }
+
     const result = await this.toolRegistry.execute(
       params.name,
       params.arguments || {},
@@ -598,9 +653,20 @@ export class MCPServer extends EventEmitter implements IMCPServer {
   }
 
   private async handleToolExecution(request: MCPRequest): Promise<MCPResponse> {
+    const tool = this.toolRegistry.getTool(request.method);
+    const args = (request.params as Record<string, unknown>) || {};
+    const headerError = this.validateToolParamHeaders(
+      tool?.inputSchema,
+      args,
+      this.requestContext.getStore()
+    );
+    if (headerError) {
+      return this.createErrorResponse(request.id, MCP_HEADER_MISMATCH, headerError);
+    }
+
     const result = await this.toolRegistry.execute(
       request.method,
-      (request.params as Record<string, unknown>) || {},
+      args,
       this.createToolContext(request)
     );
     return { jsonrpc: '2.0', id: request.id, result };
@@ -608,7 +674,11 @@ export class MCPServer extends EventEmitter implements IMCPServer {
 
   private handleResourcesList(request: MCPRequest): MCPResponse {
     const params = request.params as { cursor?: string } | undefined;
-    return { jsonrpc: '2.0', id: request.id, result: this.resourceRegistry.list(params?.cursor) };
+    return {
+      jsonrpc: '2.0',
+      id: request.id,
+      result: this.resourceRegistry.list(params?.cursor),
+    };
   }
 
   private async handleResourcesRead(request: MCPRequest): Promise<MCPResponse> {
@@ -617,7 +687,11 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, 'Resource URI is required');
     }
     try {
-      return { jsonrpc: '2.0', id: request.id, result: await this.resourceRegistry.read(params.uri) };
+      return {
+        jsonrpc: '2.0',
+        id: request.id,
+        result: await this.resourceRegistry.read(params.uri),
+      };
     } catch (error) {
       return this.createErrorResponse(
         request.id,
@@ -629,20 +703,16 @@ export class MCPServer extends EventEmitter implements IMCPServer {
 
   private handleResourcesSubscribe(request: MCPRequest): MCPResponse {
     const params = request.params as { uri: string } | undefined;
-    const requestContext = this.requestContext.getStore();
-    if (isModernStatelessContext(requestContext)) {
-      return this.createErrorResponse(
-        request.id,
-        ErrorCodes.METHOD_NOT_FOUND,
-        'Stateless resource subscriptions are disabled until targeted notification delivery is available'
-      );
-    }
     const sessionId = this.resolveRequestScopeId();
     if (!params?.uri) {
       return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, 'Resource URI is required');
     }
     if (!sessionId) {
-      return this.createErrorResponse(request.id, ErrorCodes.SERVER_NOT_INITIALIZED, 'No active request authority scope');
+      return this.createErrorResponse(
+        request.id,
+        ErrorCodes.SERVER_NOT_INITIALIZED,
+        'No active request authority scope'
+      );
     }
 
     try {
@@ -667,14 +737,6 @@ export class MCPServer extends EventEmitter implements IMCPServer {
 
   private handleResourcesUnsubscribe(request: MCPRequest): MCPResponse {
     const params = request.params as { uri: string } | undefined;
-    const requestContext = this.requestContext.getStore();
-    if (isModernStatelessContext(requestContext)) {
-      return this.createErrorResponse(
-        request.id,
-        ErrorCodes.METHOD_NOT_FOUND,
-        'Stateless resource subscriptions are disabled until targeted notification delivery is available'
-      );
-    }
     const sessionId = this.resolveRequestScopeId();
     if (!params?.uri) {
       return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, 'Resource URI is required');
@@ -685,7 +747,11 @@ export class MCPServer extends EventEmitter implements IMCPServer {
 
   private handlePromptsList(request: MCPRequest): MCPResponse {
     const params = request.params as { cursor?: string } | undefined;
-    return { jsonrpc: '2.0', id: request.id, result: this.promptRegistry.list(params?.cursor) };
+    return {
+      jsonrpc: '2.0',
+      id: request.id,
+      result: this.promptRegistry.list(params?.cursor),
+    };
   }
 
   private async handlePromptsGet(request: MCPRequest): Promise<MCPResponse> {
@@ -713,11 +779,19 @@ export class MCPServer extends EventEmitter implements IMCPServer {
     if (params?.taskId) {
       const task = this.taskManager.getTask(params.taskId);
       if (!task) {
-        return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, `Task not found: ${params.taskId}`);
+        return this.createErrorResponse(
+          request.id,
+          ErrorCodes.INVALID_PARAMS,
+          `Task not found: ${params.taskId}`
+        );
       }
       return { jsonrpc: '2.0', id: request.id, result: task };
     }
-    return { jsonrpc: '2.0', id: request.id, result: { tasks: this.taskManager.getAllTasks() } };
+    return {
+      jsonrpc: '2.0',
+      id: request.id,
+      result: { tasks: this.taskManager.getAllTasks() },
+    };
   }
 
   private handleTasksCancel(request: MCPRequest): MCPResponse {
@@ -779,7 +853,9 @@ export class MCPServer extends EventEmitter implements IMCPServer {
     if (!params?.level) {
       return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, 'Log level is required');
     }
-    this.capabilities.logging = { level: params.level as 'debug' | 'info' | 'warn' | 'error' };
+    this.capabilities.logging = {
+      level: params.level as 'debug' | 'info' | 'warn' | 'error',
+    };
     this.logger.info('Log level updated', { level: params.level });
     return { jsonrpc: '2.0', id: request.id, result: { success: true } };
   }
@@ -801,10 +877,18 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       metadata?: Record<string, unknown>;
     } | undefined;
     if (!params?.messages || !params?.maxTokens) {
-      return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, 'messages and maxTokens are required');
+      return this.createErrorResponse(
+        request.id,
+        ErrorCodes.INVALID_PARAMS,
+        'messages and maxTokens are required'
+      );
     }
     if (!(await this.samplingManager.isAvailable())) {
-      return this.createErrorResponse(request.id, ErrorCodes.INTERNAL_ERROR, 'No LLM provider available for sampling');
+      return this.createErrorResponse(
+        request.id,
+        ErrorCodes.INTERNAL_ERROR,
+        'No LLM provider available for sampling'
+      );
     }
 
     try {
@@ -835,6 +919,103 @@ export class MCPServer extends EventEmitter implements IMCPServer {
         error instanceof Error ? error.message : 'Sampling failed'
       );
     }
+  }
+
+  private finalizeModernResponse(method: string, response: MCPResponse): MCPResponse {
+    if (response.error || !response.result || typeof response.result !== 'object' || Array.isArray(response.result)) {
+      return response;
+    }
+
+    const current = response.result as Record<string, unknown>;
+    const existingMeta = current._meta && typeof current._meta === 'object' && !Array.isArray(current._meta)
+      ? current._meta as Record<string, unknown>
+      : {};
+    const result: Record<string, unknown> = {
+      ...current,
+      _meta: {
+        ...existingMeta,
+        'io.modelcontextprotocol/serverInfo': this.serverInfo,
+      },
+      resultType: typeof current.resultType === 'string' ? current.resultType : 'complete',
+    };
+
+    if (MODERN_CACHEABLE_METHODS.has(method)) {
+      if (typeof result.ttlMs !== 'number') result.ttlMs = 0;
+      if (typeof result.cacheScope !== 'string') result.cacheScope = 'private';
+    }
+
+    return {
+      ...response,
+      result,
+    };
+  }
+
+  private validateToolParamHeaders(
+    schema: JSONSchema | undefined,
+    args: Record<string, unknown>,
+    context: MCPRequestContext | undefined
+  ): string | undefined {
+    if (!schema || !isModernStatelessContext(context) || context?.transport !== 'http') {
+      return undefined;
+    }
+
+    const declarations: Array<{ header: string; value: unknown; type: string }> = [];
+    const seen = new Set<string>();
+
+    const visit = (node: JSONSchema, value: unknown): string | undefined => {
+      const header = (node as JSONSchema & { 'x-mcp-header'?: unknown })['x-mcp-header'];
+      if (header !== undefined) {
+        if (typeof header !== 'string' || !/^[A-Za-z0-9!#$%&'*+.^_`|~-]+$/.test(header)) {
+          return 'Invalid x-mcp-header annotation';
+        }
+        if (!['string', 'integer', 'boolean'].includes(node.type)) {
+          return `x-mcp-header ${header} uses unsupported type ${node.type}`;
+        }
+        const key = header.toLowerCase();
+        if (seen.has(key)) return `Duplicate x-mcp-header annotation: ${header}`;
+        seen.add(key);
+        declarations.push({ header: key, value, type: node.type });
+      }
+
+      if (node.type === 'object' && node.properties && value && typeof value === 'object' && !Array.isArray(value)) {
+        const objectValue = value as Record<string, unknown>;
+        for (const [property, child] of Object.entries(node.properties)) {
+          const error = visit(child, objectValue[property]);
+          if (error) return error;
+        }
+      }
+      return undefined;
+    };
+
+    const schemaError = visit(schema, args);
+    if (schemaError) return schemaError;
+
+    const actualHeaders = context.paramHeaders || {};
+    for (const declaration of declarations) {
+      const actual = actualHeaders[declaration.header];
+      if (declaration.value === undefined) {
+        if (actual !== undefined) {
+          return `Mcp-Param-${declaration.header} is present but the body argument is missing`;
+        }
+        continue;
+      }
+      if (actual === undefined) {
+        return `Mcp-Param-${declaration.header} is required for the annotated body argument`;
+      }
+
+      let decoded: string;
+      try {
+        decoded = decodeMcpHeaderValue(actual);
+      } catch (error) {
+        return error instanceof Error ? error.message : 'Invalid MCP parameter header encoding';
+      }
+      const expected = String(declaration.value);
+      if (decoded !== expected) {
+        return `Mcp-Param-${declaration.header} mismatch`;
+      }
+    }
+
+    return undefined;
   }
 
   private async sendNotification(method: string, params?: Record<string, unknown>): Promise<void> {
@@ -883,7 +1064,6 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       orchestrator: this.orchestrator,
       swarmCoordinator: this.swarmCoordinator,
       metadata: requestContext ? {
-        principal: requestContext.principal.subject,
         protocolVersion: requestContext.protocolVersion,
         requestContextId: requestContext.requestId,
         traceparent: requestContext.traceparent,
@@ -891,7 +1071,11 @@ export class MCPServer extends EventEmitter implements IMCPServer {
     };
   }
 
-  private createErrorResponse(id: string | number | null, code: number, message: string): MCPResponse {
+  private createErrorResponse(
+    id: string | number | null,
+    code: number,
+    message: string
+  ): MCPResponse {
     return { jsonrpc: '2.0', id, error: { code, message } };
   }
 
@@ -933,11 +1117,15 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       description: 'List all registered tools with details',
       inputSchema: {
         type: 'object',
-        properties: { category: { type: 'string', description: 'Filter by category' } },
+        properties: {
+          category: { type: 'string', description: 'Filter by category' },
+        },
       },
       handler: async (input: unknown) => {
         const params = input as { category?: string };
-        return params.category ? this.toolRegistry.getByCategory(params.category) : this.toolRegistry.listTools();
+        return params.category
+          ? this.toolRegistry.getByCategory(params.category)
+          : this.toolRegistry.listTools();
       },
       category: 'system',
     });

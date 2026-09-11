@@ -25,6 +25,33 @@ function requireAuthenticatedAdministrator(
   }
 }
 
+// #2894: `input.request` was cast straight to `PolicyRequest` with no
+// validation, so a missing/malformed `request` argument (including the
+// documented `policy_evaluate {}` repro) flowed all the way into
+// `AgenticPolicyEngine.evaluate()`, which unconditionally reads
+// `request.requestId` — crashing with a bare
+// "Cannot read properties of undefined (reading 'requestId')" TypeError
+// that surfaced to MCP clients as an opaque JSON-RPC -32603. Validate the
+// shape here so a missing/malformed request is a clear, catchable error
+// instead of an internal crash.
+function requireWellFormedPolicyRequest(
+  input: Record<string, unknown>,
+): asserts input is Record<string, unknown> & { request: PolicyRequest } {
+  const { request } = input;
+  if (!request || typeof request !== 'object' || Array.isArray(request)) {
+    throw new Error(
+      "policy_evaluate requires a `request` object argument (e.g. { request: { identity, action } }), not top-level fields",
+    );
+  }
+  const { identity, action } = request as Record<string, unknown>;
+  if (!identity || typeof identity !== 'object') {
+    throw new Error('policy_evaluate requires `request.identity` ({ id, type })');
+  }
+  if (!action || typeof action !== 'object') {
+    throw new Error('policy_evaluate requires `request.action` ({ type, resource, ... })');
+  }
+}
+
 export const policyTools: MCPTool[] = [
   {
     name: 'policy_evaluate',
@@ -37,10 +64,13 @@ export const policyTools: MCPTool[] = [
       },
       required: ['request'],
     },
-    handler: async (input, context) => evaluatePolicyRequest(
-      input.request as PolicyRequest,
-      typeof context?.projectRoot === 'string' ? context.projectRoot : process.cwd(),
-    ),
+    handler: async (input, context) => {
+      requireWellFormedPolicyRequest(input);
+      return evaluatePolicyRequest(
+        input.request,
+        typeof context?.projectRoot === 'string' ? context.projectRoot : process.cwd(),
+      );
+    },
   },
   {
     name: 'policy_status',

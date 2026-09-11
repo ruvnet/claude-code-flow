@@ -57,10 +57,21 @@ export function createGateway({ relay, keyFile, port } = {}) {
       return { mode: 'denied', error: 'invalid_request',
         description: 'this deployment has no OAuth audience configured and will not accept bearer tokens' };
     }
+    // Accept this resource's own client, AND any client that registered itself
+    // through RFC 7591 dynamic registration. A `dcr-` client is constrained at
+    // registration to swarm:* / openid / email — this resource's own scopes —
+    // so by construction its token was minted FOR this resource. Rejecting it
+    // would make dynamic registration useless: a self-registered client's token
+    // carries aud=<its own client_id>, never `ruflo-x-gateway`.
+    //
+    // This is exactly as strong as the registration gate: if `federation:*` or
+    // any other resource's scopes ever become self-registrable, this stops being
+    // safe. Keep those two facts together.
     const v = await verifyAccessToken(bearer, { issuer: OAUTH_ISSUER, jwksUri: OAUTH_JWKS,
-      audience: OAUTH_CLIENT_ID || undefined });
-    return v.ok ? { mode: 'oauth', scopes: v.scopes, subject: v.subject }
-                : { mode: 'denied', error: v.error, description: v.description };
+      audienceOk: (aud) => aud === OAUTH_CLIENT_ID || aud.startsWith('dcr-') });
+    return v.ok ? { mode: 'oauth', scopes: v.scopes, subject: v.subject, audience: v.audience }
+                : { mode: 'denied', error: v.error, description: v.description,
+                    observedAudience: v.observedAudience };
   }
 
   const text = (o) => ({ content: [{ type: 'text', text: JSON.stringify(o) }] });
@@ -201,10 +212,29 @@ export function createGateway({ relay, keyFile, port } = {}) {
         authorization: { type: 'oauth2', issuer: OAUTH_ISSUER, clientId: OAUTH_CLIENT_ID || null,
           scopes: [SCOPE_READ, SCOPE_PUBLISH], protectedResourceMetadata: prmUrl('/mcp'),
           note: 'Additive: reads stay open and adminToken still works; an access token with swarm:publish is an alternative write credential.' } })); }
+    if (url.pathname === '/mcp' && req.method === 'GET') {
+      // Streamable HTTP allows a GET to open a server->client SSE stream, but
+      // this transport is STATELESS (sessionIdGenerator: undefined) so there is
+      // no session to attach one to: the SDK holds the socket open and Cloud Run
+      // eventually severs it at 300s with "Truncated response body". A client
+      // probing GET then waits five minutes instead of failing in milliseconds.
+      // 405 is the spec's answer for a server that does not offer the GET stream.
+      res.writeHead(405, { 'content-type': 'application/json', allow: 'POST, OPTIONS' });
+      return res.end(JSON.stringify({ error: 'method_not_allowed',
+        error_description: 'this MCP endpoint is stateless; use POST' }));
+    }
     if (url.pathname === '/mcp') {
       if (rateLimited(req)) return res.writeHead(429, { 'content-type': 'application/json' }).end('{"error":"rate limited"}');
       let body; try { body = await readBody(req); } catch { return res.writeHead(413, { 'content-type': 'application/json' }).end('{"error":"payload too large"}'); }
       const auth = await oauthContext(req);
+      // Log BEFORE the refusal, or a denied request leaves no trace and the logs
+      // say "no token arrived" when a token arrived and was rejected. That blind
+      // spot cost a live debugging session.
+      try {
+        const sub = auth.subject ? createHash('sha256').update(auth.subject).digest('hex').slice(0, 12) : '-';
+        console.log(`mcp auth=${auth.mode} scopes=${(auth.scopes || []).join('+') || '-'} sub=${sub}`
+          + (auth.mode === 'denied' ? ` reason=${auth.error} aud=${auth.observedAudience || '-'}` : ''));
+      } catch { /* logging must never break a request */ }
       if (auth.mode === 'denied') {
         // A bearer was presented and did not verify. Refuse it — never fall back
         // to anonymous, which would silently downgrade a caller that believes it
@@ -213,10 +243,6 @@ export function createGateway({ relay, keyFile, port } = {}) {
           'www-authenticate': challengeHeader(prmUrl(url.pathname), { error: auth.error, description: auth.description }) });
         return res.end(JSON.stringify({ error: auth.error, error_description: auth.description }));
       }
-      try {
-        const sub = auth.subject ? createHash('sha256').update(auth.subject).digest('hex').slice(0, 12) : '-';
-        console.log(`mcp auth=${auth.mode} scopes=${(auth.scopes || []).join('+') || '-'} sub=${sub}`);
-      } catch { /* logging must never break a request */ }
       const mcp = buildMcp(req, auth); const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
       res.on('close', () => { transport.close(); mcp.close(); });
       await mcp.connect(transport);

@@ -71,19 +71,37 @@ export function _resetJwksForTest() { jwks = null; jwksFor = null; }
  *
  * @returns {Promise<{ ok: true, scopes: string[], subject?: string } | { ok: false, error: string, description: string }>}
  */
-export async function verifyAccessToken(token, { issuer, jwksUri, audience }) {
+export async function verifyAccessToken(token, { issuer, jwksUri, audience, audienceOk }) {
   if (!token) return { ok: false, error: 'invalid_request', description: 'no bearer token' };
   try {
+    // Audience is checked BELOW rather than by jose, because a single expected
+    // value cannot express "this resource's own client, or any client that
+    // dynamically registered for it". jose would need the full list up front,
+    // and the DCR set changes at runtime.
     const { payload } = await jwtVerify(token, keySet(jwksUri), {
       issuer,
-      ...(audience ? { audience } : {}),
       clockTolerance: 30,
     });
+    const auds = payload.aud === undefined ? []
+      : (Array.isArray(payload.aud) ? payload.aud.map(String) : [String(payload.aud)]);
+    if (audience || audienceOk) {
+      // An aud-less token is never acceptable: it is bound to no resource, so
+      // any resource accepting it becomes a confused deputy.
+      if (auds.length === 0) {
+        return { ok: false, error: 'invalid_token', observedAudience: '-',
+          description: 'token carries no aud claim, so it is not bound to this resource' };
+      }
+      const accept = audienceOk || ((a) => a === audience);
+      if (!auds.some(accept)) {
+        return { ok: false, error: 'invalid_token', observedAudience: auds.join(','),
+          description: `token audience (${auds.join(',')}) is not this resource` };
+      }
+    }
     // `scope` is the RFC 6749 space-delimited form; `scp` is the array form some
     // servers emit. Accept either rather than silently granting nothing.
     const raw = payload.scope ?? payload.scp ?? '';
     const scopes = Array.isArray(raw) ? raw.map(String) : String(raw).split(/\s+/).filter(Boolean);
-    return { ok: true, scopes, subject: payload.sub ? String(payload.sub) : undefined };
+    return { ok: true, scopes, subject: payload.sub ? String(payload.sub) : undefined, audience: auds[0] };
   } catch (e) {
     // Say WHY, precisely. A correctly-signed token that fails only on iss/aud is a
     // very different problem from a forged one, and `auth.cognitum.one` is measured
@@ -98,7 +116,7 @@ export async function verifyAccessToken(token, { issuer, jwksUri, audience }) {
       const { payload } = await jwtVerify(token, keySet(jwksUri), { clockTolerance: 30 });
       const missing = [];
       if (issuer && !payload.iss) missing.push('iss');
-      if (audience && !payload.aud) missing.push('aud');
+      if ((audience || audienceOk) && !payload.aud) missing.push('aud');
       if (missing.length) {
         detail = `token signature is valid but carries no ${missing.join(' or ')} claim, so it is not bound to this resource`;
         return { ok: false, error: 'invalid_token', description: detail, signatureValid: true, unboundClaims: missing };

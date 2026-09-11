@@ -135,7 +135,11 @@ test('a browser-session token (no iss/aud) cannot act here', async () => {
       const tok = await as.mintSession({ scope: `${SCOPE_READ} ${SCOPE_PUBLISH}` });
       const r = await call(port, 'federation_identity', {}, { authorization: `Bearer ${tok}` });
       assert.equal(r.status, 401);
-      assert.match(r.wwwAuth || '', /carries no iss or aud claim/);
+      // Assert the PROPERTY, not the wording: a session token is refused because
+      // it is bound to no resource. Which claim is named first depends on
+      // verification order and is not what matters.
+      assert.match(r.wwwAuth || '', /not bound to this resource/);
+      assert.match(r.wwwAuth || '', /carries no (iss|aud)/);
     });
   } finally { as.close(); }
 });
@@ -219,4 +223,44 @@ test('with no audience configured, a bearer token is refused rather than honoure
       if (prev[k] === undefined) delete process.env[k]; else process.env[k] = prev[k];
     }
   }
+});
+
+test('a dynamically registered client\'s token is accepted; a stranger\'s is not', async () => {
+  // DCR mints clients whose tokens carry aud=<their own client_id>, never
+  // `ruflo-x-gateway` — so pinning a single audience made dynamic registration
+  // useless. This resource accepts `dcr-` audiences BECAUSE registration
+  // constrains those clients to this resource's own scopes. If that constraint
+  // is ever loosened, this acceptance stops being safe.
+  const as = await fakeAuthServer();
+  try {
+    await withGateway(as, async (port) => {
+      const dcr = await as.mint({ scope: SCOPE_PUBLISH, audience: 'dcr-0123456789abcdef' });
+      const ok = await call(port, 'federation_identity', {}, { authorization: `Bearer ${dcr}` });
+      assert.equal(ok.status, 200, 'a dcr- client must be able to use this resource');
+
+      // Still refused: another Cognitum resource's client.
+      const other = await as.mint({ scope: SCOPE_PUBLISH, audience: 'chatgpt-federation' });
+      assert.equal((await call(port, 'federation_identity', {}, { authorization: `Bearer ${other}` })).status, 401);
+
+      // And a name that merely CONTAINS dcr- must not pass — prefix, not substring.
+      const sneaky = await as.mint({ scope: SCOPE_PUBLISH, audience: 'not-a-dcr-client' });
+      assert.equal((await call(port, 'federation_identity', {}, { authorization: `Bearer ${sneaky}` })).status, 401,
+        'audience matching must be a prefix check, not a substring check');
+    });
+  } finally { as.close(); }
+});
+
+test('GET /mcp is refused immediately instead of hanging a stateless stream', async () => {
+  // It used to hold the socket until Cloud Run severed it at 300s, so a client
+  // probing GET waited five minutes instead of failing in milliseconds.
+  const as = await fakeAuthServer();
+  try {
+    await withGateway(as, async (port) => {
+      const t0 = Date.now();
+      const r = await fetch(`http://127.0.0.1:${port}/mcp`, { headers: { accept: 'text/event-stream' } });
+      assert.equal(r.status, 405);
+      assert.match(r.headers.get('allow') || '', /POST/);
+      assert.ok(Date.now() - t0 < 2000, 'must answer immediately, not hold the stream open');
+    });
+  } finally { as.close(); }
 });

@@ -1,17 +1,11 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
-import type { KeyValuePair } from "$lib/types/Tool";
 import { config } from "$lib/server/config";
 import { logger } from "$lib/server/logger";
 import type { RequestHandler } from "./$types";
-import { isValidUrl } from "$lib/server/urlSafety";
+import { resolveHealthTarget, HealthTargetError } from "$lib/server/mcp/resolveHealthTarget";
 import { isStrictHfMcpLogin, hasNonEmptyToken, isExaMcpServer } from "$lib/server/mcp/hf";
-
-interface HealthCheckRequest {
-	url: string;
-	headers?: KeyValuePair[];
-}
 
 interface HealthCheckResponse {
 	ready: boolean;
@@ -26,29 +20,14 @@ interface HealthCheckResponse {
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	let client: Client | undefined;
+	let configuredRequest = false;
+	let timeoutId: ReturnType<typeof setTimeout> | undefined;
+	let controller: AbortController | undefined;
 
 	try {
-		const body: HealthCheckRequest = await request.json();
-		const { url, headers } = body;
-
-		if (!url) {
-			return new Response(JSON.stringify({ ready: false, error: "URL is required" }), {
-				status: 400,
-				headers: { "Content-Type": "application/json" },
-			});
-		}
-
-		// URL validation handled above
-
-		if (!isValidUrl(url)) {
-			return new Response(
-				JSON.stringify({
-					ready: false,
-					error: "Invalid or unsafe URL (only HTTPS is supported)",
-				} as HealthCheckResponse),
-				{ status: 400, headers: { "Content-Type": "application/json" } }
-			);
-		}
+		const target = resolveHealthTarget(await request.json(), config.MCP_SERVERS || "[]");
+		const { url, headers } = target;
+		configuredRequest = target.configured;
 
 		// Inject Exa API key for mcp.exa.ai servers via URL param
 		let finalUrl = url;
@@ -92,27 +71,41 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		}
 
 		// Add an abort timeout to outbound requests (align with fetch-url: 30s)
-		const controller = new AbortController();
-		const timeoutId = setTimeout(() => controller.abort(), 30000);
+		controller = new AbortController();
+		timeoutId = setTimeout(() => controller?.abort(), 30000);
 		const signal = controller.signal;
 		const requestInit: RequestInit = {
 			headers: headersRecord,
 			signal,
+			...(configuredRequest ? { redirect: "error" as const } : {}),
 		};
+		// SSE's EventSource GET does not inherit requestInit.redirect. Pin every
+		// configured transport request to its deployment origin and forbid redirects.
+		const configuredFetch: typeof fetch | undefined = configuredRequest
+			? async (input, init) => {
+					const destination = new URL(input instanceof Request ? input.url : input);
+					if (destination.origin !== baseUrl.origin)
+						throw new Error("Configured MCP health target cannot change origin");
+					return fetch(input, { ...init, redirect: "error", signal });
+				}
+			: undefined;
 
 		let httpError: Error | undefined;
 		let lastError: Error | undefined;
 
 		// Try Streamable HTTP transport first
 		try {
-			logger.info({}, `[MCP Health] Trying HTTP transport for ${url}`);
+			logger.info({}, "[MCP Health] Trying HTTP transport");
 			client = new Client({
 				name: "chat-ui-health-check",
 				version: "1.0.0",
 			});
 
-			const transport = new StreamableHTTPClientTransport(baseUrl, { requestInit });
-			logger.info({}, `[MCP Health] Connecting to ${url}...`);
+			const transport = new StreamableHTTPClientTransport(baseUrl, {
+				requestInit,
+				fetch: configuredFetch,
+			});
+			logger.info({}, "[MCP Health] Connecting...");
 			await client.connect(transport);
 			logger.info({}, `[MCP Health] Connected successfully via HTTP`);
 
@@ -157,7 +150,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		} catch (error) {
 			httpError = error instanceof Error ? error : new Error(String(error));
 			lastError = httpError;
-			logger.warn(lastError.message, "Streamable HTTP failed, trying SSE transport...");
+			logger.warn(
+				configuredRequest ? "Configured MCP connection failed" : lastError.message,
+				"Streamable HTTP failed, trying SSE transport..."
+			);
 
 			// Close failed client
 			try {
@@ -168,13 +164,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 			// Try SSE transport
 			try {
-				logger.info({}, `[MCP Health] Trying SSE transport for ${url}`);
+				logger.info({}, "[MCP Health] Trying SSE transport");
 				client = new Client({
 					name: "chat-ui-health-check",
 					version: "1.0.0",
 				});
 
-				const sseTransport = new SSEClientTransport(baseUrl, { requestInit });
+				const sseTransport = new SSEClientTransport(baseUrl, {
+					requestInit,
+					fetch: configuredFetch,
+				});
 				logger.info({}, `[MCP Health] Connecting via SSE...`);
 				await client.connect(sseTransport);
 				logger.info({}, `[MCP Health] Connected successfully via SSE`);
@@ -227,7 +226,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 						{ cause: sseError instanceof Error ? sseError : undefined }
 					);
 				}
-				logger.error(lastError, "Both transports failed.");
+				logger.error(
+					configuredRequest ? "Configured MCP connection failed" : lastError,
+					"Both transports failed."
+				);
 			}
 		}
 
@@ -254,6 +256,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		} else if (errorMessage.includes("CORS")) {
 			errorMessage = `CORS error. The MCP server needs to allow requests from this origin.`;
 		}
+		if (configuredRequest) {
+			errorMessage = authRequired
+				? "The configured MCP server requires valid deployment credentials."
+				: "The configured MCP server health check failed. Review the private deployment settings.";
+		}
 
 		const res = new Response(
 			JSON.stringify({
@@ -269,7 +276,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		clearTimeout(timeoutId);
 		return res;
 	} catch (error) {
-		logger.error(error, "MCP health check failed");
+		if (error instanceof HealthTargetError) {
+			return Response.json({ ready: false, error: error.message }, { status: 400 });
+		}
+		logger.error(
+			configuredRequest ? "Configured MCP connection failed" : error,
+			"MCP health check failed"
+		);
 
 		// Clean up client if it exists
 		try {
@@ -280,7 +293,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		const response: HealthCheckResponse = {
 			ready: false,
-			error: error instanceof Error ? error.message : "Unknown error",
+			error: configuredRequest
+				? "The configured MCP server health check failed."
+				: error instanceof Error
+					? error.message
+					: "Unknown error",
 		};
 
 		const res = new Response(JSON.stringify(response), {
@@ -288,5 +305,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			headers: { "Content-Type": "application/json" },
 		});
 		return res;
+	} finally {
+		clearTimeout(timeoutId);
+		controller?.abort();
+		void client?.close().catch(() => {});
 	}
 };

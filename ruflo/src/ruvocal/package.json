@@ -16,7 +16,9 @@
 		"updateLocalEnv": "vite-node --options.transformMode.ssr='/.*/' scripts/updateLocalEnv.ts",
 		"populate": "vite-node --options.transformMode.ssr='/.*/' scripts/populate.ts",
 		"config": "vite-node --options.transformMode.ssr='/.*/' scripts/config.ts",
-		"prepare": "husky"
+		"prepare": "husky",
+		"test:workspace": "vitest run src/lib/utils/workspace.spec.ts src/lib/utils/openWorkspaceDraft.spec.ts src/lib/components/workspace/workspace.ssr.test.ts src/lib/server/workspace src/lib/server/mcp/resolveHealthTarget.spec.ts",
+		"test:workspace:smoke": "node scripts/workspace-smoke.mjs"
 	},
 	"devDependencies": {
 		"@faker-js/faker": "^8.4.1",

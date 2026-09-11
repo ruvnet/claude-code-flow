@@ -100,10 +100,11 @@ async function testHealth() {
 async function testGroups() {
   console.log("\n── Groups Endpoint ──");
 
-  await test("GET /groups returns all 12 groups", async () => {
+  await test("GET /groups returns all 13 groups", async () => {
     const { data } = await fetchJSON("/groups");
     const names = Object.keys(data);
-    assert(names.length === 12, `got ${names.length} groups`);
+    assert(names.length === 13, `got ${names.length} groups`);
+    assert(names.includes("operations"), "missing operations");
     assert(names.includes("core"), "missing core");
     assert(names.includes("agents"), "missing agents");
     assert(names.includes("browser"), "missing browser");

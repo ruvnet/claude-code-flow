@@ -1,6 +1,7 @@
 import express from "express";
 import { spawn } from "child_process";
 import { randomUUID, timingSafeEqual } from "crypto";
+import { createOperationsGroup, toolMatchesGroup, projectBackendTools, backendInvocation } from "./operations-tools.js";
 
 // =============================================================================
 // CONFIGURATION
@@ -21,6 +22,8 @@ const BIND_HOST = process.env.MCP_BIND_HOST || "127.0.0.1";
 // Each group can be toggled via env var. The AI sees only enabled tools.
 
 const TOOL_GROUPS = {
+  // ADR-042: explicit read-only additions; never expose a metaharness_ wildcard.
+  operations: createOperationsGroup(),
   // --- Core (always on, built-in) ---
   core: {
     enabled: true, // cannot be disabled
@@ -258,7 +261,7 @@ class StdioMcpClient {
 
 const BACKEND_DEFS = [
   { name: "ruvector",       command: "npx", args: ["-y", "ruvector", "mcp", "start"],   groups: ["intelligence"] },
-  { name: "ruflo",          command: "npx", args: ["-y", "ruflo", "mcp", "start"],      groups: ["agents", "memory", "devtools", "security", "browser", "neural"] },
+  { name: "ruflo",          command: "npx", args: ["-y", "ruflo", "mcp", "start"],      groups: ["agents", "memory", "devtools", "security", "browser", "neural", "operations"] },
   { name: "agentic-flow",   command: "npx", args: ["-y", "agentic-flow@alpha", "mcp", "start"], groups: ["agentic-flow"] },
   { name: "claude",         command: "claude", args: ["mcp", "serve"],                  groups: ["claude-code"] },
   { name: "gemini-mcp",     command: "npx", args: ["-y", "gemini-mcp-server"],          groups: ["gemini"] },
@@ -279,19 +282,15 @@ function filterToolsByGroups(tools, backendName) {
 
   if (enabledGroups.length === 0) return [];
 
-  // If any enabled group has no prefixes defined, include all tools from that backend
-  const hasWildcard = enabledGroups.some(([, g]) => !g.prefixes);
-  if (hasWildcard) return tools;
-
-  const enabledPrefixes = enabledGroups.flatMap(([, g]) => g.prefixes || []);
-  return tools.filter(t => enabledPrefixes.some(p => t._originalName.startsWith(p)));
+  return tools.filter(tool => enabledGroups.some(([, group]) => toolMatchesGroup(tool, group)));
 }
 
 // Get the final filtered tool list with namespaced names
 function getActiveTools() {
   const filtered = [];
   for (const [backendName, client] of mcpBackends) {
-    const accepted = filterToolsByGroups(client.tools, backendName);
+    if (!client.ready) continue;
+    const accepted = filterToolsByGroups(projectBackendTools(client.tools, backendName), backendName);
     for (const t of accepted) {
       filtered.push({ ...t, name: `${backendName}__${t._originalName}` });
     }
@@ -391,7 +390,7 @@ You have access to ${BUILTIN_TOOLS.length + externalTools.length} tools organize
 
 ## Active Groups
 ${activeGroups.map(([name, g]) => {
-  const count = name === "core" ? BUILTIN_TOOLS.length : externalTools.filter(t => t.name.startsWith(g.source + "__")).length;
+  const count = getToolsForGroup(name).length;
   return `- **${name}** (${count} tools) — ${g.description}`;
 }).join("\n")}
 
@@ -419,11 +418,7 @@ ${inactiveGroups.map(([name, g]) => `- **${name}** — ${g.description}`).join("
   if (topic === "groups") {
     const groupList = Object.entries(TOOL_GROUPS).map(([name, g]) => {
       const status = g.enabled ? "ACTIVE" : "INACTIVE";
-      const toolCount = name === "core" ? BUILTIN_TOOLS.length :
-        externalTools.filter(t => {
-          const backend = t._backend;
-          return g.source === backend && (!g.prefixes || g.prefixes.some(p => t._originalName.startsWith(p)));
-        }).length;
+      const toolCount = getToolsForGroup(name).length;
       return `| ${name} | ${status} | ${toolCount} | ${g.description} |`;
     });
 
@@ -957,7 +952,14 @@ function isTerminalTool(name) {
 }
 const MCP_ENABLE_TERMINAL = process.env.MCP_ENABLE_TERMINAL === "true";
 
-async function executeTool(name, args) {
+async function executeTool(name, args, groupName) {
+  // The same visibility gate covers group endpoints, catch-all calls, and autopilot.
+  const visible = groupName === undefined
+    ? [...BUILTIN_TOOLS, ...getActiveTools()]
+    : getToolsForGroup(groupName);
+  if (!visible.some(tool => tool.name === name)) {
+    return { error: `Tool "${name}" is not available on this endpoint`, code: "TOOL_NOT_ALLOWED" };
+  }
   // Deny dangerous tools unless the operator explicitly opted in.
   // Enforced on every path (not just autopilot) — root cause of ADR-166 V2/V3.
   if (isTerminalTool(name) && !MCP_ENABLE_TERMINAL) {
@@ -1006,7 +1008,15 @@ async function executeTool(name, args) {
       const extTool = activeTools.find(t => t.name === name);
       if (extTool) {
         const backend = mcpBackends.get(extTool._backend);
-        if (backend) return backend.callTool(extTool._originalName, args);
+        if (backend) {
+          let invocation;
+          try {
+            invocation = backendInvocation(extTool, args);
+          } catch (error) {
+            return { error: error.message, code: "INVALID_TOOL_ARGUMENTS" };
+          }
+          return backend.callTool(invocation.name, invocation.arguments);
+        }
         return { error: `Backend ${extTool._backend} not available` };
       }
       return { error: `Unknown tool: ${name}. Call 'guidance' with topic='groups' to see available tools.` };
@@ -1025,17 +1035,12 @@ function getToolsForGroup(groupName) {
   if (groupName === "core") return BUILTIN_TOOLS;
 
   const allActive = getActiveTools();
-  if (!group.prefixes) {
-    // No prefix filter — return all tools from this backend
-    return allActive.filter(t => t._backend === group.source);
-  }
-  return allActive.filter(t =>
-    t._backend === group.source && group.prefixes.some(p => t._originalName.startsWith(p))
-  );
+  return allActive.filter(tool => toolMatchesGroup(tool, group));
 }
 
 // Group display names for the Chat UI
 const GROUP_DISPLAY_NAMES = {
+  operations: "Operations & Governance",
   core: "Core Tools",
   intelligence: "Intelligence & Learning",
   agents: "Agents & Orchestration",
@@ -1129,10 +1134,11 @@ function createMcpHandler(groupName) {
         }
         case "tools/call": {
           const { name, arguments: toolArgs } = params;
-          const result = await executeTool(name, toolArgs || {});
+          const result = await executeTool(name, toolArgs ?? {}, groupName);
           return res.json({
             jsonrpc: "2.0", id,
             result: {
+              isError: Boolean(result?.error || result?.isError),
               content: [{ type: "text", text: typeof result === "string" ? result : JSON.stringify(result, null, 2) }],
             },
           });
@@ -1188,10 +1194,11 @@ app.post("/mcp", async (req, res) => {
       }
       case "tools/call": {
         const { name, arguments: toolArgs } = params;
-        const result = await executeTool(name, toolArgs || {});
+        const result = await executeTool(name, toolArgs ?? {});
         return res.json({
           jsonrpc: "2.0", id,
           result: {
+            isError: Boolean(result?.error || result?.isError),
             content: [{ type: "text", text: typeof result === "string" ? result : JSON.stringify(result, null, 2) }],
           },
         });
@@ -1935,15 +1942,9 @@ app.get("/health", (_, res) => {
 
 // GET /groups — list tool groups and their status
 app.get("/groups", (_, res) => {
-  const activeTools = getActiveTools();
   const result = {};
   for (const [name, g] of Object.entries(TOOL_GROUPS)) {
-    const tools = name === "core" ? BUILTIN_TOOLS :
-      activeTools.filter(t => {
-        if (g.source !== t._backend) return false;
-        if (!g.prefixes) return true;
-        return g.prefixes.some(p => t._originalName.startsWith(p));
-      });
+    const tools = getToolsForGroup(name);
     result[name] = {
       enabled: g.enabled,
       description: g.description,
@@ -1967,8 +1968,8 @@ async function main() {
     );
     process.exit(1);
   }
-  app.listen(PORT, BIND_HOST, () => {
-    console.log(`MCP Bridge v2.0.0 on port ${PORT} (${BIND_HOST})`);
+  const server = app.listen(PORT, BIND_HOST, () => {
+    console.log(`MCP Bridge v2.0.0 on port ${server.address().port} (${BIND_HOST})`);
     const enabled = Object.entries(TOOL_GROUPS).filter(([, g]) => g.enabled).map(([n]) => n);
     console.log(`Active groups: ${enabled.join(", ")}`);
     // ADR-166 §6 — startup posture banner (helps operators see the security state at boot)

@@ -8,7 +8,7 @@ const envPath = resolve(__dirname, "../../.env");
 dotenv.config({ path: envPath });
 
 // Read the .env file content
-const envContent = fs.readFileSync(envPath, "utf-8");
+const envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, "utf-8") : "";
 
 // Parse the .env content
 const envVars = dotenv.parse(envContent);

@@ -1,0 +1,44 @@
+name: Ruvocal workspace
+
+on:
+  pull_request:
+    paths:
+      - 'ruflo/src/ruvocal/**'
+      - '.github/workflows/ruvocal-workspace.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'ruflo/src/ruvocal/**'
+      - '.github/workflows/ruvocal-workspace.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  workspace:
+    name: Workspace contracts and built app
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ruflo/src/ruvocal
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ruflo/src/ruvocal/package-lock.json
+      - run: npm ci
+      - name: Workspace contracts and existing storage regressions
+        run: npm run test:workspace -- src/lib/server/database/__tests__/rvf.spec.ts src/lib/server/mcp/clientPool.spec.ts
+      - name: Exact operations visibility and forwarding
+        run: npm test --prefix mcp-bridge
+      - name: Build without provider credentials
+        run: npm run build
+      - name: Built routes with a local model fixture
+        run: npm run test:workspace:smoke
+      # This scoped workflow does not certify the full application type check.
+      # Its existing baseline and remaining release gates are recorded in
+      # docs/reviews/2026-09-05-workspace-validation.md under the app directory.

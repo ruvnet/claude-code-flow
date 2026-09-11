@@ -415,7 +415,11 @@ export async function healthCheckServer(
 		const response = await fetch(`${base}/api/mcp/health`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ url: server.url, headers: server.headers }),
+			body: JSON.stringify(
+				server.type === "base"
+					? { serverId: server.id }
+					: { url: server.url, headers: server.headers }
+			),
 		});
 
 		const result = await response.json();

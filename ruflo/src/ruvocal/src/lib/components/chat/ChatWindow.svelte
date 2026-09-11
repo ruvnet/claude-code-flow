@@ -668,7 +668,7 @@
 				<ChatIntroduction
 					{currentModel}
 					onmessage={(content) => {
-						onmessage?.(content);
+						draft = content;
 					}}
 				/>
 			{/if}

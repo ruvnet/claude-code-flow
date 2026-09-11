@@ -1,4 +1,5 @@
 import { config } from "$lib/server/config";
+import { building } from "$app/environment";
 import type { ChatTemplateInput } from "$lib/types/Template";
 import { z } from "zod";
 import endpoints, { endpointSchema, type Endpoint } from "./endpoints/endpoints";
@@ -491,7 +492,8 @@ const rebuildModels = async (): Promise<ModelsRefreshSummary> => {
 	return applyModelState(newModels, startedAt);
 };
 
-await rebuildModels();
+// Build analysis imports server modules; provider discovery belongs to server startup.
+if (!building) await rebuildModels();
 
 export const refreshModels = async (): Promise<ModelsRefreshSummary> => {
 	if (inflightRefresh) {

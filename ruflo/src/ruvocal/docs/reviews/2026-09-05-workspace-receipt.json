@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "db4991967c45c6f72133dff0bb80b0a492960fc1",
+  "candidateCommit": "a03d85c2c11da6ed9bfd5a7cb5bde0ebae62d94f",
+  "candidateRepositoryTree": "aa608c5457ab58310a201669ed9598a05f0eecbb",
+  "candidateApplicationTree": "a3a835c0e017d2d802df3f2c4dab028891771aaf",
+  "localValidationCommit": "339efed870306d5da0e5c98364088504e2d47b0e",
+  "sourceIdentityVerifiedBy": "Local git tree equals GitHub create_tree SHA",
+  "environment": {
+    "os": "Linux",
+    "node": "24.19.0",
+    "npm": "11.9.0",
+    "dependencies": "unchanged application package-lock.json"
+  },
+  "checks": [
+    {
+      "name": "workspace_and_regressions",
+      "command": "npm run test:workspace -- src/lib/server/database/__tests__/rvf.spec.ts src/lib/server/mcp/clientPool.spec.ts",
+      "workingDirectory": "ruflo/src/ruvocal",
+      "exitCode": 0,
+      "result": {
+        "testFiles": 8,
+        "passed": 163
+      },
+      "completedAtUTC": "2026-09-05T03:28:40.567788+00:00",
+      "sessionLogSha256": "8556399ff0565652b3769b9ce477e33196f5645e2edfdd50a4db05b73165c6f3"
+    },
+    {
+      "name": "bridge",
+      "command": "npm test --prefix mcp-bridge",
+      "workingDirectory": "ruflo/src/ruvocal",
+      "exitCode": 0,
+      "result": {
+        "passed": 6
+      },
+      "completedAtUTC": "2026-09-05T03:26:02.036246+00:00",
+      "sessionLogSha256": "f2404b51b3ddb35878bcb86f584300a4687a5a9f1a465e8a6c481af2087d4eb6"
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "workingDirectory": "ruflo/src/ruvocal",
+      "exitCode": 0,
+      "result": {
+        "adapter": "node",
+        "passed": true
+      },
+      "completedAtUTC": "2026-09-05T03:29:49.066630+00:00",
+      "sessionLogSha256": "2af83f0af473d06fd3221274d39d9b2c0e9c1ab7ca58a6af8c936cb1554aae2f"
+    },
+    {
+      "name": "built_http",
+      "command": "npm run test:workspace:smoke",
+      "workingDirectory": "ruflo/src/ruvocal",
+      "exitCode": 0,
+      "result": {
+        "passed": 6,
+        "fixture": "local model list only",
+        "liveIntegrationsTested": false
+      },
+      "completedAtUTC": "2026-09-05T03:29:50.801357+00:00",
+      "sessionLogSha256": "b578620ae455905bcfff0a2b45f88e05558681c54519c64cb707850fb0ecde51"
+    },
+    {
+      "name": "new_file_lint",
+      "command": "ESLint on all 24 added .ts, .svelte, .js and .mjs files",
+      "workingDirectory": "ruflo/src/ruvocal",
+      "exitCode": 0,
+      "result": {
+        "files": 24,
+        "passed": true
+      },
+      "completedAtUTC": "2026-09-05T03:29:13.484525+00:00",
+      "sessionLogSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "full_types",
+      "command": "npm run check",
+      "workingDirectory": "ruflo/src/ruvocal",
+      "exitCode": 1,
+      "result": {
+        "errors": 199,
+        "warnings": 14,
+        "files": 51,
+        "baselineErrors": 199,
+        "baselineWarnings": 14,
+        "introducedDiagnostics": 0
+      },
+      "completedAtUTC": "2026-09-05T03:29:24.896779+00:00",
+      "sessionLogSha256": "b741a7cdaf927893d33c7aa0cb8efe43d92db8e47fe616c1b29a5a8f5793e152"
+    }
+  ],
+  "baselineDiagnosticComparison": {
+    "method": "Sorted file path and message, excluding line and column positions",
+    "diagnostics": 213,
+    "identical": true,
+    "normalizedSha256": "9580285ebd3d9d76dd115bd5631b6e2555c5a95b2a494e6430602c4037c7c889"
+  },
+  "measurements": [
+    {
+      "name": "static shared layout JavaScript gzip bytes",
+      "baseline": 102208,
+      "initialCandidate": 126586,
+      "candidate": 103495,
+      "method": "Sum individually compressed unique JS files reachable by manifest static imports from /nodes/0.js; Python gzip.compress defaults"
+    },
+    {
+      "name": "all emitted client JavaScript gzip bytes",
+      "baseline": 634786,
+      "candidate": 651666,
+      "method": "Sum Python gzip.compress lengths of every emitted client .js file"
+    }
+  ],
+  "unverified": [
+    "Actual production source revision",
+    "Live configured runtimes and model inference",
+    "Browser rendering, hydration, keyboard and narrow viewport acceptance",
+    "Full application type check release gate",
+    "Remote Node 22 CI execution",
+    "Autogenous receipt trust and live evolution",
+    "MetaHarness live evaluation or promotion",
+    "ruOS fleet health beyond the rendezvous service"
+  ],
+  "toolUse": {
+    "rufloCli": "3.25.6",
+    "coordination": "bounded hierarchical swarm; hybrid memory initialized and verified",
+    "metaharnessCliStatus": "unsupported flywheel subcommand in installed CLI",
+    "runtimeContracts": "pinned source and installed MCP SDK fixtures",
+    "optimizerBenchmark": "local bundle comparison; no autonomous runtime evaluation"
+  },
+  "deployment": {
+    "performed": false,
+    "authorizationRequired": true
+  },
+  "evidenceReport": "2026-09-05-workspace-validation.md",
+  "receiptTrust": "Unsigned local validation record; hashes do not establish authorization or signer trust"
+}

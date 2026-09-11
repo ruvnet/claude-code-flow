@@ -8,6 +8,24 @@ RuVocal is the SvelteKit web app that lets you chat with Qwen, Claude, Gemini, o
 
 It started as a fork of the [HuggingFace chat-ui](https://github.com/huggingface/chat-ui) v0.20.0 and has been extended with a WASM-MCP integration layer, parallel tool execution, an in-browser tool gallery, and a "RuFlo Capabilities" tour modal. See [ADR-033](../../docs/adr/ADR-033-RUVOCAL-WASM-MCP-INTEGRATION.md) for the architecture.
 
+## Workspace and governed integrations
+
+The source now includes `/workspace`: mission drafting, recent conversations, a searchable MCP tool inventory, and administrator runtime observations. Open it from the sidebar or use **Ctrl/Cmd + K**. Mission text stays in the tab until you submit the editable chat draft. Requested iteration limits are instructions, not runtime authorization or enforced budgets.
+
+Tool inventory comes from discovery. Runtime cards distinguish unconfigured, unreachable, degraded and observed services. The optional operations bridge exposes exact status tools and a MetaHarness wrapper fixed to `operation: "status"`; it cannot run or promote candidates. Autogenous exposes libraries and signed receipts upstream; a verified operator adapter is required for a remote connection. ruOS observations cover rendezvous services, not full desktop readiness.
+
+See [configuration and limits](docs/source/configuration/workspace.md), [gap analysis](docs/reviews/2026-09-05-ui-gap-analysis.md), and ADRs [039](docs/adr/ADR-039-WORKSPACE-CAPABILITY-EVIDENCE.md), [040](docs/adr/ADR-040-GOVERNED-RUNTIME-INTEGRATIONS.md), [041](docs/adr/ADR-041-IMPLEMENTATION-OPTIMIZATION-LOOP.md), [042](docs/adr/ADR-042-BOUNDED-OPERATIONS-TOOLS.md). These source changes do not establish that the published service has been updated.
+
+```bash
+npm ci
+npm run test:workspace
+node --test mcp-bridge/operations-tools.test.js
+npm run build
+npm run test:workspace:smoke
+```
+
+The production build does not contact model providers. The HTTP acceptance test uses a local model list fixture and tests all workspace views, chat, model discovery and administrator denial. It does not run inference or contact production integrations.
+
 ## What RuVocal adds on top of upstream chat-ui
 
 | | |
@@ -32,7 +50,7 @@ It started as a fork of the [HuggingFace chat-ui](https://github.com/huggingface
 ```bash
 git clone https://github.com/ruvnet/ruflo
 cd ruflo/ruflo/src/ruvocal
-cp .env .env.local        # then edit .env.local — see below
+cp config/workspace.env.example .env.local  # configure your model provider
 npm install
 npm run dev               # → http://localhost:5173
 ```

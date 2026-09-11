@@ -16,6 +16,7 @@ RUN npm install -g gemini-mcp-server || true
 RUN npm install -g @openai/codex || true
 
 COPY index.js ./
+COPY operations-tools.js ./
 COPY mcp-stdio-kernel.js ./
 
 # Create writable directories for MCP backends (ruflo, ruvector, agentic-flow)
@@ -43,5 +44,6 @@ ENV MCP_GROUP_AGENTIC_FLOW=false
 ENV MCP_GROUP_CLAUDE_CODE=false
 ENV MCP_GROUP_GEMINI=false
 ENV MCP_GROUP_CODEX=false
+ENV MCP_GROUP_OPERATIONS=false
 
 CMD ["node", "index.js"]

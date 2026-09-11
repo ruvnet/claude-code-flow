@@ -1,5 +1,7 @@
 <script lang="ts">
 	import "../styles/main.css";
+	import "../styles/workspace.css";
+	import WorkspaceCommands from "$lib/components/workspace/WorkspaceCommands.svelte";
 
 	import { onDestroy, onMount, untrack } from "svelte";
 	import { goto } from "$app/navigation";
@@ -256,6 +258,7 @@
 {/if}
 
 <BackgroundGenerationPoller />
+<WorkspaceCommands />
 
 <div
 	class="fixed grid h-dvh w-screen grid-cols-1 grid-rows-[auto,1fr] overflow-hidden text-smd {!isNavCollapsed

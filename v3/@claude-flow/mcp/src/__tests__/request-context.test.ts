@@ -32,9 +32,7 @@ function initialize(id: number): MCPRequest {
 describe('request local MCP authority', () => {
   it('keeps concurrent legacy principals bound to distinct sessions', async () => {
     const server = createMCPServer({
-      name: 'test',
-      version: '1.0.0',
-      transport: 'in-process',
+      name: 'test', version: '1.0.0', transport: 'in-process',
     }, logger);
 
     server.registerTool({
@@ -50,16 +48,13 @@ describe('request local MCP authority', () => {
 
     const principalA = principalFromSecret('token-a');
     const principalB = principalFromSecret('token-b');
-    const initContextA = freezeRequestContext({
-      requestId: 'init-a', transport: 'http', principal: principalA,
-    });
-    const initContextB = freezeRequestContext({
-      requestId: 'init-b', transport: 'http', principal: principalB,
-    });
-
     const [initA, initB] = await Promise.all([
-      (server as any).handleRequest(initialize(1), initContextA),
-      (server as any).handleRequest(initialize(2), initContextB),
+      (server as any).handleRequest(initialize(1), freezeRequestContext({
+        requestId: 'init-a', transport: 'http', principal: principalA,
+      })),
+      (server as any).handleRequest(initialize(2), freezeRequestContext({
+        requestId: 'init-b', transport: 'http', principal: principalB,
+      })),
     ]);
 
     const sessionA = getResponseTransportMetadata(initA)?.legacySessionId;
@@ -116,12 +111,11 @@ describe('request local MCP authority', () => {
     expect(response.error?.code).toBe(-32002);
   });
 
-  it('allows modern stateless requests without the legacy initialization lifecycle', async () => {
+  it('allows modern stateless discovery without legacy initialization', async () => {
     const server = createMCPServer({
       name: 'test', version: '1.0.0', transport: 'in-process',
     }, logger);
     const principal = principalFromSecret('modern-token');
-
     const response = await (server as any).handleRequest({
       jsonrpc: '2.0', id: 7, method: 'server/discover',
     }, freezeRequestContext({
@@ -130,6 +124,40 @@ describe('request local MCP authority', () => {
 
     expect((response.result as any).protocolVersion).toBe(MCP_2026_07_28);
     expect((response.result as any).transport.sessionsRequired).toBe(false);
+    expect((response.result as any).capabilities.resources.subscribe).toBe(false);
+  });
+
+  it('rejects initialize for the modern stateless protocol era', async () => {
+    const server = createMCPServer({
+      name: 'test', version: '1.0.0', transport: 'in-process',
+    }, logger);
+    const principal = principalFromSecret('modern-token');
+    const response = await (server as any).handleRequest(initialize(9), freezeRequestContext({
+      requestId: 'modern-init',
+      transport: 'http',
+      principal,
+      protocolVersion: MCP_2026_07_28,
+    }));
+
+    expect(response.error?.code).toBe(-32600);
+    expect(server.getSessions()).toHaveLength(0);
+  });
+
+  it('fails closed on modern resource subscriptions until delivery can be targeted', async () => {
+    const server = createMCPServer({
+      name: 'test', version: '1.0.0', transport: 'in-process',
+    }, logger);
+    const principal = principalFromSecret('modern-token');
+    const response = await (server as any).handleRequest({
+      jsonrpc: '2.0', id: 10, method: 'resources/subscribe', params: { uri: 'ruv://test' },
+    }, freezeRequestContext({
+      requestId: 'modern-subscribe',
+      transport: 'http',
+      principal,
+      protocolVersion: MCP_2026_07_28,
+    }));
+
+    expect(response.error?.code).toBe(-32601);
   });
 });
 

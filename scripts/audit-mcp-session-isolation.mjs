@@ -17,7 +17,8 @@ const CHECKS = Object.freeze([
     file: 'server',
     severity: 'critical',
     unsafe: /\bcurrentSession\??\s*:\s*MCPSession|\bcurrentSession\s*=\s*session/g,
-    message: 'server owns mutable singleton currentSession state',
+    safe: /AsyncLocalStorage<MCPRequestContext>[\s\S]{0,1200}authoritySessions\s*=\s*new\s+Map<string,\s*string>/g,
+    message: 'server owns mutable singleton currentSession state without a request-local authority map',
   },
   {
     id: 'server.tool-context-from-singleton-session',

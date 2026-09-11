@@ -20,7 +20,6 @@ import type {
   MCPProtocolVersion,
   MCPServerMetrics,
   ITransport,
-  TransportType,
   ILogger,
   ToolContext,
 } from './types.js';
@@ -43,8 +42,8 @@ import { ResourceRegistry, createResourceRegistry } from './resource-registry.js
 import { PromptRegistry, createPromptRegistry } from './prompt-registry.js';
 import { TaskManager, createTaskManager } from './task-manager.js';
 import { createTransport, TransportManager, createTransportManager } from './transport/index.js';
-import { RateLimiter, createRateLimiter, type RateLimitConfig } from './rate-limiter.js';
-import { SamplingManager, createSamplingManager, type SamplingConfig, type LLMProvider } from './sampling.js';
+import { RateLimiter, createRateLimiter } from './rate-limiter.js';
+import { SamplingManager, createSamplingManager, type LLMProvider } from './sampling.js';
 
 const DEFAULT_CONFIG: Partial<MCPServerConfig> = {
   name: 'Claude-Flow MCP Server V3',
@@ -94,6 +93,7 @@ export class MCPServer extends EventEmitter implements IMCPServer {
   private running = false;
   private startTime?: Date;
   private startupDuration?: number;
+  /** Contextless fallback retained only for transports that cannot supply request context. */
   private currentSession?: MCPSession;
   private resourceSubscriptions: Map<string, Set<string>> = new Map();
 
@@ -102,6 +102,7 @@ export class MCPServer extends EventEmitter implements IMCPServer {
     version: '3.0.0',
   };
 
+  /** Legacy initialization response version. Modern clients use server/discover. */
   private readonly protocolVersion: MCPProtocolVersion = '2025-11-25';
 
   private capabilities: MCPCapabilities = {
@@ -192,9 +193,7 @@ export class MCPServer extends EventEmitter implements IMCPServer {
   }
 
   async start(): Promise<void> {
-    if (this.running) {
-      throw new MCPServerError('Server already running');
-    }
+    if (this.running) throw new MCPServerError('Server already running');
 
     const startTime = performance.now();
     this.startTime = new Date();
@@ -221,10 +220,8 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       } as any));
 
       for (const transport of transports) {
-        transport.onRequest(async (request, context?: MCPRequestContext) => await this.handleRequest(request, context));
-        transport.onNotification(async (notification) => {
-          await this.handleNotification(notification);
-        });
+        transport.onRequest(async (request, context?: MCPRequestContext) => this.handleRequest(request, context));
+        transport.onNotification(async (notification, context?: MCPRequestContext) => this.handleNotification(notification, context));
       }
 
       const started: ITransport[] = [];
@@ -242,17 +239,14 @@ export class MCPServer extends EventEmitter implements IMCPServer {
 
       this.running = true;
       this.startupDuration = performance.now() - startTime;
-
       this.logger.info('MCP server started', {
         startupTime: `${this.startupDuration.toFixed(2)}ms`,
         tools: this.toolRegistry.getToolCount(),
       });
-
       this.emit('server:started', {
         startupTime: this.startupDuration,
         tools: this.toolRegistry.getToolCount(),
       });
-
     } catch (error) {
       this.logger.error('Failed to start MCP server', { error });
       throw new MCPServerError('Failed to start server', ErrorCodes.INTERNAL_ERROR, { error });
@@ -260,12 +254,9 @@ export class MCPServer extends EventEmitter implements IMCPServer {
   }
 
   async stop(): Promise<void> {
-    if (!this.running) {
-      return;
-    }
+    if (!this.running) return;
 
     this.logger.info('Stopping MCP server');
-
     try {
       if (this.transports.length > 0) {
         const transports = this.transports;
@@ -279,16 +270,12 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       this.authoritySessions.clear();
       this.rateLimiter.destroy();
 
-      if (this.connectionPool) {
-        await this.connectionPool.clear();
-      }
+      if (this.connectionPool) await this.connectionPool.clear();
 
       this.running = false;
       this.currentSession = undefined;
-
       this.logger.info('MCP server stopped');
       this.emit('server:stopped');
-
     } catch (error) {
       this.logger.error('Error stopping MCP server', { error });
       throw error;
@@ -323,10 +310,8 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       const transportHealth = this.transports.length > 0
         ? await Promise.all(this.transports.map((transport) => transport.getHealthStatus()))
         : [{ healthy: false, error: 'Transport not initialized' }];
-
       const sessionMetrics = this.sessionManager.getSessionMetrics();
       const poolStats = this.connectionPool?.getStats();
-
       const metrics: Record<string, number> = {
         registeredTools: this.toolRegistry.getToolCount(),
         totalRequests: this.requestStats.total,
@@ -336,31 +321,24 @@ export class MCPServer extends EventEmitter implements IMCPServer {
         activeSessions: sessionMetrics.active,
         ...Object.assign({}, ...transportHealth.map((health) => health.metrics || {})),
       };
-
       if (poolStats) {
         metrics.poolConnections = poolStats.totalConnections;
         metrics.poolIdleConnections = poolStats.idleConnections;
         metrics.poolBusyConnections = poolStats.busyConnections;
       }
-
       return {
         healthy: this.running && transportHealth.every((health) => health.healthy),
         error: transportHealth.map((health) => health.error).filter(Boolean).join('; ') || undefined,
         metrics,
       };
-
     } catch (error) {
-      return {
-        healthy: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
+      return { healthy: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
   getMetrics(): MCPServerMetrics {
     const sessionMetrics = this.sessionManager.getSessionMetrics();
     const registryStats = this.toolRegistry.getStats();
-
     return {
       totalRequests: this.requestStats.total,
       successfulRequests: this.requestStats.successful,
@@ -369,9 +347,7 @@ export class MCPServer extends EventEmitter implements IMCPServer {
         ? this.requestStats.totalResponseTime / this.requestStats.total
         : 0,
       activeSessions: sessionMetrics.active,
-      toolInvocations: Object.fromEntries(
-        registryStats.topTools.map((t) => [t.name, t.calls])
-      ),
+      toolInvocations: Object.fromEntries(registryStats.topTools.map((t) => [t.name, t.calls])),
       errors: {},
       lastReset: this.startTime || new Date(),
       startupTime: this.startupDuration,
@@ -389,23 +365,18 @@ export class MCPServer extends EventEmitter implements IMCPServer {
 
   terminateSession(sessionId: string): boolean {
     const result = this.sessionManager.closeSession(sessionId, 'Terminated by server');
-    if (this.currentSession?.id === sessionId) {
-      this.currentSession = undefined;
-    }
+    if (this.currentSession?.id === sessionId) this.currentSession = undefined;
     for (const [key, boundSessionId] of this.authoritySessions) {
       if (boundSessionId === sessionId) this.authoritySessions.delete(key);
     }
     return result;
   }
 
-  private async handleRequest(
-    request: MCPRequest,
-    context?: MCPRequestContext
-  ): Promise<MCPResponse> {
+  private async handleRequest(request: MCPRequest, context?: MCPRequestContext): Promise<MCPResponse> {
     if (context) {
-      return await this.requestContext.run(context, async () => await this.handleRequestScoped(request));
+      return this.requestContext.run(context, async () => this.handleRequestScoped(request));
     }
-    return await this.handleRequestScoped(request);
+    return this.handleRequestScoped(request);
   }
 
   private async handleRequestScoped(request: MCPRequest): Promise<MCPResponse> {
@@ -419,6 +390,15 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       requestContextId: context?.requestId,
       principal: context?.principal.subject,
     });
+
+    if (isModernStatelessContext(context) && request.method === 'initialize') {
+      this.requestStats.failed++;
+      return this.createErrorResponse(
+        request.id,
+        ErrorCodes.INVALID_REQUEST,
+        'initialize is not valid for MCP 2026-07-28 stateless requests; use server/discover'
+      );
+    }
 
     if (request.method !== 'initialize') {
       const scopeId = this.resolveRequestScopeId();
@@ -439,9 +419,7 @@ export class MCPServer extends EventEmitter implements IMCPServer {
     }
 
     try {
-      if (request.method === 'initialize') {
-        return await this.handleInitialize(request);
-      }
+      if (request.method === 'initialize') return this.handleInitialize(request);
 
       if (!isModernStatelessContext(context)) {
         const session = this.resolveRequestSession();
@@ -456,32 +434,26 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       }
 
       const response = await this.routeRequest(request);
-
       const duration = performance.now() - startTime;
       this.requestStats.successful++;
       this.requestStats.totalResponseTime += duration;
-
       this.logger.debug('Request completed', {
         id: request.id,
         method: request.method,
         duration: `${duration.toFixed(2)}ms`,
         requestContextId: context?.requestId,
       });
-
       return response;
-
     } catch (error) {
       const duration = performance.now() - startTime;
       this.requestStats.failed++;
       this.requestStats.totalResponseTime += duration;
-
       this.logger.error('Request failed', {
         id: request.id,
         method: request.method,
         error,
         requestContextId: context?.requestId,
       });
-
       return this.createErrorResponse(
         request.id,
         ErrorCodes.INTERNAL_ERROR,
@@ -490,18 +462,37 @@ export class MCPServer extends EventEmitter implements IMCPServer {
     }
   }
 
-  private async handleNotification(notification: MCPNotification): Promise<void> {
-    this.logger.debug('Handling notification', { method: notification.method });
+  private async handleNotification(
+    notification: MCPNotification,
+    context?: MCPRequestContext
+  ): Promise<void> {
+    if (context) {
+      await this.requestContext.run(context, async () => this.handleNotificationScoped(notification));
+      return;
+    }
+    await this.handleNotificationScoped(notification);
+  }
+
+  private async handleNotificationScoped(notification: MCPNotification): Promise<void> {
+    const context = this.requestContext.getStore();
+    this.logger.debug('Handling notification', {
+      method: notification.method,
+      requestContextId: context?.requestId,
+      principal: context?.principal.subject,
+    });
 
     switch (notification.method) {
       case 'initialized':
-        this.logger.info('Client initialized notification received');
+        this.logger.info('Client initialized notification received', {
+          sessionId: this.resolveRequestSession()?.id,
+        });
         break;
-
       case 'notifications/cancelled':
-        this.logger.debug('Request cancelled', notification.params);
+        this.logger.debug('Request cancelled', {
+          ...notification.params,
+          authorityScope: this.resolveRequestScopeId(),
+        });
         break;
-
       default:
         this.logger.debug('Unknown notification', { method: notification.method });
     }
@@ -509,13 +500,8 @@ export class MCPServer extends EventEmitter implements IMCPServer {
 
   private async handleInitialize(request: MCPRequest): Promise<MCPResponse> {
     const params = request.params as unknown as MCPInitializeParams | undefined;
-
     if (!params) {
-      return this.createErrorResponse(
-        request.id,
-        ErrorCodes.INVALID_PARAMS,
-        'Invalid params'
-      );
+      return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, 'Invalid params');
     }
 
     const session = this.sessionManager.createSession(this.config.transport);
@@ -535,75 +521,55 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       principal: this.requestContext.getStore()?.principal.subject,
     });
 
-    const response: MCPResponse = {
+    return attachResponseTransportMetadata({
       jsonrpc: '2.0',
       id: request.id,
       result,
-    };
-
-    return attachResponseTransportMetadata(response, { legacySessionId: session.id });
+    }, { legacySessionId: session.id });
   }
 
   private async routeRequest(request: MCPRequest): Promise<MCPResponse> {
     switch (request.method) {
-      case 'server/discover':
-        return this.handleServerDiscover(request);
-      case 'tools/list':
-        return this.handleToolsList(request);
-      case 'tools/call':
-        return this.handleToolsCall(request);
-      case 'resources/list':
-        return this.handleResourcesList(request);
-      case 'resources/read':
-        return this.handleResourcesRead(request);
-      case 'resources/subscribe':
-        return this.handleResourcesSubscribe(request);
-      case 'resources/unsubscribe':
-        return this.handleResourcesUnsubscribe(request);
-      case 'prompts/list':
-        return this.handlePromptsList(request);
-      case 'prompts/get':
-        return this.handlePromptsGet(request);
-      case 'tasks/status':
-        return this.handleTasksStatus(request);
-      case 'tasks/cancel':
-        return this.handleTasksCancel(request);
-      case 'completion/complete':
-        return this.handleCompletion(request);
-      case 'logging/setLevel':
-        return this.handleLoggingSetLevel(request);
-      case 'sampling/createMessage':
-        return this.handleSamplingCreateMessage(request);
+      case 'server/discover': return this.handleServerDiscover(request);
+      case 'tools/list': return this.handleToolsList(request);
+      case 'tools/call': return this.handleToolsCall(request);
+      case 'resources/list': return this.handleResourcesList(request);
+      case 'resources/read': return this.handleResourcesRead(request);
+      case 'resources/subscribe': return this.handleResourcesSubscribe(request);
+      case 'resources/unsubscribe': return this.handleResourcesUnsubscribe(request);
+      case 'prompts/list': return this.handlePromptsList(request);
+      case 'prompts/get': return this.handlePromptsGet(request);
+      case 'tasks/status': return this.handleTasksStatus(request);
+      case 'tasks/cancel': return this.handleTasksCancel(request);
+      case 'completion/complete': return this.handleCompletion(request);
+      case 'logging/setLevel': return this.handleLoggingSetLevel(request);
+      case 'sampling/createMessage': return this.handleSamplingCreateMessage(request);
       case 'ping':
-        return {
-          jsonrpc: '2.0',
-          id: request.id,
-          result: { pong: true, timestamp: Date.now() },
-        };
+        return { jsonrpc: '2.0', id: request.id, result: { pong: true, timestamp: Date.now() } };
       default:
-        if (this.toolRegistry.hasTool(request.method)) {
-          return this.handleToolExecution(request);
-        }
-
-        return this.createErrorResponse(
-          request.id,
-          ErrorCodes.METHOD_NOT_FOUND,
-          `Method not found: ${request.method}`
-        );
+        if (this.toolRegistry.hasTool(request.method)) return this.handleToolExecution(request);
+        return this.createErrorResponse(request.id, ErrorCodes.METHOD_NOT_FOUND, `Method not found: ${request.method}`);
     }
   }
 
   private handleServerDiscover(request: MCPRequest): MCPResponse {
+    const modernCapabilities: MCPCapabilities = {
+      ...this.capabilities,
+      resources: this.capabilities.resources
+        ? { ...this.capabilities.resources, subscribe: false }
+        : undefined,
+    };
     return {
       jsonrpc: '2.0',
       id: request.id,
       result: {
         protocolVersion: MCP_2026_07_28,
         serverInfo: this.serverInfo,
-        capabilities: this.capabilities,
+        capabilities: modernCapabilities,
         transport: {
           requestLocalAuthority: true,
           sessionsRequired: false,
+          resourceSubscriptions: 'legacy-only-until-targeted-delivery',
         },
       },
     };
@@ -615,85 +581,43 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       description: t.description,
       inputSchema: this.toolRegistry.getTool(t.name)?.inputSchema,
     }));
-
-    return {
-      jsonrpc: '2.0',
-      id: request.id,
-      result: { tools },
-    };
+    return { jsonrpc: '2.0', id: request.id, result: { tools } };
   }
 
   private async handleToolsCall(request: MCPRequest): Promise<MCPResponse> {
     const params = request.params as { name: string; arguments?: Record<string, unknown> };
-
     if (!params?.name) {
-      return this.createErrorResponse(
-        request.id,
-        ErrorCodes.INVALID_PARAMS,
-        'Tool name is required'
-      );
+      return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, 'Tool name is required');
     }
-
-    const context: ToolContext = this.createToolContext(request);
-
     const result = await this.toolRegistry.execute(
       params.name,
       params.arguments || {},
-      context
+      this.createToolContext(request)
     );
-
-    return {
-      jsonrpc: '2.0',
-      id: request.id,
-      result,
-    };
+    return { jsonrpc: '2.0', id: request.id, result };
   }
 
   private async handleToolExecution(request: MCPRequest): Promise<MCPResponse> {
-    const context: ToolContext = this.createToolContext(request);
-
     const result = await this.toolRegistry.execute(
       request.method,
       (request.params as Record<string, unknown>) || {},
-      context
+      this.createToolContext(request)
     );
-
-    return {
-      jsonrpc: '2.0',
-      id: request.id,
-      result,
-    };
+    return { jsonrpc: '2.0', id: request.id, result };
   }
 
   private handleResourcesList(request: MCPRequest): MCPResponse {
     const params = request.params as { cursor?: string } | undefined;
-    const result = this.resourceRegistry.list(params?.cursor);
-
-    return {
-      jsonrpc: '2.0',
-      id: request.id,
-      result,
-    };
+    return { jsonrpc: '2.0', id: request.id, result: this.resourceRegistry.list(params?.cursor) };
   }
 
   private async handleResourcesRead(request: MCPRequest): Promise<MCPResponse> {
     const params = request.params as { uri: string } | undefined;
-
     if (!params?.uri) {
-      return this.createErrorResponse(
-        request.id,
-        ErrorCodes.INVALID_PARAMS,
-        'Resource URI is required'
-      );
+      return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, 'Resource URI is required');
     }
-
     try {
-      const result = await this.resourceRegistry.read(params.uri);
-      return {
-        jsonrpc: '2.0',
-        id: request.id,
-        result,
-      };
+      return { jsonrpc: '2.0', id: request.id, result: await this.resourceRegistry.read(params.uri) };
     } catch (error) {
       return this.createErrorResponse(
         request.id,
@@ -705,22 +629,20 @@ export class MCPServer extends EventEmitter implements IMCPServer {
 
   private handleResourcesSubscribe(request: MCPRequest): MCPResponse {
     const params = request.params as { uri: string } | undefined;
-    const sessionId = this.resolveRequestScopeId();
-
-    if (!params?.uri) {
+    const requestContext = this.requestContext.getStore();
+    if (isModernStatelessContext(requestContext)) {
       return this.createErrorResponse(
         request.id,
-        ErrorCodes.INVALID_PARAMS,
-        'Resource URI is required'
+        ErrorCodes.METHOD_NOT_FOUND,
+        'Stateless resource subscriptions are disabled until targeted notification delivery is available'
       );
     }
-
+    const sessionId = this.resolveRequestScopeId();
+    if (!params?.uri) {
+      return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, 'Resource URI is required');
+    }
     if (!sessionId) {
-      return this.createErrorResponse(
-        request.id,
-        ErrorCodes.SERVER_NOT_INITIALIZED,
-        'No active request authority scope'
-      );
+      return this.createErrorResponse(request.id, ErrorCodes.SERVER_NOT_INITIALIZED, 'No active request authority scope');
     }
 
     try {
@@ -729,18 +651,11 @@ export class MCPServer extends EventEmitter implements IMCPServer {
         sessionSubs = new Set();
         this.resourceSubscriptions.set(sessionId, sessionSubs);
       }
-
-      const subscriptionId = this.resourceRegistry.subscribe(params.uri, (uri, content) => {
+      const subscriptionId = this.resourceRegistry.subscribe(params.uri, (uri) => {
         this.sendNotification('notifications/resources/updated', { uri });
       });
-
       sessionSubs.add(params.uri);
-
-      return {
-        jsonrpc: '2.0',
-        id: request.id,
-        result: { subscriptionId },
-      };
+      return { jsonrpc: '2.0', id: request.id, result: { subscriptionId } };
     } catch (error) {
       return this.createErrorResponse(
         request.id,
@@ -752,58 +667,37 @@ export class MCPServer extends EventEmitter implements IMCPServer {
 
   private handleResourcesUnsubscribe(request: MCPRequest): MCPResponse {
     const params = request.params as { uri: string } | undefined;
-    const sessionId = this.resolveRequestScopeId();
-
-    if (!params?.uri) {
+    const requestContext = this.requestContext.getStore();
+    if (isModernStatelessContext(requestContext)) {
       return this.createErrorResponse(
         request.id,
-        ErrorCodes.INVALID_PARAMS,
-        'Resource URI is required'
+        ErrorCodes.METHOD_NOT_FOUND,
+        'Stateless resource subscriptions are disabled until targeted notification delivery is available'
       );
     }
-
-    if (sessionId) {
-      const sessionSubs = this.resourceSubscriptions.get(sessionId);
-      if (sessionSubs) {
-        sessionSubs.delete(params.uri);
-      }
+    const sessionId = this.resolveRequestScopeId();
+    if (!params?.uri) {
+      return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, 'Resource URI is required');
     }
-
-    return {
-      jsonrpc: '2.0',
-      id: request.id,
-      result: { success: true },
-    };
+    if (sessionId) this.resourceSubscriptions.get(sessionId)?.delete(params.uri);
+    return { jsonrpc: '2.0', id: request.id, result: { success: true } };
   }
 
   private handlePromptsList(request: MCPRequest): MCPResponse {
     const params = request.params as { cursor?: string } | undefined;
-    const result = this.promptRegistry.list(params?.cursor);
-
-    return {
-      jsonrpc: '2.0',
-      id: request.id,
-      result,
-    };
+    return { jsonrpc: '2.0', id: request.id, result: this.promptRegistry.list(params?.cursor) };
   }
 
   private async handlePromptsGet(request: MCPRequest): Promise<MCPResponse> {
     const params = request.params as { name: string; arguments?: Record<string, string> } | undefined;
-
     if (!params?.name) {
-      return this.createErrorResponse(
-        request.id,
-        ErrorCodes.INVALID_PARAMS,
-        'Prompt name is required'
-      );
+      return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, 'Prompt name is required');
     }
-
     try {
-      const result = await this.promptRegistry.get(params.name, params.arguments);
       return {
         jsonrpc: '2.0',
         id: request.id,
-        result,
+        result: await this.promptRegistry.get(params.name, params.arguments),
       };
     } catch (error) {
       return this.createErrorResponse(
@@ -816,47 +710,25 @@ export class MCPServer extends EventEmitter implements IMCPServer {
 
   private handleTasksStatus(request: MCPRequest): MCPResponse {
     const params = request.params as { taskId?: string } | undefined;
-
     if (params?.taskId) {
       const task = this.taskManager.getTask(params.taskId);
       if (!task) {
-        return this.createErrorResponse(
-          request.id,
-          ErrorCodes.INVALID_PARAMS,
-          `Task not found: ${params.taskId}`
-        );
+        return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, `Task not found: ${params.taskId}`);
       }
-      return {
-        jsonrpc: '2.0',
-        id: request.id,
-        result: task,
-      };
+      return { jsonrpc: '2.0', id: request.id, result: task };
     }
-
-    return {
-      jsonrpc: '2.0',
-      id: request.id,
-      result: { tasks: this.taskManager.getAllTasks() },
-    };
+    return { jsonrpc: '2.0', id: request.id, result: { tasks: this.taskManager.getAllTasks() } };
   }
 
   private handleTasksCancel(request: MCPRequest): MCPResponse {
     const params = request.params as { taskId: string; reason?: string } | undefined;
-
     if (!params?.taskId) {
-      return this.createErrorResponse(
-        request.id,
-        ErrorCodes.INVALID_PARAMS,
-        'Task ID is required'
-      );
+      return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, 'Task ID is required');
     }
-
-    const success = this.taskManager.cancelTask(params.taskId, params.reason);
-
     return {
       jsonrpc: '2.0',
       id: request.id,
-      result: { success },
+      result: { success: this.taskManager.cancelTask(params.taskId, params.reason) },
     };
   }
 
@@ -865,7 +737,6 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       ref: { type: string; name?: string; uri?: string };
       argument: { name: string; value: string };
     } | undefined;
-
     if (!params?.ref || !params?.argument) {
       return this.createErrorResponse(
         request.id,
@@ -875,7 +746,6 @@ export class MCPServer extends EventEmitter implements IMCPServer {
     }
 
     const completions: string[] = [];
-
     if (params.ref.type === 'ref/prompt') {
       const prompt = this.promptRegistry.getPrompt(params.ref.name || '');
       if (prompt?.arguments) {
@@ -888,12 +758,9 @@ export class MCPServer extends EventEmitter implements IMCPServer {
     } else if (params.ref.type === 'ref/resource') {
       const { resources } = this.resourceRegistry.list();
       for (const resource of resources) {
-        if (resource.uri.startsWith(params.argument.value)) {
-          completions.push(resource.uri);
-        }
+        if (resource.uri.startsWith(params.argument.value)) completions.push(resource.uri);
       }
     }
-
     return {
       jsonrpc: '2.0',
       id: request.id,
@@ -909,23 +776,12 @@ export class MCPServer extends EventEmitter implements IMCPServer {
 
   private handleLoggingSetLevel(request: MCPRequest): MCPResponse {
     const params = request.params as { level: string } | undefined;
-
     if (!params?.level) {
-      return this.createErrorResponse(
-        request.id,
-        ErrorCodes.INVALID_PARAMS,
-        'Log level is required'
-      );
+      return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, 'Log level is required');
     }
-
     this.capabilities.logging = { level: params.level as 'debug' | 'info' | 'warn' | 'error' };
     this.logger.info('Log level updated', { level: params.level });
-
-    return {
-      jsonrpc: '2.0',
-      id: request.id,
-      result: { success: true },
-    };
+    return { jsonrpc: '2.0', id: request.id, result: { success: true } };
   }
 
   private async handleSamplingCreateMessage(request: MCPRequest): Promise<MCPResponse> {
@@ -933,28 +789,22 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       messages: Array<{ role: string; content: { type: string; text?: string } }>;
       maxTokens: number;
       systemPrompt?: string;
-      modelPreferences?: { hints?: Array<{ name?: string }>; intelligencePriority?: number; speedPriority?: number; costPriority?: number };
+      modelPreferences?: {
+        hints?: Array<{ name?: string }>;
+        intelligencePriority?: number;
+        speedPriority?: number;
+        costPriority?: number;
+      };
       includeContext?: string;
       temperature?: number;
       stopSequences?: string[];
       metadata?: Record<string, unknown>;
     } | undefined;
-
     if (!params?.messages || !params?.maxTokens) {
-      return this.createErrorResponse(
-        request.id,
-        ErrorCodes.INVALID_PARAMS,
-        'messages and maxTokens are required'
-      );
+      return this.createErrorResponse(request.id, ErrorCodes.INVALID_PARAMS, 'messages and maxTokens are required');
     }
-
-    const available = await this.samplingManager.isAvailable();
-    if (!available) {
-      return this.createErrorResponse(
-        request.id,
-        ErrorCodes.INTERNAL_ERROR,
-        'No LLM provider available for sampling'
-      );
+    if (!(await this.samplingManager.isAvailable())) {
+      return this.createErrorResponse(request.id, ErrorCodes.INTERNAL_ERROR, 'No LLM provider available for sampling');
     }
 
     try {
@@ -977,12 +827,7 @@ export class MCPServer extends EventEmitter implements IMCPServer {
           serverId: this.serverInfo.name,
         }
       );
-
-      return {
-        jsonrpc: '2.0',
-        id: request.id,
-        result,
-      };
+      return { jsonrpc: '2.0', id: request.id, result };
     } catch (error) {
       return this.createErrorResponse(
         request.id,
@@ -1006,7 +851,6 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       this.currentSession = session;
       return;
     }
-
     const incomingKey = authorityKey(context);
     if (incomingKey) this.authoritySessions.set(incomingKey, session.id);
     this.authoritySessions.set(`${context.principal.subject}:${session.id}`, session.id);
@@ -1016,7 +860,6 @@ export class MCPServer extends EventEmitter implements IMCPServer {
     const context = this.requestContext.getStore();
     if (!context) return this.currentSession;
     if (isModernStatelessContext(context)) return undefined;
-
     const key = authorityKey(context);
     if (!key) return undefined;
     const sessionId = this.authoritySessions.get(key);
@@ -1048,16 +891,8 @@ export class MCPServer extends EventEmitter implements IMCPServer {
     };
   }
 
-  private createErrorResponse(
-    id: string | number | null,
-    code: number,
-    message: string
-  ): MCPResponse {
-    return {
-      jsonrpc: '2.0',
-      id,
-      error: { code, message },
-    };
+  private createErrorResponse(id: string | number | null, code: number, message: string): MCPResponse {
+    return { jsonrpc: '2.0', id, error: { code, message } };
   }
 
   private async registerBuiltInTools(): Promise<void> {
@@ -1075,17 +910,15 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       }),
       category: 'system',
     });
-
     this.registerTool({
       name: 'system/health',
       description: 'Get system health status',
       inputSchema: { type: 'object', properties: {} },
-      handler: async () => await this.getHealthStatus(),
+      handler: async () => this.getHealthStatus(),
       category: 'system',
       cacheable: true,
       cacheTTL: 2000,
     });
-
     this.registerTool({
       name: 'system/metrics',
       description: 'Get server metrics',
@@ -1095,59 +928,30 @@ export class MCPServer extends EventEmitter implements IMCPServer {
       cacheable: true,
       cacheTTL: 1000,
     });
-
     this.registerTool({
       name: 'tools/list-detailed',
       description: 'List all registered tools with details',
       inputSchema: {
         type: 'object',
-        properties: {
-          category: { type: 'string', description: 'Filter by category' },
-        },
+        properties: { category: { type: 'string', description: 'Filter by category' } },
       },
       handler: async (input: unknown) => {
         const params = input as { category?: string };
-        if (params.category) {
-          return this.toolRegistry.getByCategory(params.category);
-        }
-        return this.toolRegistry.listTools();
+        return params.category ? this.toolRegistry.getByCategory(params.category) : this.toolRegistry.listTools();
       },
       category: 'system',
     });
-
-    this.logger.info('Built-in tools registered', {
-      count: 4,
-    });
+    this.logger.info('Built-in tools registered', { count: 4 });
   }
 
   private setupEventHandlers(): void {
-    this.toolRegistry.on('tool:registered', (name) => {
-      this.emit('tool:registered', name);
-    });
-
-    this.toolRegistry.on('tool:called', (data) => {
-      this.emit('tool:called', data);
-    });
-
-    this.toolRegistry.on('tool:completed', (data) => {
-      this.emit('tool:completed', data);
-    });
-
-    this.toolRegistry.on('tool:error', (data) => {
-      this.emit('tool:error', data);
-    });
-
-    this.sessionManager.on('session:created', (session) => {
-      this.emit('session:created', session);
-    });
-
-    this.sessionManager.on('session:closed', (data) => {
-      this.emit('session:closed', data);
-    });
-
-    this.sessionManager.on('session:expired', (session) => {
-      this.emit('session:expired', session);
-    });
+    this.toolRegistry.on('tool:registered', (name) => this.emit('tool:registered', name));
+    this.toolRegistry.on('tool:called', (data) => this.emit('tool:called', data));
+    this.toolRegistry.on('tool:completed', (data) => this.emit('tool:completed', data));
+    this.toolRegistry.on('tool:error', (data) => this.emit('tool:error', data));
+    this.sessionManager.on('session:created', (session) => this.emit('session:created', session));
+    this.sessionManager.on('session:closed', (data) => this.emit('session:closed', data));
+    this.sessionManager.on('session:expired', (session) => this.emit('session:expired', session));
   }
 }
 

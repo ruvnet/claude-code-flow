@@ -15,6 +15,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { createRequire } from 'node:module';
 import { readFileMaybeEncrypted, writeFileAtomic, writeFileRestricted } from '../fs-secure.js';
 import { restoreMemoryDbFromBackup } from '../services/memory-backup.js';
+import { normalizeEmbeddingOutput } from './embedding-output.js';
 
 /**
  * ADR-323 — typed memory provenance. Distinguishes WHO/WHAT wrote a memory
@@ -2310,7 +2311,7 @@ export async function loadEmbeddingModel(options?: {
 
       embeddingModelState = {
         loaded: true,
-        model: { embed: reasoningBank.computeEmbedding },
+        model: (text: string) => reasoningBank.computeEmbedding(text),
         tokenizer: null,
         dimensions: 768
       };
@@ -2487,10 +2488,7 @@ export async function generateLocalEmbedding(text: string): Promise<{
   if (state.model && typeof (state.model as any) === 'function') {
     try {
       const output = await (state.model as any)(text, { pooling: 'mean', normalize: true });
-      // Handle both @xenova/transformers (output.data) and ruvector (plain array) formats
-      const embedding = output?.data
-        ? Array.from(output.data as Float32Array)
-        : Array.isArray(output) ? output : null;
+      const embedding = normalizeEmbeddingOutput(output);
       if (embedding) {
         return {
           embedding,

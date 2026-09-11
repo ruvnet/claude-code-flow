@@ -41,10 +41,20 @@ describe('security scan — result persistence (statusline CVE counter wiring)',
     expect(before.cvesFixed).toBe(0);
   });
 
-  it('a real scan writes .claude/security-scans/scan-<type>-<depth>.json', () => {
+  it('is read-only by default', () => {
     execFileSync(
       process.execPath,
       [CLI_BIN, 'security', 'scan', '--target', scanTarget, '--depth', 'quick', '--type', 'deps'],
+      { encoding: 'utf-8', timeout: 30_000 },
+    );
+    expect(existsSync(join(scanTarget, '.claude'))).toBe(false);
+    expect(getSecurityStatus(scanTarget).status).toBe('PENDING');
+  }, 30_000);
+
+  it('writes .claude/security-scans/scan-<type>-<depth>.json with --persist', () => {
+    execFileSync(
+      process.execPath,
+      [CLI_BIN, 'security', 'scan', '--target', scanTarget, '--depth', 'quick', '--type', 'deps', '--persist'],
       { encoding: 'utf-8', timeout: 30_000 },
     );
     const outFile = join(scanTarget, '.claude', 'security-scans', 'scan-deps-quick.json');
@@ -61,7 +71,7 @@ describe('security scan — result persistence (statusline CVE counter wiring)',
       low: expect.any(Number),
       total: expect.any(Number),
     });
-  });
+  }, 30_000);
 
   it('getSecurityStatus reflects the real scan afterward — CLEAN when 0 findings', () => {
     // The scan target is an empty fixture (no deps, no source) so it has 0
@@ -69,25 +79,25 @@ describe('security scan — result persistence (statusline CVE counter wiring)',
     // counted scan *files* as fixed CVEs; now it reads the scan's findings.
     execFileSync(
       process.execPath,
-      [CLI_BIN, 'security', 'scan', '--target', scanTarget, '--depth', 'quick', '--type', 'deps'],
+      [CLI_BIN, 'security', 'scan', '--target', scanTarget, '--depth', 'quick', '--type', 'deps', '--persist'],
       { encoding: 'utf-8', timeout: 30_000 },
     );
     const after = getSecurityStatus(scanTarget);
     expect(after.cvesFixed).toBe(0);
     expect(after.totalCves).toBe(0);
     expect(after.status).toBe('CLEAN');
-  });
+  }, 30_000);
 
   it('repeated scans overwrite the deterministic filename rather than accumulate', () => {
     for (let i = 0; i < 3; i++) {
       execFileSync(
         process.execPath,
-        [CLI_BIN, 'security', 'scan', '--target', scanTarget, '--depth', 'quick', '--type', 'deps'],
+        [CLI_BIN, 'security', 'scan', '--target', scanTarget, '--depth', 'quick', '--type', 'deps', '--persist'],
         { encoding: 'utf-8', timeout: 30_000 },
       );
     }
     const scanDir = join(scanTarget, '.claude', 'security-scans');
     const files = readdirSync(scanDir).filter((f: string) => f.endsWith('.json'));
     expect(files).toEqual(['scan-deps-quick.json']);
-  }, 20_000);
+  }, 60_000);
 });

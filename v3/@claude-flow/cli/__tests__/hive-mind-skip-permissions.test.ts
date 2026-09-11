@@ -18,18 +18,31 @@
 
 import { describe, it, expect } from 'vitest';
 import { CommandParser } from '../src/parser.js';
+import { hiveMindCommand, shouldSkipClaudePermissions } from '../src/commands/hive-mind.js';
 
-// The exact predicate from v3/@claude-flow/cli/src/commands/hive-mind.ts
-// (kept inline rather than importing the whole spawn action, which spawns a
-// real child process at module-load time).
-function shouldSkipPermissions(flags: Record<string, unknown>): boolean {
-  return (
-    (flags['dangerously-skip-permissions'] === true || flags.dangerouslySkipPermissions === true) &&
-    !(flags['no-auto-permissions'] || flags.noAutoPermissions || flags.autoPermissions === false)
-  );
-}
+const shouldSkipPermissions = shouldSkipClaudePermissions;
 
 describe('#2269 hive-mind --dangerously-skip-permissions flag handling', () => {
+  it('defaults the registered hive-mind spawn command to safe permission handling', () => {
+    const parser = new CommandParser();
+    parser.registerCommand(hiveMindCommand);
+
+    const { flags } = parser.parse(['hive-mind', 'spawn', 'workers']);
+
+    expect(flags.dangerouslySkipPermissions).toBe(false);
+    expect(shouldSkipPermissions(flags as Record<string, unknown>)).toBe(false);
+  });
+
+  it('enables bypass only after an explicit opt-in on the registered command', () => {
+    const parser = new CommandParser();
+    parser.registerCommand(hiveMindCommand);
+
+    const { flags } = parser.parse([
+      'hive-mind', 'spawn', 'workers', '--dangerously-skip-permissions',
+    ]);
+
+    expect(shouldSkipPermissions(flags as Record<string, unknown>)).toBe(true);
+  });
   it('parser normalizes the kebab flag to camelCase and leaves the kebab key undefined', () => {
     const parser = new CommandParser({ allowUnknownFlags: true });
     const { flags } = parser.parse(['--dangerously-skip-permissions']);

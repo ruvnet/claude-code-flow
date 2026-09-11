@@ -52,7 +52,7 @@ describe('#2931 security scan catches shorter/embedded Stripe-shaped secrets', (
     try {
       execFileSync(
         process.execPath,
-        [CLI_BIN, 'security', 'scan', '--target', scanTarget, '--depth', 'standard', '--type', 'code'],
+        [CLI_BIN, 'security', 'scan', '--target', scanTarget, '--depth', 'standard', '--type', 'code', '--persist'],
         { encoding: 'utf-8', timeout: 30_000 },
       );
     } catch { /* non-zero exit expected when secrets are found */ }

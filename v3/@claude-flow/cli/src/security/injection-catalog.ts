@@ -39,3 +39,12 @@ export const TRUSTED_INJECTION_ADJACENT_KEYWORDS = [
   'instructions', 'prompt', 'system', 'assistant', 'exfiltrate',
   'reveal', 'override', 'jailbreak', 'ignore', 'disregard',
 ] as const;
+
+/** Commands that attempt to redirect an agent's tool-selection policy. */
+export const TOOL_COERCION_PATTERNS = [
+  /\byou\s+must\s+use\b[\s\S]{0,80}\b(?:tools?|mcp)\b/i,
+  /\bdo\s+not\s+use\b[\s\S]{0,60}\b(?:native|built[ -]?in)\b[\s\S]{0,30}\b(?:tools?|agents?)\b/i,
+  /\balways\s+prefer\b[\s\S]{0,80}\b(?:tools?|mcp)\b/i,
+] as const;
+
+export type SecurityProvenance = 'untrusted-inter-agent' | 'trusted-local-policy';

@@ -124,9 +124,28 @@ function commonSubstrings(a: string, b: string, minLen: number, cap = 20): strin
     ) len++;
 
     out.add(a.slice(aIdx, aIdx + len));
-    if (out.size >= cap) break;
   }
-  return Array.from(out);
+
+  // Sliding windows generate the same match again at every one-character
+  // offset. Keep only maximal fragments before population scoring so an
+  // overlap cannot inflate either the finding count or the risk score.
+  const maximal: string[] = [];
+  for (const fragment of Array.from(out).sort((x, y) => y.length - x.length)) {
+    const overlapsExisting = maximal.some((candidate) => {
+      if (candidate.includes(fragment) || fragment.includes(candidate)) return true;
+      const limit = Math.min(candidate.length, fragment.length);
+      for (let size = limit; size >= minLen; size--) {
+        if (candidate.endsWith(fragment.slice(0, size)) || fragment.endsWith(candidate.slice(0, size))) {
+          return true;
+        }
+      }
+      return false;
+    });
+    if (overlapsExisting) continue;
+    maximal.push(fragment);
+    if (maximal.length >= cap) break;
+  }
+  return maximal;
 }
 
 export function scanToolDescriptions(

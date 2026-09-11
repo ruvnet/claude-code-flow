@@ -1,4 +1,9 @@
 import { createHash } from 'node:crypto';
+import { TOOL_COERCION_PATTERNS, type SecurityProvenance } from './injection-catalog.js';
+
+export interface DefenceContext {
+  provenance?: SecurityProvenance;
+}
 
 export interface BuiltinThreat {
   type: string;
@@ -16,8 +21,8 @@ export interface DefenceResult {
 }
 
 export interface DefenceEngine {
-  detect(input: string): Promise<DefenceResult>;
-  quickScan(input: string): { threat: boolean; confidence: number; type?: string };
+  detect(input: string, context?: DefenceContext): Promise<DefenceResult>;
+  quickScan(input: string, context?: DefenceContext): { threat: boolean; confidence: number; type?: string };
   getStats(): Promise<{
     detectionCount: number;
     avgDetectionTimeMs: number;
@@ -76,14 +81,26 @@ export function createBuiltinAIDefence(): DefenceEngine {
   let detectionCount = 0;
   let totalDetectionTimeMs = 0;
 
-  const scan = (input: string): BuiltinThreat[] => THREAT_PATTERNS
-    .filter(({ pattern }) => pattern.test(input))
-    .map(({ pattern: _pattern, ...threat }) => threat);
+  const scan = (input: string, context: DefenceContext = {}): BuiltinThreat[] => {
+    const threats = THREAT_PATTERNS
+      .filter(({ pattern }) => pattern.test(input))
+      .map(({ pattern: _pattern, ...threat }) => threat);
+    if ((context.provenance ?? 'untrusted-inter-agent') !== 'trusted-local-policy' &&
+        TOOL_COERCION_PATTERNS.some((pattern) => pattern.test(input))) {
+      threats.push({
+        type: 'tool-policy-coercion',
+        severity: 'high',
+        confidence: 0.92,
+        description: 'Untrusted content attempts to replace the agent tool-selection policy',
+      });
+    }
+    return threats;
+  };
 
   return {
-    async detect(input: string): Promise<DefenceResult> {
+    async detect(input: string, context: DefenceContext = {}): Promise<DefenceResult> {
       const startedAt = performance.now();
-      const threats = scan(input);
+      const threats = scan(input, context);
       const piiFound = PII_PATTERNS.some((pattern) => pattern.test(input));
       const detectionTimeMs = performance.now() - startedAt;
       detectionCount++;
@@ -97,8 +114,8 @@ export function createBuiltinAIDefence(): DefenceEngine {
       };
     },
 
-    quickScan(input: string) {
-      const threat = scan(input)[0];
+    quickScan(input: string, context: DefenceContext = {}) {
+      const threat = scan(input, context)[0];
       return threat
         ? { threat: true, confidence: threat.confidence, type: threat.type }
         : { threat: false, confidence: 0 };

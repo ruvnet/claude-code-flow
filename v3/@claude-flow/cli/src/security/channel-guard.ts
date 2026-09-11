@@ -26,10 +26,15 @@
  *      use in agent-to-agent messages and are classic evasion.
  */
 
-import { INJECTION_PHRASES, TRUSTED_INJECTION_ADJACENT_KEYWORDS } from './injection-catalog.js';
+import {
+  INJECTION_PHRASES,
+  TOOL_COERCION_PATTERNS,
+  TRUSTED_INJECTION_ADJACENT_KEYWORDS,
+  type SecurityProvenance,
+} from './injection-catalog.js';
 
 export type ChannelFinding = {
-  kind: 'injection-phrase' | 'role-shift' | 'encoded-payload' | 'zero-width-obfuscation';
+  kind: 'injection-phrase' | 'tool-coercion' | 'role-shift' | 'encoded-payload' | 'zero-width-obfuscation';
   severity: 'low' | 'medium' | 'high';
   offset: number;
   span: string;
@@ -39,7 +44,8 @@ export type ChannelFinding = {
 export interface ChannelScanResult {
   safe: boolean;
   findings: ChannelFinding[];
-  stats: { messageLength: number; scanTimeMs: number };
+  provenance: SecurityProvenance;
+  stats: { messageLength: number; scanTimeMs: number; trustedPolicyDirectives: number };
 }
 
 const ROLE_SHIFT_RE = /(^|\n)\s*(system|assistant|user|developer)\s*:\s*/gi;
@@ -50,12 +56,18 @@ const ZWJ_RE = /[​-‍﻿‪-‮⁦-⁩]/g;
 
 export function scanChannelMessage(
   message: string,
-  options: { minEncodedLen?: number; skipEncodedScan?: boolean } = {},
+  options: {
+    minEncodedLen?: number;
+    skipEncodedScan?: boolean;
+    provenance?: SecurityProvenance;
+  } = {},
 ): ChannelScanResult {
   const start = Date.now();
   const findings: ChannelFinding[] = [];
   const lower = message.toLowerCase();
   const minEncodedLen = options.minEncodedLen ?? 80;
+  const provenance = options.provenance ?? 'untrusted-inter-agent';
+  let trustedPolicyDirectives = 0;
 
   // 1) Known prompt-injection phrases (reused from composition-inspector catalog)
   for (const phrase of INJECTION_PHRASES) {
@@ -70,6 +82,26 @@ export function scanChannelMessage(
       });
       idx = lower.indexOf(phrase, idx + phrase.length);
     }
+  }
+
+  // Tool-policy directives are suspicious when they arrive through an
+  // untrusted message channel. The identical text may be legitimate when it
+  // is Ruflo-authored local policy, so trust is an explicit caller-provided
+  // provenance attribute rather than a textual allowlist.
+  for (const pattern of TOOL_COERCION_PATTERNS) {
+    const match = pattern.exec(message);
+    if (!match) continue;
+    if (provenance === 'trusted-local-policy') {
+      trustedPolicyDirectives++;
+      continue;
+    }
+    findings.push({
+      kind: 'tool-coercion',
+      severity: 'high',
+      offset: match.index,
+      span: match[0].slice(0, 120),
+      reason: 'Untrusted message attempts to replace the agent tool-selection policy',
+    });
   }
 
   // 2) Role-shift: mid-message role reassignment
@@ -138,7 +170,8 @@ export function scanChannelMessage(
   return {
     safe: findings.length === 0,
     findings,
-    stats: { messageLength: message.length, scanTimeMs: Date.now() - start },
+    provenance,
+    stats: { messageLength: message.length, scanTimeMs: Date.now() - start, trustedPolicyDirectives },
   };
 }
 

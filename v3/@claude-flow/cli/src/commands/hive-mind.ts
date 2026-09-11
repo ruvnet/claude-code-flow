@@ -28,6 +28,18 @@ interface WorkerGroups {
   [key: string]: HiveWorker[];
 }
 
+/**
+ * Permission bypass is an explicit opt-in only. Both key spellings are
+ * accepted for backwards-compatible programmatic callers, while parser
+ * defaults and unrelated auto-permission flags can never enable it.
+ */
+export function shouldSkipClaudePermissions(flags: Record<string, unknown>): boolean {
+  return (
+    (flags['dangerously-skip-permissions'] === true || flags.dangerouslySkipPermissions === true) &&
+    !(flags['no-auto-permissions'] || flags.noAutoPermissions || flags.autoPermissions === false)
+  );
+}
+
 // Hive topologies
 const TOPOLOGIES = [
   { value: 'hierarchical', label: 'Hierarchical', hint: 'Queen-led with worker agents' },
@@ -305,9 +317,7 @@ async function spawnClaudeCodeInstance(
       // produces for `--no-auto-permissions` (stored as `autoPermissions: false`,
       // NOT `noAutoPermissions: true`); without this third clause, the deny half
       // never fires and `--no-auto-permissions` is silently ignored.
-      const skipPermissions =
-        (flags['dangerously-skip-permissions'] === true || flags.dangerouslySkipPermissions === true) &&
-        !(flags['no-auto-permissions'] || flags.noAutoPermissions || flags.autoPermissions === false);
+      const skipPermissions = shouldSkipClaudePermissions(flags);
       if (skipPermissions) {
         claudeArgs.push('--dangerously-skip-permissions');
         if (!isNonInteractive) {
@@ -617,7 +627,7 @@ const spawnCommand: Command = {
       name: 'dangerously-skip-permissions',
       description: 'Skip permission prompts in Claude Code (use with caution)',
       type: 'boolean',
-      default: true
+      default: false
     },
     {
       name: 'no-auto-permissions',

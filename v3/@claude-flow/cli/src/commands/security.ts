@@ -11,13 +11,61 @@ import { execSync } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { resolve as resolvePath } from 'node:path';
 import { createBuiltinAIDefence, type DefenceEngine } from '../security/builtin-aidefence.js';
+import { scanSourceText, type SourceFinding } from '../security/source-code-scanner.js';
 
 // Accepted values for `security scan`'s enum flags — the single source of truth
 // for both validation and the traversal-depth maps below.
 const SCAN_DEPTHS = ['quick', 'standard', 'deep'] as const;
 const SCAN_TYPES = ['code', 'deps', 'all'] as const;
+const SCAN_OUTPUTS = ['text', 'json', 'sarif'] as const;
 type ScanDepth = (typeof SCAN_DEPTHS)[number];
 type ScanType = (typeof SCAN_TYPES)[number];
+type ScanOutput = (typeof SCAN_OUTPUTS)[number];
+type ScanFinding = SourceFinding | {
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  type: string;
+  location: string;
+  description: string;
+};
+
+export interface SecurityScanRecord {
+  timestamp: string;
+  target: string;
+  depth: ScanDepth;
+  type: ScanType;
+  summary: { critical: number; high: number; medium: number; low: number; total: number };
+  findings: ScanFinding[];
+}
+
+export function securityScanToSarif(record: SecurityScanRecord) {
+  const ruleIds = [...new Set(record.findings.map((finding) =>
+    finding.type.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+  ))];
+  return {
+    version: '2.1.0',
+    $schema: 'https://json.schemastore.org/sarif-2.1.0.json',
+    runs: [{
+      tool: { driver: {
+        name: 'Ruflo Security Scanner',
+        rules: ruleIds.map((id) => ({ id })),
+      } },
+      results: record.findings.map((finding) => {
+        const match = /^(.*):(\d+)$/.exec(finding.location);
+        return {
+          ruleId: finding.type.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+          level: finding.severity === 'critical' || finding.severity === 'high' ? 'error'
+            : finding.severity === 'medium' ? 'warning' : 'note',
+          message: { text: finding.description },
+          locations: match ? [{ physicalLocation: {
+            artifactLocation: { uri: match[1].replace(/\\/g, '/') },
+            region: { startLine: Number(match[2]) },
+          } }] : [{ physicalLocation: { artifactLocation: { uri: finding.location.replace(/\\/g, '/') } } }],
+        };
+      }),
+      properties: { target: record.target, depth: record.depth, type: record.type },
+    }],
+  };
+}
 
 // Real type predicates, not `as` casts. Array.includes() does not narrow a
 // string to a literal union on its own, so without these the depth-map lookups
@@ -29,6 +77,7 @@ type ScanType = (typeof SCAN_TYPES)[number];
 // is being fixed for.
 const isScanDepth = (v: string): v is ScanDepth => (SCAN_DEPTHS as readonly string[]).includes(v);
 const isScanType = (v: string): v is ScanType => (SCAN_TYPES as readonly string[]).includes(v);
+const isScanOutput = (v: string): v is ScanOutput => (SCAN_OUTPUTS as readonly string[]).includes(v);
 
 // `full` was never a supported depth, but the CLI itself printed it — the
 // statusline insight, the announcement, the release-notes blurb, the CLAUDE.md
@@ -62,6 +111,7 @@ const scanCommand: Command = {
     { name: 'depth', short: 'd', type: 'string', description: 'Scan depth: quick, standard, deep', default: 'standard' },
     { name: 'type', type: 'string', description: 'Scan type: code, deps, all', default: 'all' },
     { name: 'output', short: 'o', type: 'string', description: 'Output format: text, json, sarif', default: 'text' },
+    { name: 'persist', type: 'boolean', description: 'Persist the scan report under .claude/security-scans', default: false },
     { name: 'fix', short: 'f', type: 'boolean', description: 'Auto-fix vulnerabilities where possible' },
   ],
   examples: [
@@ -72,7 +122,9 @@ const scanCommand: Command = {
     const target = ctx.flags.target as string || '.';
     const requestedDepth = ctx.flags.depth as string || 'standard';
     const scanType = ctx.flags.type as string || 'all';
+    const requestedOutput = ctx.flags.output as string || 'text';
     const fix = ctx.flags.fix as boolean;
+    const persist = ctx.flags.persist === true;
 
     // A security scanner must never silently degrade on an unrecognised enum
     // value. An unknown --depth used to fall through to the shallowest
@@ -111,6 +163,13 @@ const scanCommand: Command = {
       );
       return { success: false, exitCode: 1 };
     }
+    if (!isScanOutput(requestedOutput)) {
+      output.printError(
+        `Invalid --output '${requestedOutput}'. Expected one of: ${SCAN_OUTPUTS.join(', ')}.`,
+      );
+      return { success: false, exitCode: 1 };
+    }
+    const outputFormat: ScanOutput = requestedOutput;
 
     // --target names WHAT gets scanned, and was never validated. A path that
     // does not exist (or is a file, not a directory) made every phase read
@@ -128,14 +187,18 @@ const scanCommand: Command = {
       return { success: false, exitCode: 1 };
     }
 
-    output.writeln();
-    output.writeln(output.bold('Security Scan'));
-    output.writeln(output.dim('─'.repeat(50)));
+    if (outputFormat === 'text') {
+      output.writeln();
+      output.writeln(output.bold('Security Scan'));
+      output.writeln(output.dim('─'.repeat(50)));
+    }
 
-    const spinner = output.createSpinner({ text: `Scanning ${target}...`, spinner: 'dots' });
-    spinner.start();
+    const spinner = outputFormat === 'text'
+      ? output.createSpinner({ text: `Scanning ${target}...`, spinner: 'dots' })
+      : undefined;
+    spinner?.start();
 
-    const findings: Array<{ severity: string; type: string; location: string; description: string }> = [];
+    const findings: ScanFinding[] = [];
     let criticalCount = 0, highCount = 0, mediumCount = 0, lowCount = 0;
 
     try {
@@ -145,7 +208,7 @@ const scanCommand: Command = {
 
       // Phase 1: npm audit for dependency vulnerabilities
       if (scanType === 'all' || scanType === 'deps') {
-        spinner.setText('Checking dependencies with npm audit...');
+        spinner?.setText('Checking dependencies with npm audit...');
         try {
           const packageJsonPath = path.resolve(target, 'package.json');
           if (fs.existsSync(packageJsonPath)) {
@@ -174,9 +237,9 @@ const scanCommand: Command = {
                   else lowCount++;
 
                   findings.push({
-                    severity: sev === 'critical' ? output.error('CRITICAL') :
-                              sev === 'high' ? output.warning('HIGH') :
-                              sev === 'moderate' || sev === 'medium' ? output.warning('MEDIUM') : output.info('LOW'),
+                    severity: sev === 'critical' ? 'critical' :
+                              sev === 'high' ? 'high' :
+                              sev === 'moderate' || sev === 'medium' ? 'medium' : 'low',
                     type: 'Dependency CVE',
                     location: `package.json:${pkg}`,
                     description: title.substring(0, 35),
@@ -190,21 +253,7 @@ const scanCommand: Command = {
 
       // Phase 2: Scan for hardcoded secrets
       if (scanType === 'all' || scanType === 'code') {
-        spinner.setText('Scanning for hardcoded secrets...');
-        const secretPatterns = [
-          // #2931: was `['"](?:sk-|...)...{20,}['"]` — the 20-char floor
-          // missed shorter-but-real keys like `sk-1234567890abcdef` (16
-          // chars), and the quote-adjacency anchor required a quote
-          // literally next to the prefix, missing the extremely common
-          // `Authorization: "Bearer sk_live_..."` shape where the quote
-          // sits next to "Bearer", not the key. Lookaround boundaries
-          // match the prefix wherever it appears as a standalone token.
-          { pattern: /(?<![a-zA-Z0-9_])(?:sk-|sk_live_|sk_test_)[a-zA-Z0-9]{10,}(?![a-zA-Z0-9_])/g, type: 'API Key (Stripe/OpenAI)' },
-          { pattern: /['"]AKIA[A-Z0-9]{16}['"]/g, type: 'AWS Access Key' },
-          { pattern: /['"]ghp_[a-zA-Z0-9]{36}['"]/g, type: 'GitHub Token' },
-          { pattern: /['"]xox[baprs]-[a-zA-Z0-9-]+['"]/g, type: 'Slack Token' },
-          { pattern: /password\s*[:=]\s*['"][^'"]{8,}['"]/gi, type: 'Hardcoded Password' },
-        ];
+        spinner?.setText('Scanning for hardcoded secrets...');
 
         const scanDir = (dir: string, depthLimit: number) => {
           // Positive-test rather than `<= 0`: undefined and NaN both fail this,
@@ -220,21 +269,10 @@ const scanCommand: Command = {
               } else if (entry.isFile() && /\.(ts|js|json|env|yml|yaml)$/.test(entry.name) && !entry.name.endsWith('.d.ts')) {
                 try {
                   const content = fs.readFileSync(fullPath, 'utf-8');
-                  const lines = content.split('\n');
-                  for (let i = 0; i < lines.length; i++) {
-                    for (const { pattern, type } of secretPatterns) {
-                      if (pattern.test(lines[i])) {
-                        highCount++;
-                        findings.push({
-                          severity: output.warning('HIGH'),
-                          type: 'Hardcoded Secret',
-                          location: `${path.relative(target, fullPath)}:${i + 1}`,
-                          description: type,
-                        });
-                        pattern.lastIndex = 0;
-                      }
-                    }
-                  }
+                  const secretFindings = scanSourceText(content, path.relative(target, fullPath))
+                    .filter((finding) => finding.type === 'Hardcoded Secret');
+                  highCount += secretFindings.length;
+                  findings.push(...secretFindings);
                 } catch { /* file read error */ }
               }
             }
@@ -247,14 +285,7 @@ const scanCommand: Command = {
 
       // Phase 3: Check for common security issues in code
       if ((scanType === 'all' || scanType === 'code') && depth !== 'quick') {
-        spinner.setText('Analyzing code patterns...');
-        const codePatterns = [
-          { pattern: /eval\s*\(/g, type: 'Eval Usage', severity: 'medium', desc: 'eval() can execute arbitrary code' },
-          { pattern: /innerHTML\s*=/g, type: 'innerHTML', severity: 'medium', desc: 'XSS risk with innerHTML' },
-          { pattern: /dangerouslySetInnerHTML/g, type: 'React XSS', severity: 'medium', desc: 'React XSS risk' },
-          { pattern: /child_process.*exec[^S]/g, type: 'Command Injection', severity: 'high', desc: 'Possible command injection' },
-          { pattern: /\$\{.*\}.*sql|sql.*\$\{/gi, type: 'SQL Injection', severity: 'high', desc: 'Possible SQL injection' },
-        ];
+        spinner?.setText('Analyzing code patterns...');
 
         const scanCodeDir = (dir: string, depthLimit: number) => {
           // Positive-test rather than `<= 0`: undefined and NaN both fail this,
@@ -270,22 +301,11 @@ const scanCommand: Command = {
               } else if (entry.isFile() && /\.(ts|js|tsx|jsx)$/.test(entry.name) && !entry.name.endsWith('.d.ts')) {
                 try {
                   const content = fs.readFileSync(fullPath, 'utf-8');
-                  const lines = content.split('\n');
-                  for (let i = 0; i < lines.length; i++) {
-                    for (const { pattern, type, severity, desc } of codePatterns) {
-                      if (pattern.test(lines[i])) {
-                        if (severity === 'high') highCount++;
-                        else mediumCount++;
-                        findings.push({
-                          severity: severity === 'high' ? output.warning('HIGH') : output.warning('MEDIUM'),
-                          type,
-                          location: `${path.relative(target, fullPath)}:${i + 1}`,
-                          description: desc,
-                        });
-                        pattern.lastIndex = 0;
-                      }
-                    }
-                  }
+                  const codeFindings = scanSourceText(content, path.relative(target, fullPath))
+                    .filter((finding) => finding.type !== 'Hardcoded Secret');
+                  highCount += codeFindings.filter((finding) => finding.severity === 'high').length;
+                  mediumCount += codeFindings.filter((finding) => finding.severity === 'medium').length;
+                  findings.push(...codeFindings);
                 } catch { /* file read error */ }
               }
             }
@@ -296,59 +316,29 @@ const scanCommand: Command = {
         scanCodeDir(path.resolve(target), scanDepth);
       }
 
-      spinner.succeed('Scan complete');
+      spinner?.succeed('Scan complete');
 
-      // Display results
-      output.writeln();
-      if (findings.length > 0) {
-        output.printTable({
-          columns: [
-            { key: 'severity', header: 'Severity', width: 12 },
-            { key: 'type', header: 'Type', width: 18 },
-            { key: 'location', header: 'Location', width: 25 },
-            { key: 'description', header: 'Description', width: 35 },
-          ],
-          data: findings.slice(0, 20), // Show first 20
-        });
+      const record: SecurityScanRecord = {
+        timestamp: new Date().toISOString(),
+        target,
+        depth,
+        type: scanType,
+        summary: {
+          critical: criticalCount,
+          high: highCount,
+          medium: mediumCount,
+          low: lowCount,
+          total: findings.length,
+        },
+        findings,
+      };
 
-        if (findings.length > 20) {
-          output.writeln(output.dim(`... and ${findings.length - 20} more issues`));
-        }
-      } else {
-        output.writeln(output.success('No security issues found!'));
-      }
-
-      output.writeln();
-      output.printBox([
-        `Target: ${target}`,
-        `Depth: ${depth}`,
-        `Type: ${scanType}`,
-        ``,
-        `Critical: ${criticalCount}  High: ${highCount}  Medium: ${mediumCount}  Low: ${lowCount}`,
-        `Total Issues: ${findings.length}`,
-      ].join('\n'), 'Scan Summary');
-
-      // Persist the scan result so downstream consumers (the statusline's
-      // getSecurityStatus in funnel/local-signals.ts, which reads
-      // `.claude/security-scans/*.json`) reflect real scan state. Best-effort:
-      // a failed write must never fail the scan itself.
-      try {
+      // Scans are read-only unless the caller explicitly opts into report
+      // persistence. This prevents a scan of an arbitrary target from
+      // modifying that target merely by observing it.
+      if (persist) try {
         const scanDirOut = path.join(path.resolve(target), '.claude', 'security-scans');
         fs.mkdirSync(scanDirOut, { recursive: true });
-        const record = {
-          timestamp: new Date().toISOString(),
-          target,
-          depth,
-          type: scanType,
-          summary: {
-            critical: criticalCount,
-            high: highCount,
-            medium: mediumCount,
-            low: lowCount,
-            total: findings.length,
-          },
-          findings,
-        };
         // Deterministic name keyed on scan config so repeated runs overwrite
         // rather than accumulate stale reports.
         const outFile = path.join(scanDirOut, `scan-${scanType}-${depth}.json`);
@@ -359,22 +349,61 @@ const scanCommand: Command = {
 
       // Auto-fix if requested
       if (fix && criticalCount + highCount > 0) {
-        output.writeln();
-        const fixSpinner = output.createSpinner({ text: 'Attempting to fix vulnerabilities...', spinner: 'dots' });
-        fixSpinner.start();
+        if (outputFormat === 'text') output.writeln();
+        const fixSpinner = outputFormat === 'text'
+          ? output.createSpinner({ text: 'Attempting to fix vulnerabilities...', spinner: 'dots' })
+          : undefined;
+        fixSpinner?.start();
         try {
           try {
             execSync('npm audit fix', { cwd: path.resolve(target), encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
           } catch { /* npm audit fix may exit non-zero */ }
-          fixSpinner.succeed('Applied available fixes (run scan again to verify)');
+          fixSpinner?.succeed('Applied available fixes (run scan again to verify)');
         } catch {
-          fixSpinner.fail('Some fixes could not be applied automatically');
+          fixSpinner?.fail('Some fixes could not be applied automatically');
         }
+      }
+
+      if (outputFormat === 'json') {
+        output.writeln(JSON.stringify(record));
+      } else if (outputFormat === 'sarif') {
+        output.writeln(JSON.stringify(securityScanToSarif(record)));
+      } else {
+        output.writeln();
+        if (findings.length > 0) {
+          output.printTable({
+            columns: [
+              { key: 'severity', header: 'Severity', width: 12 },
+              { key: 'type', header: 'Type', width: 18 },
+              { key: 'location', header: 'Location', width: 25 },
+              { key: 'description', header: 'Description', width: 35 },
+            ],
+            data: findings.slice(0, 20).map((finding) => ({
+              ...finding,
+              severity: finding.severity.toUpperCase(),
+            })),
+          });
+          if (findings.length > 20) {
+            output.writeln(output.dim(`... and ${findings.length - 20} more issues`));
+          }
+        } else {
+          output.writeln(output.success('No security issues found!'));
+        }
+
+        output.writeln();
+        output.printBox([
+          `Target: ${target}`,
+          `Depth: ${depth}`,
+          `Type: ${scanType}`,
+          ``,
+          `Critical: ${criticalCount}  High: ${highCount}  Medium: ${mediumCount}  Low: ${lowCount}`,
+          `Total Issues: ${findings.length}`,
+        ].join('\n'), 'Scan Summary');
       }
 
       return { success: findings.length === 0 || (criticalCount === 0 && highCount === 0) };
     } catch (error) {
-      spinner.fail('Scan failed');
+      spinner?.fail('Scan failed');
       output.printError(`Error: ${error}`);
       return { success: false };
     }

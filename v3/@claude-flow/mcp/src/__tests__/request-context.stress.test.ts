@@ -29,7 +29,7 @@ function init(id: number): MCPRequest {
 }
 
 describe('MCP request context stress', () => {
-  it('preserves principal and session identity across 10000 interleaved requests', async () => {
+  it('preserves session authority across 10000 interleaved requests', async () => {
     const server = createMCPServer({
       name: 'stress', version: '1.0.0', transport: 'in-process',
     }, logger);
@@ -40,12 +40,9 @@ describe('MCP request context stress', () => {
 
     server.registerTool({
       name: 'test/identity',
-      description: 'Return request-local identity',
+      description: 'Return request-local session identity',
       inputSchema: { type: 'object', properties: {} },
-      handler: async (_input, context) => ({
-        sessionId: context?.sessionId,
-        principal: context?.metadata?.principal,
-      }),
+      handler: async (_input, context) => ({ sessionId: context?.sessionId }),
     });
 
     const principalA = principalFromSecret('stress-token-a');
@@ -82,24 +79,49 @@ describe('MCP request context stress', () => {
           principal,
           legacySessionId: sessionId,
         }));
-        const result = response.result as { sessionId?: string; principal?: string } | undefined;
-        if (result?.sessionId !== sessionId || result?.principal !== principal.subject) aliases++;
+        const result = response.result as { sessionId?: string } | undefined;
+        if (result?.sessionId !== sessionId) aliases++;
       });
       await Promise.all(batch);
     }
 
+    const crossPrincipal = await (server as any).handleRequest({
+      jsonrpc: '2.0', id: 99_999, method: 'tools/list',
+    }, freezeRequestContext({
+      requestId: 'cross-principal-reuse',
+      transport: 'http',
+      principal: principalB,
+      legacySessionId: sessionA,
+    }));
+
     const elapsedMs = performance.now() - started;
     const throughput = total / (elapsedMs / 1000);
     console.info(JSON.stringify({
+      schema: 'ruflo.mcp-isolation-stress/v1',
       benchmark: 'mcp-request-context-isolation',
-      requests: total,
+      candidate: 'request-local-authority',
+      workload: 'two principals, two legacy sessions, alternating requests',
+      environment: {
+        node: process.version,
+        platform: process.platform,
+        arch: process.arch,
+      },
+      seed: 'deterministic-alternation-v1',
+      sampleSize: total,
       batchSize,
-      aliases,
-      elapsedMs: Number(elapsedMs.toFixed(2)),
-      throughputRps: Number(throughput.toFixed(2)),
-      node: process.version,
+      metrics: {
+        aliases,
+        crossPrincipalReuseAccepted: !crossPrincipal.error,
+        elapsedMs: Number(elapsedMs.toFixed(2)),
+        throughputRps: Number(throughput.toFixed(2)),
+      },
+      regressions: aliases > 0 || !crossPrincipal.error ? 1 : 0,
+      failures: aliases,
+      costEnergy: 'not measured in unit-test environment',
+      reproduction: 'pnpm vitest run src/__tests__/request-context.stress.test.ts',
     }));
 
     expect(aliases).toBe(0);
+    expect(crossPrincipal.error?.code).toBe(-32002);
   }, 30_000);
 });

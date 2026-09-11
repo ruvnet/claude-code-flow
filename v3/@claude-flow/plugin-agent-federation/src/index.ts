@@ -121,6 +121,14 @@ export {
   type FederationClaimCheckerConfig,
 } from './application/claim-checker.js';
 export {
+  composeLatentRoles,
+  type ComposedLatentRole,
+  type LatentRoleCandidate,
+  type LatentRoleComposeRequest,
+  type LatentRoleFallback,
+  type LatentRoleRoute,
+} from './application/latent-role-composer.js';
+export {
   DEFAULT_ENVELOPE_SIGNATURE_MODE,
   JCS_SIGNATURE_PROTOCOL,
   canonicalizeEnvelopeForVerify,

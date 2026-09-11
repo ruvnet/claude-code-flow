@@ -151,7 +151,21 @@ export function createPublisherService({ relay, keyPath, port } = {}) {
   const server = createServer(async (req, res) => {
     res.setHeader('x-content-type-options', 'nosniff');
     res.setHeader('referrer-policy', 'no-referrer');
+    // A connector running in a browser preflights /mcp before it may POST to it,
+    // and cannot read WWW-Authenticate unless it is explicitly exposed — without
+    // that header it never learns where to authenticate, so the OAuth flow never
+    // starts. Origin is open because authority here comes from the bearer token,
+    // not from where the request was made.
+    res.setHeader('access-control-allow-origin', '*');
+    res.setHeader('access-control-expose-headers', 'www-authenticate, mcp-session-id, mcp-protocol-version');
     const url = new URL(req.url, `http://${req.headers.host || 'x'}`);
+    if (req.method === 'OPTIONS') {
+      res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
+      res.setHeader('access-control-allow-headers',
+        'content-type, authorization, x-caller-token, mcp-session-id, mcp-protocol-version, accept');
+      res.setHeader('access-control-max-age', '86400');
+      return res.writeHead(204).end();
+    }
     if (url.pathname === '/health') return res.writeHead(200).end('ok');
     if (url.pathname === '/' && req.method === 'GET') {
       res.writeHead(200, { 'content-type': 'application/json' });
@@ -168,9 +182,14 @@ export function createPublisherService({ relay, keyPath, port } = {}) {
     // because clients differ on which they probe.
     if (url.pathname === '/.well-known/oauth-protected-resource'
       || url.pathname === '/.well-known/oauth-protected-resource/mcp') {
-      res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
-      return res.end(JSON.stringify(protectedResourceMetadata({
-        resource: resourceUrl() || `https://${req.headers.host}`, issuer: OAUTH_ISSUER })));
+      // RFC 9728 §3: `resource` must be the resource identifier the client used.
+      // A client given `<base>/mcp` looks up the path-suffixed document and
+      // expects `<base>/mcp` back; answering with the bare origin is a mismatch
+      // it is entitled to reject, and some do — silently, during setup.
+      const base = resourceUrl() || `https://${req.headers.host}`;
+      const resource = url.pathname.endsWith('/mcp') ? `${base}/mcp` : base;
+      res.writeHead(200, { 'content-type': 'application/json' });
+      return res.end(JSON.stringify(protectedResourceMetadata({ resource, issuer: OAUTH_ISSUER })));
     }
     if (url.pathname === '/mcp') {
       if (rateLimited(req)) return res.writeHead(429, { 'content-type': 'application/json' }).end('{"error":"rate limited"}');

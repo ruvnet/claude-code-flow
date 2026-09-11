@@ -88,12 +88,15 @@ test('discovery is served at both paths clients probe', async () => {
   const as = await fakeAuthServer();
   try {
     await withService(as, { required: true, publicUrl: 'https://cgf.example' }, async (port) => {
-      for (const path of ['/.well-known/oauth-protected-resource', '/.well-known/oauth-protected-resource/mcp']) {
+      for (const [path, expected] of [
+        ['/.well-known/oauth-protected-resource', 'https://cgf.example'],
+        ['/.well-known/oauth-protected-resource/mcp', 'https://cgf.example/mcp'],
+      ]) {
         const r = await fetch(`http://127.0.0.1:${port}${path}`);
         assert.equal(r.status, 200, path);
         const m = await r.json();
         assert.deepEqual(m.authorization_servers, [as.issuer]);
-        assert.equal(m.resource, 'https://cgf.example');
+        assert.equal(m.resource, expected, path);
       }
     });
   } finally { as.close(); }
@@ -300,6 +303,38 @@ test('ACCEPTANCE: session and other-client tokens get 401; ours succeeds with ex
       assert.deepEqual(decoded.scope.split(' ').sort(), [SCOPE_PUBLISH, SCOPE_READ].sort());
       assert.equal(decoded.aud, CLIENT_ID);
       assert.equal(decoded.iss, as.issuer);
+    });
+  } finally { as.close(); }
+});
+
+test('a browser-origin connector can preflight /mcp', async () => {
+  // Without this the connector cannot POST at all, and the failure surfaces to
+  // the user as a generic "error creating connector".
+  const as = await fakeAuthServer();
+  try {
+    await withService(as, { required: false, publicUrl: 'https://cgf.example' }, async (port) => {
+      const r = await fetch(`http://127.0.0.1:${port}/mcp`, { method: 'OPTIONS',
+        headers: { origin: 'https://chatgpt.com', 'access-control-request-method': 'POST',
+          'access-control-request-headers': 'content-type,authorization' } });
+      assert.equal(r.status, 204);
+      assert.equal(r.headers.get('access-control-allow-origin'), '*');
+      assert.match(r.headers.get('access-control-allow-methods') || '', /POST/);
+      assert.match(r.headers.get('access-control-allow-headers') || '', /authorization/);
+      // The client cannot start OAuth if it cannot read the challenge.
+      assert.match(r.headers.get('access-control-expose-headers') || '', /www-authenticate/);
+    });
+  } finally { as.close(); }
+});
+
+test('protected-resource metadata echoes the identifier the client asked about', async () => {
+  const as = await fakeAuthServer();
+  try {
+    await withService(as, { required: false, publicUrl: 'https://cgf.example' }, async (port) => {
+      const bare = await (await fetch(`http://127.0.0.1:${port}/.well-known/oauth-protected-resource`)).json();
+      assert.equal(bare.resource, 'https://cgf.example');
+      const suffixed = await (await fetch(`http://127.0.0.1:${port}/.well-known/oauth-protected-resource/mcp`)).json();
+      assert.equal(suffixed.resource, 'https://cgf.example/mcp',
+        'a client given <base>/mcp must get <base>/mcp back, not the bare origin');
     });
   } finally { as.close(); }
 });

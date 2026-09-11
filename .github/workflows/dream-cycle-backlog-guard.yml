@@ -1,0 +1,98 @@
+# Dream Cycle draft-PR backlog guard (Dream Cycle 2026-09-03, automation scan).
+#
+# Root cause (confirmed by direct forensics, not inferred): the nightly Dream
+# Cycle routine commits its LEDGER.md row in the SAME commit as the night's
+# candidate diff, on a dream/<date>-<surface> branch, then opens a draft PR.
+# STEP 25 (ledger update) runs correctly every night — every dream/* PR's
+# diff already contains its row — but the row only reaches `main` when a
+# human merges that PR. Draft PRs pile up between human review batches (a
+# batch merge on 2026-08-21 cleared 2026-08-14..19; nothing has merged since,
+# so 2026-08-24..09-02, 9+ nights, is currently open/unmerged). Each
+# subsequent night's STEP 1 then finds a stale `main` ledger and re-derives
+# the same "silent failure" diagnosis from scratch (recovery notes on
+# 2026-08-19 and 2026-09-02) — a recurring, avoidable rediscovery tax.
+#
+# This workflow does not fix the append mechanism (that requires editing the
+# Dream Cycle prompt itself, which lives outside this repo — see
+# docs/dream-cycle/LEDGER.md and issue #3118 §11/§15). It fixes the missing
+# *visibility*: surface the backlog on a schedule so a human notices drift
+# instead of the next Dream Cycle session re-diagnosing it. Modeled on the
+# existing oia-audit-weekly.yml pattern (scheduled, workflow_dispatch,
+# step-summary table, non-source-code CI only).
+name: dream-cycle-backlog-guard
+
+on:
+  schedule:
+    - cron: '11 7 * * *'  # daily, 07:11 UTC — ~1h after the 06:00 UTC dream-cycle trigger
+  workflow_dispatch:
+    inputs:
+      threshold_days:
+        description: 'Age (days) at which an open dream/* draft PR is flagged as backlog'
+        type: string
+        default: '3'
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: List open dream/* PRs and flag backlog
+        env:
+          GH_TOKEN: ${{ github.token }}
+          THRESHOLD_DAYS: ${{ inputs.threshold_days || '3' }}
+        run: |
+          set -euo pipefail
+
+          PRS_JSON=$(gh pr list \
+            --repo "${{ github.repository }}" \
+            --state open \
+            --search "head:dream/" \
+            --json number,headRefName,createdAt,isDraft,url \
+            --limit 200)
+
+          echo "$PRS_JSON" > /tmp/dream-prs.json
+          COUNT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('/tmp/dream-prs.json')).length)")
+
+          echo "## Dream Cycle backlog guard" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Open \`dream/*\` PRs: **$COUNT** (threshold: ${THRESHOLD_DAYS}d)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$COUNT" -eq 0 ]; then
+            echo "No open dream/* PRs — nothing to report." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "| PR | Branch | Age (days) | Draft | Backlog? |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+
+          BREACHES=$(node -e "
+            const fs = require('fs');
+            const prs = JSON.parse(fs.readFileSync('/tmp/dream-prs.json'));
+            const thresholdDays = Number(process.env.THRESHOLD_DAYS);
+            const now = Date.now();
+            let breaches = 0;
+            const rows = [];
+            for (const pr of prs) {
+              const ageDays = (now - new Date(pr.createdAt).getTime()) / 86400000;
+              const isBacklog = ageDays >= thresholdDays;
+              if (isBacklog) breaches++;
+              rows.push(\`| [#\${pr.number}](\${pr.url}) | \${pr.headRefName} | \${ageDays.toFixed(1)} | \${pr.isDraft} | \${isBacklog ? '⚠️ yes' : 'no'} |\`);
+            }
+            fs.writeFileSync('/tmp/dream-prs-rows.txt', rows.join('\n') + '\n');
+            console.log(breaches);
+          ")
+
+          cat /tmp/dream-prs-rows.txt >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$BREACHES" -gt 0 ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "**$BREACHES PR(s) exceed the ${THRESHOLD_DAYS}-day threshold — LEDGER.md rows for these nights exist only on their branch, not on \`main\`. Batch-review/merge to restore ledger visibility for future Dream Cycle sessions.**" >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::$BREACHES open dream/* draft PR(s) exceed ${THRESHOLD_DAYS} days — ledger rows stuck off main. See job summary."
+          fi

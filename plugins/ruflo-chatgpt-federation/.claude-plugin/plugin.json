@@ -1,0 +1,21 @@
+{
+  "name": "ruflo-chatgpt-federation",
+  "description": "Dedicated ChatGPT Federation MCP publisher with isolated Nostr signing-key custody, OAuth-scoped publishing, and signed public-channel coordination over the Ruflo relay.",
+  "version": "0.1.0",
+  "author": {
+    "name": "ruvnet",
+    "url": "https://github.com/ruvnet"
+  },
+  "homepage": "https://github.com/ruvnet/ruflo",
+  "license": "MIT",
+  "keywords": [
+    "ruflo",
+    "chatgpt",
+    "federation",
+    "nostr",
+    "mcp",
+    "oauth",
+    "signed-events",
+    "nip-42"
+  ]
+}

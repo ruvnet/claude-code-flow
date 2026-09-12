@@ -36,6 +36,38 @@ not an authorization to change a deployed system.
 
 ## Execute and resume
 
+### Development hypothesis 2 (frozen before execution)
+
+The saturated pilot cannot measure improvement. Expand the pinned corpus to all
+67 TypeScript modules in `src/memory` and `src/services`. Replace the 24 keyword
+queries with scenario paraphrases, retaining the file-disjoint 12/12 split.
+The targets were observed previously, and the author chose these queries; this
+is a harder development workload, not a sealed generalization evaluation.
+
+Hypothesis: credits learned only from training gains can select mutations that
+produce better child retrieval policies per native call than uniform, static,
+shuffled and previous-checkpoint credit controls. Every arm starts its child at
+`ROOT_POLICY` and receives exactly two proposals. All stochastic arms share
+random addresses. Static uses two fixed corner policies. Frozen uses root credits;
+previous uses the immediately preceding checkpoint's credits under the new
+proposer implementation. It does not replay the previous implementation itself.
+Only adaptive training rows update credits. Selection decides whether to retain
+the adaptive child and is development feedback. Raw per-query paired control
+differences, rejected proposals and each optimizer checkpoint are retained.
+
+Each arm consumes 8,040 field calls; the parent audit consumes 1,608, totaling
+41,808 per epoch. At most three epochs are allowed for this hypothesis. Existing
+plateau history remains active, so a first null epoch can stop this hypothesis.
+Full acquisition dollars and independent task sampling are not measured here.
+No confirmation gate, lifetime ceiling, trust key or original evidence changes.
+
+Mixed-source score replay must cover both versions. `replay-source DIR HEAD`
+explicitly reports which epochs it skips and never claims full verification when
+it skips any. `replay-history.mjs DIR HEAD` reconstructs original evaluators from
+Git trees listed in `evidence/loop-sources.json`, verifies their original ledger
+prefixes, then verifies the current-source suffix and requires exact epoch coverage.
+The existing ledger is never initialized again.
+
 Use Node 24 and a Git checkout containing the pinned corpus commit. No install,
 provider credential, daemon, network or model call is required for the native pilot.
 

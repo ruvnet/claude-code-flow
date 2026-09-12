@@ -23,18 +23,26 @@ export function recover(dir, expectedHead) {
   if (!s.pending) throw Error('no pending epoch');
   return summary(append(dir, 'INTERRUPTED', { epoch: s.pending.epoch, reason: 'operator acknowledged abandoned attempt; full reservation retained' }, s.head));
 }
-export function replayDevelopment(dir, expectedHead) {
+export function replayDevelopment(dir, expectedHead, { sourceOnly = false } = {}) {
   const s = loadLedger(dir, expectedHead), sourceHash = hash(sourceIdentity()), corpus = loadCorpus();
-  let credits = [1, 1, 1];
+  let credits = [1, 1, 1]; const completed = [], replayed = [], skipped = [];
   for (const receipt of s.completed) {
-    if (receipt.sourceHash !== sourceHash) throw Error('replay requires the source snapshot of each historical epoch');
-    const pending = s.attempts.find(a => a.epoch === receipt.epoch);
-    const actual = runReserved({ pending, champion: receipt.beforePolicy, credits }, corpus);
-    const stable = r => { const { elapsedMs, cpuMicros, ...rest } = r; return rest; };
-    if (hash(stable(actual)) !== hash(stable(receipt))) throw Error('development recomputation mismatch');
-    credits = receipt.credits;
+    if (receipt.sourceHash !== sourceHash) {
+      if (!sourceOnly) throw Error('replay requires the source snapshot of each historical epoch');
+      skipped.push(receipt.epoch);
+    } else {
+      const pending = s.attempts.find(a => a.epoch === receipt.epoch);
+      const actual = runReserved({ pending, champion: receipt.beforePolicy, credits, completed,
+        epochs: receipt.epoch - 1, source: sourceIdentity(), snapshots: s.snapshots.filter(n => n.epoch < receipt.epoch) }, corpus);
+      const stable = r => { const { elapsedMs, cpuMicros, ...rest } = r; return rest; };
+      if (hash(stable(actual)) !== hash(stable(receipt))) throw Error('development recomputation mismatch');
+      replayed.push(receipt.epoch);
+    }
+    credits = receipt.credits; completed.push(receipt);
   }
-  return { verified: true, replayedEpochs: s.completed.length, ...summary(s), timingReplayed: false };
+  if (sourceOnly && replayed.length === 0) throw Error('no epochs match this source');
+  return { verified: skipped.length === 0, sourceSubsetVerified: true, replayedEpochs: replayed.length,
+    replayedEpochNumbers: replayed, skippedHistoricalEpochs: skipped, ...summary(s), timingReplayed: false };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -57,6 +65,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       result = { verified: true, ...view };
     }
     else if (command === 'replay' && arg) result = replayDevelopment(dir, arg);
+    else if (command === 'replay-source' && arg) result = replayDevelopment(dir, arg, { sourceOnly: true });
     else if (command === 'recover' && arg) result = recover(dir, arg);
     else if (command === 'recover-writer' && arg) result = summary(recoverWriter(dir, arg));
     else if (command === 'hypothesis' && arg) {

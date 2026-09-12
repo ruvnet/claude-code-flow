@@ -11,45 +11,47 @@ const repo = resolve(fileURLToPath(new URL('../../../../../../', import.meta.url
 const prefix = 'v3/@claude-flow/cli/src/';
 // File-disjoint train/selection query targets; all queries are developer-authored and public.
 export const TASKS = [
-  ['train', 'memory/hybrid-retrieval.ts', 'sparse dense search reranking diversity'],
-  ['train', 'memory/hybrid-retrieval.ts', 'subject body term frequency document normalization'],
-  ['train', 'memory/embedding-policy.ts', 'choose embedding backend when provider unavailable'],
-  ['train', 'memory/embedding-policy.ts', 'embedding provider configuration fallback policy'],
-  ['train', 'memory/structured-distill.ts', 'structured distilled memory schema validation'],
-  ['train', 'memory/structured-distill.ts', 'distill task outcome into reusable lesson fields'],
-  ['train', 'services/flywheel-sequential-evidence.ts', 'allocate alpha across adaptive candidate tests'],
-  ['train', 'services/flywheel-sequential-evidence.ts', 'anytime valid significance betting evidence'],
-  ['train', 'services/harness-corpus-harvester.ts', 'harvest self supervised benchmark tasks from patterns'],
-  ['train', 'services/harness-corpus-harvester.ts', 'corpus query target generation sampling'],
-  ['train', 'memory/ewc-consolidation.ts', 'prevent catastrophic forgetting consolidate memory'],
-  ['train', 'memory/ewc-consolidation.ts', 'elastic weight consolidation importance fisher'],
-  ['selection', 'memory/cross-encoder-rerank.ts', 'rerank search results using cross encoder'],
-  ['selection', 'memory/cross-encoder-rerank.ts', 'query document pair relevance scoring model'],
-  ['selection', 'memory/rabitq-index.ts', 'quantized vector index compressed similarity search'],
-  ['selection', 'memory/rabitq-index.ts', 'rabitq index persistence nearest neighbors'],
-  ['selection', 'memory/graph-edge-writer.ts', 'write relationship edges into memory graph'],
-  ['selection', 'memory/graph-edge-writer.ts', 'graph edge persistence relationship validation'],
-  ['selection', 'services/flywheel-receipt.ts', 'verify signed improvement receipt paired outcomes'],
-  ['selection', 'services/flywheel-receipt.ts', 'receipt canonical serialization signature gate'],
-  ['selection', 'services/evolve-proof.ts', 'reconstruct evolution lineage rollback proof'],
-  ['selection', 'services/evolve-proof.ts', 'detect improvement plateau mutation effectiveness'],
-  ['selection', 'memory/embedding-quantization.ts', 'compress embeddings quantization precision'],
-  ['selection', 'memory/embedding-quantization.ts', 'quantization embedding dimensions reconstruction'],
-].map(([split, path, query], i) => ({ id: `development/${i}`, split, target: prefix + path, query }));
+  ['train', 'memory/hybrid-retrieval.ts', 'Search keeps returning near duplicates despite strong semantic matches. Where are lexical and vector ranks combined?'],
+  ['train', 'memory/hybrid-retrieval.ts', 'A term in a short title should compete with the same term repeated in a long document. Where is this scored?'],
+  ['train', 'memory/embedding-policy.ts', 'Offline workers need a compatible local representation when the configured remote model is unavailable. Where is that decision made?'],
+  ['train', 'memory/embedding-policy.ts', 'An existing store has vectors of a different dimension from the newly selected backend. Which rules choose a compatible provider?'],
+  ['train', 'memory/structured-distill.ts', 'A completed task contains a lesson and an approach to avoid. Where do we turn that into a validated record?'],
+  ['train', 'memory/structured-distill.ts', 'Generated knowledge has missing required fields and an invalid confidence value. Where should it be checked before storage?'],
+  ['train', 'services/flywheel-sequential-evidence.ts', 'We keep trying more candidate changes after failures. Where do we account for repeated statistical looks?'],
+  ['train', 'services/flywheel-sequential-evidence.ts', 'The next experiment must retain the error allowance already spent on rejected candidates. Which module tracks it?'],
+  ['train', 'services/harness-corpus-harvester.ts', 'We have stored successful work but need examples for testing a new agent. Where are those converted into questions and expected answers?'],
+  ['train', 'services/harness-corpus-harvester.ts', 'Which component builds a reproducible task collection from existing patterns without calling a paid model?'],
+  ['train', 'memory/ewc-consolidation.ts', 'New lessons are overwriting behavior that was useful on earlier tasks. Where are important parameters protected?'],
+  ['train', 'memory/ewc-consolidation.ts', 'Which learning component penalizes changes according to how much each old parameter mattered?'],
+  ['selection', 'memory/cross-encoder-rerank.ts', 'The first search pass is fast but its top results are not relevant enough. Where can a model read the question together with each result?'],
+  ['selection', 'memory/cross-encoder-rerank.ts', 'A small shortlist needs a slower pairwise relevance pass after initial retrieval. Where is its model loaded and used?'],
+  ['selection', 'memory/rabitq-index.ts', 'Millions of stored vectors use too much space. Which search structure keeps compact codes but can still retrieve nearby entries?'],
+  ['selection', 'memory/rabitq-index.ts', 'A compressed nearest neighbor structure must survive a process restart. Where is its state serialized?'],
+  ['selection', 'memory/graph-edge-writer.ts', 'Two learned records refer to related work. Where is their connection validated and persisted for later traversal?'],
+  ['selection', 'memory/graph-edge-writer.ts', 'A relationship update must not link a record to itself or create an invalid endpoint. Which writer enforces this?'],
+  ['selection', 'services/flywheel-receipt.ts', 'A claimed quality improvement came from another process. Where can we check the signed measurements and canonical payload?'],
+  ['selection', 'services/flywheel-receipt.ts', 'Which artifact binds before and after evaluation results to the candidate that produced them?'],
+  ['selection', 'services/evolve-proof.ts', 'An optimization run stopped making progress. Where can we inspect its ancestry and whether mutations still help?'],
+  ['selection', 'services/evolve-proof.ts', 'After rolling back a proposed change we need evidence of the surviving lineage. Which component reconstructs it?'],
+  ['selection', 'memory/embedding-quantization.ts', 'Float arrays consume too much memory in transit. Where can we reduce numeric precision and measure reconstruction error?'],
+  ['selection', 'memory/embedding-quantization.ts', 'Stored representations need fewer bytes per dimension while preserving useful similarity. Where are encoding formats selected?'],
+].map(([split, path, query], i) => ({ id: `development-v2/${i}`, split, target: prefix + path, query }));
 
 export function sourceIdentity() {
   return currentSource();
 }
 export function loadCorpus() {
-  const paths = [...new Set(TASKS.map(t => t.target)),
-    prefix + 'memory/intelligence.ts', prefix + 'memory/memory-initializer.ts',
-    prefix + 'memory/bge-embedder.ts', prefix + 'memory/sona-optimizer.ts'];
+  // Include every pinned module in both directories, not just the labeled targets.
+  const paths = execFileSync('git', ['ls-tree', '-r', '--name-only', CORPUS_COMMIT, '--',
+    prefix + 'memory', prefix + 'services'], { cwd: repo, encoding: 'utf8' })
+    .trim().split('\n').filter(p => p.endsWith('.ts')).sort();
   const docs = paths.map(path => {
     const body = execFileSync('git', ['show', `${CORPUS_COMMIT}:${path}`], { cwd: repo, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 });
     return { path, bodyHash: hash(body), subject: tokenize(path.replace(/[/.-]/g, ' ')), body: tokenize(body) };
   });
   const trainTargets = new Set(TASKS.filter(t => t.split === 'train').map(t => t.target));
   if (TASKS.some(t => t.split === 'selection' && trainTargets.has(t.target))) throw Error('target split leakage');
+  if (TASKS.some(t => !paths.includes(t.target))) throw Error('missing labeled target');
   return { docs, subjectStats: buildCorpusStats(docs.map(d => d.subject)), bodyStats: buildCorpusStats(docs.map(d => d.body)),
     commitment: hash({ commit: CORPUS_COMMIT, docs: docs.map(({ path, bodyHash }) => ({ path, bodyHash })), tasks: TASKS }) };
 }
@@ -68,12 +70,14 @@ export function scorePolicy(corpus, policy, tasks, meter) {
   });
 }
 const mean = xs => xs.reduce((a, b) => a + b, 0) / xs.length;
-export function propose(s) {
+export const ARMS = Object.freeze(['adaptive', 'frozen', 'static', 'shuffled', 'previous']);
+export function propose(s, count = 2) {
   const axes = ['b', 'k1', 'subjectWeight'], values = [[0, 0.5, 0.75, 1], [0.5, 1.5, 2.5], [0, 1, 3, 6]];
   const candidates = [], seen = new Set([hash(s.champion)]);
-  const seed = parseInt(hash([s.epochs + 1, s.champion, s.credits]).slice(0, 8), 16);
+  // Common random addresses across arms. Credits affect operator selection, not the seed.
+  const seed = parseInt(hash([s.epochs + 1, s.champion]).slice(0, 8), 16);
   let random = seed;
-  for (let i = 0; i < 80 && candidates.length < RULES.maxCandidates; i++) {
+  for (let i = 0; i < 80 && candidates.length < count; i++) {
     random = (Math.imul(random, 1664525) + 1013904223) >>> 0;
     let ticket = random / 4294967296 * s.credits.reduce((a, b) => a + b, 0), axis = 2;
     for (let j = 0; j < 3; j++) { ticket -= s.credits[j]; if (ticket < 0) { axis = j; break; } }
@@ -84,41 +88,75 @@ export function propose(s) {
   return candidates;
 }
 export function makeReservation(s, corpus) {
-  const candidates = propose(s);
+  const previousSnapshot = s.snapshots.at(-2) ?? s.snapshots[0];
+  const previousCredits = previousSnapshot.credits;
+  if (s.completed.at(-1)?.beforeCredits && hash(previousCredits) !== hash(s.completed.at(-1).beforeCredits)) throw Error('previous optimizer ancestry mismatch');
+  const optimizerInputs = {
+    adaptive: { credits: s.credits, checkpoint: s.snapshots.at(-1).id },
+    frozen: { credits: [1, 1, 1], checkpoint: s.snapshots[0].id },
+    static: { rule: 'fixed-two-corners/v1' },
+    shuffled: { credits: [s.credits[1], s.credits[2], s.credits[0]], checkpoint: s.snapshots.at(-1).id },
+    previous: { credits: previousCredits, checkpoint: previousSnapshot.id },
+  };
+  const candidates = ARMS.flatMap(arm => (arm === 'static'
+    ? [{ axis: 0, policy: { b: 0, k1: 0.5, subjectWeight: 0 } }, { axis: 2, policy: { b: 1, k1: 2.5, subjectWeight: 6 } }]
+    : propose({ epochs: s.epochs, champion: ROOT_POLICY, credits: optimizerInputs[arm].credits }))
+    .map(c => ({ arm, ...c })));
+  if (candidates.length !== 10 || candidates.length > RULES.maxCandidates) throw Error('matched candidate plan');
   const trainCount = TASKS.filter(t => t.split === 'train').length;
   const selectionCount = TASKS.length - trainCount;
   // Each native field BM25 call is metered; no uncharged baseline, failed candidate, or audit calls.
-  const units = (trainCount * (1 + candidates.length) + selectionCount * 3) * corpus.docs.length * 2;
-  return { epoch: s.epochs + 1, sourceHash: hash(s.source), corpusHash: corpus.commitment, units, candidates };
+  // Five independent common-start baselines, ten failed/successful proposals, five child
+  // selection evaluations and five selection baselines. Parent audit is charged separately.
+  const units = (trainCount * (ARMS.length + candidates.length) + selectionCount * (2 * ARMS.length + 1)) * corpus.docs.length * 2;
+  return { epoch: s.epochs + 1, sourceHash: hash(s.source), corpusHash: corpus.commitment, units, candidates, optimizerInputs };
 }
 export function runReserved(s, corpus) {
   const reservation = s.pending;
   if (!reservation || hash(sourceIdentity()) !== reservation.sourceHash || corpus.commitment !== reservation.corpusHash) throw Error('source or corpus drift');
+  const expected = makeReservation({ ...s, epochs: reservation.epoch - 1 }, corpus);
+  if (hash(expected.candidates) !== hash(reservation.candidates) || hash(expected.optimizerInputs) !== hash(reservation.optimizerInputs)) throw Error('optimizer reservation drift');
   const started = performance.now(), cpu = process.cpuUsage();
   const meter = { used: 0, charge(n) { if (this.used + n > reservation.units) throw Error('evaluation reservation exhausted'); this.used += n; } };
   const train = TASKS.filter(t => t.split === 'train'), selection = TASKS.filter(t => t.split === 'selection');
-  const baselineTrain = scorePolicy(corpus, s.champion, train, meter), baselineMean = mean(baselineTrain.map(r => r.score));
-  const attempts = reservation.candidates.map(c => ({ ...c, rows: scorePolicy(corpus, c.policy, train, meter) }));
-  let winner = s.champion, best = baselineMean;
+  const attempts = [], improvementCapacity = [];
   const credits = s.credits.map(c => Math.max(1, c * 0.9));
-  for (const a of attempts) {
-    a.mean = mean(a.rows.map(r => r.score)); a.delta = a.mean - baselineMean;
-    // All attempts retained. Only positive training improvement increases operator credit.
-    credits[a.axis] = Math.min(100, credits[a.axis] + Math.max(0, a.delta) * 10);
-    if (a.mean > best + 1e-12) { winner = a.policy; best = a.mean; }
+  for (const arm of ARMS) {
+    const beforeUnits = meter.used;
+    const baselineTrain = scorePolicy(corpus, ROOT_POLICY, train, meter), baselineMean = mean(baselineTrain.map(r => r.score));
+    let winner = ROOT_POLICY, best = baselineMean;
+    for (const c of reservation.candidates.filter(c => c.arm === arm)) {
+      const a = { ...c, rows: scorePolicy(corpus, c.policy, train, meter) };
+      a.mean = mean(a.rows.map(r => r.score)); a.delta = a.mean - baselineMean; attempts.push(a);
+      // Control outcomes and selection labels never train the adaptive optimizer.
+      if (arm === 'adaptive') credits[a.axis] = Math.min(100, credits[a.axis] + Math.max(0, a.delta) * 10);
+      if (a.mean > best + 1e-12) { winner = a.policy; best = a.mean; }
+    }
+    const baselineSelection = scorePolicy(corpus, ROOT_POLICY, selection, meter);
+    const candidateSelection = scorePolicy(corpus, winner, selection, meter);
+    const selectionGain = mean(candidateSelection.map((r, i) => r.score - baselineSelection[i].score));
+    const actualUnits = meter.used - beforeUnits;
+    improvementCapacity.push({ arm, optimizer: reservation.optimizerInputs[arm], optimizationStartPolicy: ROOT_POLICY,
+      childPolicy: winner, baselineTrain, baselineSelection, candidateSelection, trainGain: best - baselineMean,
+      selectionGain, actualUnits, gainPer10000Calls: selectionGain * 10000 / actualUnits });
   }
-  const baselineSelection = scorePolicy(corpus, s.champion, selection, meter), candidateSelection = scorePolicy(corpus, winner, selection, meter);
-  const rootSelection = scorePolicy(corpus, ROOT_POLICY, selection, meter);
+  const adaptive = improvementCapacity[0], winner = adaptive.childPolicy;
+  const baselineSelection = scorePolicy(corpus, s.champion, selection, meter), candidateSelection = adaptive.candidateSelection;
   const selectionDelta = mean(candidateSelection.map((r, i) => r.score - baselineSelection[i].score));
-  const selectionImproved = selectionDelta > 1e-12 && best > baselineMean + 1e-12;
+  const selectionImproved = selectionDelta > 1e-12 && adaptive.trainGain > 1e-12;
   const measured = process.cpuUsage(cpu);
   return { dataSource: 'REPOSITORY_DEVELOPMENT', sourceHash: reservation.sourceHash, corpusHash: corpus.commitment,
     corpusCommit: CORPUS_COMMIT, corpusFiles: corpus.docs.map(d => ({ path: d.path, bodyHash: d.bodyHash })),
     epoch: reservation.epoch, beforePolicy: s.champion, proposedPolicy: winner, nextPolicy: selectionImproved ? winner : s.champion,
-    baselineTrain, attempts, baselineSelection, candidateSelection, rootSelection, credits,
-    trainDelta: best - baselineMean, selectionDelta, selectionImproved,
+    optimizationStartPolicy: ROOT_POLICY, beforeCredits: s.credits,
+    baselineTrain: adaptive.baselineTrain, attempts, baselineSelection, candidateSelection, rootSelection: adaptive.baselineSelection, credits,
+    improvementCapacity, controlComparisons: improvementCapacity.slice(1).map(c => ({ control: c.arm,
+      pairedSelectionDeltas: candidateSelection.map((r, i) => ({ taskId: r.taskId, delta: r.score - c.candidateSelection[i].score })),
+      capacityDeltaPer10000Calls: adaptive.gainPer10000Calls - c.gainPer10000Calls })),
+    parentAuditUnits: selection.length * corpus.docs.length * 2,
+    trainDelta: adaptive.trainGain, selectionDelta, selectionImproved,
     actualUnits: meter.used, unit: 'native BM25 field score calls', providerSpendUsd: 0,
     elapsedMs: performance.now() - started, cpuMicros: measured.user + measured.system,
     boundedRsiEvidenceAccepted: false, productionPromotion: false,
-    limitation: 'Public developer-authored repository retrieval queries; reused selection is development feedback. No blind transfer or recursive improvement efficacy claim.' };
+    limitation: 'Public developer-authored paraphrases with previously observed targets. Matched common-start improver probes use reused development queries and native-call costs, not full acquisition dollars. No independent generalization or RSI claim.' };
 }

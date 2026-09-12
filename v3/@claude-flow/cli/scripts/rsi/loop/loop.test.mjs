@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { generateKeyPairSync, sign } from 'node:crypto';
 import { RULES, ROOT_POLICY, hash, alphaAt, initLedger, loadLedger, append, reserveProof, validatePolicy, recoverWriter } from './ledger.mjs';
 import { evaluateProof, signTest } from './proof.mjs';
-import { sourceIdentity, loadCorpus, TASKS, scorePolicy, makeReservation, runReserved } from './retrieval.mjs';
+import { sourceIdentity, loadCorpus, TASKS, ARMS, scorePolicy, makeReservation, runReserved, propose } from './retrieval.mjs';
 import { step, recover, replayDevelopment } from './run.mjs';
 
 function fixture(t, trust = []) {
@@ -44,12 +44,14 @@ function proofFixture(t) {
 }
 
 test('native repository retrieval is deterministic and target modules are split', () => {
-  const corpus = loadCorpus(); assert.equal(corpus.docs.length, 16);
+  const corpus = loadCorpus(); assert.equal(corpus.docs.length, 67);
   const train = TASKS.filter(t => t.split === 'train'), selection = TASKS.filter(t => t.split === 'selection');
   assert.ok(selection.every(t => !train.some(i => i.target === t.target)));
   const rows = scorePolicy(corpus, ROOT_POLICY, TASKS);
   assert.deepEqual(rows, scorePolicy(corpus, ROOT_POLICY, TASKS));
-  assert.ok(rows.every(r => r.rank >= 1 && r.rank <= 16 && r.score === 1 / r.rank));
+  assert.ok(rows.every(r => r.rank >= 1 && r.rank <= 67 && r.score === 1 / r.rank));
+  assert.ok(rows.filter(r => train.some(t => t.id === r.taskId)).some(r => r.rank > 1), 'training baseline needs headroom');
+  assert.ok(rows.filter(r => selection.some(t => t.id === r.taskId)).some(r => r.rank > 1), 'selection baseline needs headroom');
   assert.throws(() => validatePolicy({ ...ROOT_POLICY, arbitraryCode: 'execute' }), /keys/);
   assert.throws(() => validatePolicy({ ...ROOT_POLICY, b: NaN }), /bounds/);
 });
@@ -89,12 +91,33 @@ test('resumable epochs execute all attempts without promoting development to pro
   const s = loadLedger(dir), r = s.completed[0];
   assert.equal(s.epochs, 1); assert.equal(s.pending, null); assert.ok(r.attempts.length > 0);
   assert.equal(r.actualUnits, s.reservedUnits); assert.equal(r.providerSpendUsd, 0);
+  assert.equal(r.actualUnits, 41808); assert.equal(r.attempts.length, 10);
+  assert.deepEqual(r.improvementCapacity.map(c => c.arm), ARMS);
+  assert.ok(r.improvementCapacity.every(c => c.actualUnits === 8040 && hash(c.optimizationStartPolicy) === hash(ROOT_POLICY)));
+  assert.equal(r.improvementCapacity.reduce((n, c) => n + c.actualUnits, r.parentAuditUnits), r.actualUnits);
+  assert.equal(r.controlComparisons.length, 4);
+  const adaptive = r.attempts.filter(a => a.arm === 'adaptive'), expectedCredits = r.beforeCredits.map(c => Math.max(1, c * 0.9));
+  adaptive.forEach(a => { expectedCredits[a.axis] = Math.min(100, expectedCredits[a.axis] + Math.max(0, a.delta) * 10); });
+  assert.deepEqual(r.credits, expectedCredits, 'control and selection outcomes cannot update credits');
   assert.equal(s.boundedRsiEvidenceAccepted, false); assert.equal(s.productionPromotion, false);
   assert.equal(replayDevelopment(dir, s.head).replayedEpochs, 1);
   assert.deepEqual(loadLedger(dir, s.head).head, s.head);
   const first = JSON.parse(readFileSync(join(dir, '00000000.json'))); first.payload.mission = 'tampered';
   writeFileSync(join(dir, '00000000.json'), JSON.stringify(first));
   assert.throws(() => loadLedger(dir), /chain/);
+});
+
+test('proposer controls share random addresses and bind previous optimizer ancestry', t => {
+  const dir = fixture(t); const s = loadLedger(dir), corpus = loadCorpus();
+  const parent = { id: hash('previous optimizer'), epoch: 1, credits: [4, 1, 2] }, child = { id: hash('current optimizer'), epoch: 2, credits: [9, 2, 1] };
+  const state = { ...s, epochs: 2, credits: [9, 2, 1], snapshots: [...s.snapshots, parent, child],
+    completed: [{ beforeCredits: [4, 1, 2], credits: [9, 2, 1] }] };
+  const r = makeReservation(state, corpus);
+  assert.deepEqual(r.optimizerInputs.previous, { credits: [4, 1, 2], checkpoint: parent.id });
+  assert.deepEqual(r.optimizerInputs.shuffled.credits, [2, 1, 9]);
+  assert.deepEqual(r.candidates.filter(c => c.arm === 'adaptive').map(({ arm, ...c }) => c),
+    propose({ epochs: 2, champion: ROOT_POLICY, credits: [9, 2, 1] }));
+  assert.equal(new Set(ARMS.map(a => r.candidates.filter(c => c.arm === a).length)).size, 1);
 });
 
 test('budget and concurrency checks occur before any evaluation', t => {

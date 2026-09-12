@@ -558,11 +558,50 @@ const startCommand: Command = {
       description: 'Enable real-time monitoring',
       type: 'boolean',
       default: true
+    },
+    {
+      // ADR-385 — actually EXECUTE the objective as a streaming multi-agent
+      // flow. Default true; `--no-execute` restores the plan-only behavior.
+      name: 'execute',
+      description: 'Execute the objective (spawn real agents). Use --no-execute for plan-only.',
+      type: 'boolean',
+      default: true
+    },
+    {
+      name: 'max-agents',
+      description: 'Cap the number of worker subprocesses spawned (bounds fan-out and cost)',
+      type: 'number',
+      default: 4
+    },
+    {
+      name: 'max-parallel',
+      description: 'Bounded concurrency for worker execution',
+      type: 'number',
+      default: 4
+    },
+    {
+      name: 'deadline-secs',
+      description: 'Global execution deadline in seconds (kills runaway workers)',
+      type: 'number',
+      default: 300
+    },
+    {
+      name: 'model',
+      description: 'Model for spawned workers (haiku|sonnet|opus)',
+      type: 'string',
+      default: 'sonnet'
+    },
+    {
+      name: 'allowed-tools',
+      description: 'Comma-separated tool allowlist for workers (bounded capability; NOT skip-permissions)',
+      type: 'string'
     }
   ],
   examples: [
     { command: 'claude-flow swarm start -o "Build REST API" -s development', description: 'Start development swarm' },
-    { command: 'claude-flow swarm start -o "Analyze codebase" --parallel', description: 'Parallel analysis' }
+    { command: 'claude-flow swarm start -o "Analyze codebase" --parallel', description: 'Parallel analysis' },
+    { command: 'claude-flow swarm start -o "Add a health endpoint" --max-agents 2 --model haiku', description: 'Streaming execution, bounded' },
+    { command: 'claude-flow swarm start -o "Plan a refactor" --no-execute', description: 'Plan-only (legacy behavior)' }
   ],
   action: async (ctx: CommandContext): Promise<CommandResult> => {
     const objective = ctx.args[0] || ctx.flags.objective as string;
@@ -584,12 +623,22 @@ const startCommand: Command = {
 
     strategy = strategy || 'development';
 
+    // Compute agent deployment plan based on strategy
+    const agentPlan = getAgentPlan(strategy);
+    const swarmId = `swarm-${Date.now().toString(36)}`;
+    const topology = 'hierarchical';
+    const consensus = 'raft';
+    const execute = ctx.flags.execute !== false;
+
+    // ADR-385: streaming execution is the default from the console path.
+    if (execute) {
+      return runSwarmStartExecute(ctx, { objective, strategy, agentPlan, swarmId, topology, consensus });
+    }
+
+    // --- plan-only path (--no-execute): legacy behavior, prints to stdout ---
     output.writeln();
     output.printInfo(`Starting swarm with objective: ${output.highlight(objective)}`);
     output.writeln();
-
-    // Compute agent deployment plan based on strategy
-    const agentPlan = getAgentPlan(strategy);
 
     output.writeln(output.bold('Agent Deployment Plan'));
     output.printTable({
@@ -602,31 +651,24 @@ const startCommand: Command = {
       data: agentPlan
     });
 
-    // Confirm execution
     if (ctx.interactive) {
       const confirmed = await confirm({
         message: `Deploy ${agentPlan.reduce((sum, a) => sum + a.count, 0)} agents?`,
         default: true
       });
-
       if (!confirmed) {
         output.printInfo('Swarm execution cancelled');
         return { success: true };
       }
     }
 
-    // Initialize swarm via MCP and persist state (#1423: was stub-only, no actual execution)
-    const swarmId = `swarm-${Date.now().toString(36)}`;
     const totalAgents = agentPlan.reduce((sum: number, a: { count: number }) => sum + a.count, 0);
-
     output.writeln();
     const spinner = output.createSpinner({ text: 'Initializing swarm via MCP...', spinner: 'dots' });
     spinner.start();
-
     try {
-      // Actually call MCP to initialize the swarm
-      const initResult = await callMCPTool('swarm_init', {
-        topology: 'hierarchical',
+      await callMCPTool('swarm_init', {
+        topology,
         maxAgents: totalAgents,
         strategy: strategy === 'development' ? 'specialized' : strategy,
       });
@@ -634,44 +676,129 @@ const startCommand: Command = {
     } catch (err) {
       spinner.fail('MCP swarm_init failed — swarm metadata saved locally only');
       output.writeln(output.dim(`  Error: ${err instanceof Error ? err.message : String(err)}`));
-      // #2370: the old hint referenced the deprecated `claude-flow@v3alpha`
-      // dist-tag which now resolves to a pre-rename package. Use the current
-      // `ruflo@latest` and force a fresh fetch with `-y` so npx doesn't pick
-      // a stale local install.
       output.writeln(output.dim('  The MCP server may not be running. Start it with: claude mcp add claude-flow -- npx -y ruflo@latest mcp start'));
     }
 
-    // Persist swarm state to disk so `swarm status` can read it
     const swarmDir = path.join(process.cwd(), '.swarm');
     if (!fs.existsSync(swarmDir)) fs.mkdirSync(swarmDir, { recursive: true });
-
     const executionState = {
-      swarmId,
-      objective,
-      strategy,
-      status: 'initialized',
-      agents: totalAgents,
-      agentPlan,
-      startedAt: new Date().toISOString(),
-      parallel: ctx.flags.parallel ?? true
+      swarmId, objective, strategy, status: 'initialized', agents: totalAgents, agentPlan,
+      startedAt: new Date().toISOString(), parallel: ctx.flags.parallel ?? true
     };
-
-    fs.writeFileSync(
-      path.join(swarmDir, 'state.json'),
-      JSON.stringify(executionState, null, 2)
-    );
+    fs.writeFileSync(path.join(swarmDir, 'state.json'), JSON.stringify(executionState, null, 2));
 
     output.writeln();
-    output.printSuccess(`Swarm ${swarmId} initialized with ${totalAgents} agent slots`);
-    output.writeln(output.dim('  This CLI coordinates agent state. Execution happens via:'));
-    output.writeln(output.dim('  - Claude Code Agent tool (interactive)'));
-    output.writeln(output.dim('  - claude -p (headless background)'));
-    output.writeln(output.dim('  - hive-mind spawn --claude (autonomous)'));
+    output.printSuccess(`Swarm ${swarmId} planned with ${totalAgents} agent slots (plan-only, --no-execute)`);
+    output.writeln(output.dim(`  Run without --no-execute to stream real agent execution.`));
     output.writeln(output.dim(`  Monitor: claude-flow swarm status ${swarmId}`));
-
     return { success: true, data: executionState };
   }
 };
+
+/**
+ * ADR-385 streaming execution. stdout carries ONLY NDJSON events (so the ruOS
+ * console can tail it over SSE); all human chrome goes to stderr.
+ */
+async function runSwarmStartExecute(
+  ctx: CommandContext,
+  args: {
+    objective: string;
+    strategy: string;
+    agentPlan: Array<{ role: string; type: string; count: number; purpose: string }>;
+    swarmId: string;
+    topology: string;
+    consensus: string;
+  },
+): Promise<CommandResult> {
+  const { objective, strategy, agentPlan, swarmId, topology, consensus } = args;
+  const {
+    buildWorkerSpecs, runSwarmExecution, sessionDirFor, DEFAULT_ALLOWED_TOOLS, renderOverviewCard,
+  } = await import('../services/swarm-executor.js');
+
+  const model = String(ctx.flags.model || 'sonnet');
+  const maxAgents = Math.max(1, Number(ctx.flags.maxAgents) || 4);
+  const maxParallel = Math.max(1, Number(ctx.flags.maxParallel) || 4);
+  const deadlineSecs = Math.max(1, Number(ctx.flags.deadlineSecs) || 300);
+  const allowedTools = (ctx.flags.allowedTools as string) || DEFAULT_ALLOWED_TOOLS;
+
+  const err = (s = '') => process.stderr.write(s + '\n');
+  const emit = (e: unknown) => { process.stdout.write(JSON.stringify(e) + '\n'); };
+
+  const specs = buildWorkerSpecs(objective, agentPlan, { maxAgents, model });
+
+  // Confirm at a TTY before spending on real workers (the console path is
+  // non-interactive, so it is not prompted). Prompt on stdout is fine here.
+  if (ctx.interactive) {
+    const confirmed = await confirm({
+      message: `Execute this objective with ${specs.length} ${model} worker(s)? This spends real tokens.`,
+      default: true,
+    });
+    if (!confirmed) {
+      err('Swarm execution cancelled');
+      return { success: true };
+    }
+  }
+
+  const startedAt = new Date().toISOString();
+  err(`Swarm ${swarmId} — streaming execution (ADR-385)`);
+  err(`Objective: ${objective}`);
+  err(`Strategy: ${strategy} · topology: ${topology} · consensus: ${consensus} · model: ${model}`);
+  err(`Roster (${specs.length}, capped at ${maxAgents}): ${specs.map((s) => `${s.name}[${s.role}]`).join(', ')}`);
+  err(`Deadline: ${deadlineSecs}s · max-parallel: ${maxParallel} · tools: ${allowedTools}`);
+  err('');
+
+  // Best-effort MCP coordination init (does not gate execution).
+  try {
+    await callMCPTool('swarm_init', {
+      topology, maxAgents: specs.length,
+      strategy: strategy === 'development' ? 'specialized' : strategy,
+    });
+    err('MCP swarm_init: ok');
+  } catch (e) {
+    err(`MCP swarm_init unavailable (${e instanceof Error ? e.message : String(e)}) — executing without coordination ledger`);
+  }
+
+  // Persist state so `swarm status` can read it.
+  const swarmDir = path.join(process.cwd(), '.swarm');
+  const sessionDir = sessionDirFor(process.cwd(), swarmId);
+  try {
+    fs.mkdirSync(swarmDir, { recursive: true });
+    fs.writeFileSync(path.join(swarmDir, 'state.json'), JSON.stringify({
+      swarmId, objective, strategy, topology, status: 'running',
+      agents: specs.length, agentPlan,
+      roster: specs.map((s) => ({ name: s.name, role: s.role, model: s.model })),
+      startedAt, parallel: ctx.flags.parallel ?? true,
+    }, null, 2));
+  } catch { /* non-fatal */ }
+
+  const { overview, workers } = await runSwarmExecution({
+    objective, swarmId, specs, cwd: process.cwd(),
+    topology, consensus, strategy,
+    maxParallel, deadlineSecs, allowedTools, sessionDir,
+    onEvent: emit,
+  });
+
+  // Human card to stderr; overview JSON already streamed on stdout as an
+  // `overview` event. With --format json also emit the bare object last.
+  err('');
+  err(renderOverviewCard(overview));
+  if (ctx.flags.format === 'json') emit(overview);
+
+  // Mark final state.
+  try {
+    const anyOk = workers.some((w) => w.status === 'ok' || w.status === 'partial');
+    fs.writeFileSync(path.join(swarmDir, 'state.json'), JSON.stringify({
+      swarmId, objective, strategy, topology,
+      status: anyOk ? 'completed' : 'failed',
+      agents: specs.length, agentPlan,
+      roster: overview.roster, artifacts: overview.artifacts,
+      startedAt, completedAt: new Date().toISOString(),
+    }, null, 2));
+  } catch { /* non-fatal */ }
+
+  const allFailed = workers.length > 0 && workers.every((w) => w.status === 'failed');
+  return { success: !allFailed, exitCode: allFailed ? 1 : 0, data: overview };
+}
 
 // Swarm status
 const statusCommand: Command = {
@@ -1044,6 +1171,43 @@ const compressMessageCommand: Command = {
   },
 };
 
+// ADR-385 I3 — operator guidance inbox. Appends a message to the running
+// swarm's inbox; the executor polls it between turns and injects it into the
+// next worker's prompt.
+const guideCommand: Command = {
+  name: 'guide',
+  description: 'Send guidance to a running swarm (injected into the next worker prompt) — ADR-385',
+  options: [
+    { name: 'message', short: 'm', type: 'string', description: 'Guidance message (or provide as positional arg)' },
+  ],
+  examples: [
+    { command: 'claude-flow swarm guide swarm-abc123 "prioritize the auth module"', description: 'Steer a running swarm' },
+  ],
+  action: async (ctx: CommandContext): Promise<CommandResult> => {
+    const swarmId = ctx.args[0];
+    const message = (ctx.flags.message as string) || ctx.args[1];
+    if (!swarmId) {
+      output.printError('Swarm ID is required. Usage: swarm guide <id> "<message>"');
+      return { success: false, exitCode: 1 };
+    }
+    if (!message) {
+      output.printError('Guidance message is required. Use -m or provide as the second argument.');
+      return { success: false, exitCode: 1 };
+    }
+    const { appendGuidance, sessionDirFor } = await import('../services/swarm-executor.js');
+    const dir = sessionDirFor(process.cwd(), swarmId);
+    try {
+      appendGuidance(dir, message);
+      output.printSuccess(`Guidance queued for ${swarmId} — the next worker will incorporate it.`);
+      output.writeln(output.dim(`  Inbox: ${path.join(dir, 'inbox.jsonl')}`));
+      return { success: true, data: { swarmId, message } };
+    } catch (e) {
+      output.printError(`Failed to queue guidance: ${e instanceof Error ? e.message : String(e)}`);
+      return { success: false, exitCode: 1 };
+    }
+  },
+};
+
 const pheromoneCommand: Command = {
   name: 'pheromone',
   description: 'Inspect or update ADR-330 pheromone-adaptive scheduling state',
@@ -1073,7 +1237,7 @@ const pheromoneCommand: Command = {
 export const swarmCommand: Command = {
   name: 'swarm',
   description: 'Swarm coordination commands',
-  subcommands: [initCommand, startCommand, statusCommand, stopCommand, scaleCommand, coordinateCommand, compressMessageCommand, pheromoneCommand, swarmJoinCommand],
+  subcommands: [initCommand, startCommand, statusCommand, stopCommand, scaleCommand, coordinateCommand, compressMessageCommand, guideCommand, pheromoneCommand, swarmJoinCommand],
   options: [],
   examples: [
     { command: 'claude-flow swarm init --v3-mode', description: 'Initialize V3 swarm' },
@@ -1095,6 +1259,7 @@ export const swarmCommand: Command = {
       `${output.highlight('stop')}        - Stop swarm execution`,
       `${output.highlight('scale')}       - Scale swarm agent count`,
       `${output.highlight('coordinate')}  - V3 15-agent coordination`,
+      `${output.highlight('guide')}       - Send guidance to a running swarm (ADR-385)`,
       `${output.highlight('pheromone')}   - Inspect/update adaptive pheromone state`
     ]);
 

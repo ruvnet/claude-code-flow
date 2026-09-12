@@ -228,7 +228,7 @@ npx claude-flow hive-mind spawn "Build REST API" --claude
 
 Output:
 ```javascript
-Task("Queen Coordinator", "Orchestrate REST API development...", "coordinator")
+Task("Queen Coordinator", "Orchestrate REST API development...", "queen-coordinator")
 Task("Backend Developer", "Implement Express routes...", "backend-dev")
 Task("Database Architect", "Design PostgreSQL schema...", "code-analyzer")
 Task("Test Engineer", "Create Jest test suite...", "tester")

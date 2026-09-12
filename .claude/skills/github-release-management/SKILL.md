@@ -298,7 +298,7 @@ npx claude-flow github release-deploy \
   Task("Package A Manager", "Coordinate claude-flow package release v1.0.72", "coder")
   Task("Package B Manager", "Coordinate ruv-swarm package release v1.0.12", "coder")
   Task("Integration Tester", "Validate cross-package compatibility", "tester")
-  Task("Version Coordinator", "Align dependencies and versions", "coordinator")
+  Task("Version Coordinator", "Align dependencies and versions", "release-manager")
 
   // Update all packages simultaneously
   Write("packages/claude-flow/package.json", "[v1.0.72 content]")
@@ -380,9 +380,9 @@ npx claude-flow github multi-release \
   mcp__claude-flow__swarm_init { topology: "star", maxAgents: 6 }
 
   // Spawn repo-specific coordinators
-  Task("Frontend Release", "Release frontend v2.0.0 with API compatibility", "coordinator")
-  Task("Backend Release", "Release backend v2.1.0 with breaking changes", "coordinator")
-  Task("CLI Release", "Release CLI v1.5.0 with new commands", "coordinator")
+  Task("Frontend Release", "Release frontend v2.0.0 with API compatibility", "release-manager")
+  Task("Backend Release", "Release backend v2.1.0 with breaking changes", "release-manager")
+  Task("CLI Release", "Release CLI v1.5.0 with new commands", "release-manager")
   Task("Compatibility Checker", "Validate cross-repo compatibility", "researcher")
 
   // Coordinate version updates across repos

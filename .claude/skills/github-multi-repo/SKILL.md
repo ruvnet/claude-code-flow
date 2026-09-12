@@ -90,8 +90,8 @@ mcp__claude-flow__swarm_init({
 // Execute synchronized changes across repositories
 [Parallel Multi-Repo Operations]:
   // Spawn coordination agents
-  Task("Repository Coordinator", "Coordinate changes across all repositories", "coordinator")
-  Task("Dependency Analyzer", "Analyze cross-repo dependencies", "analyst")
+  Task("Repository Coordinator", "Coordinate changes across all repositories", "multi-repo-swarm")
+  Task("Dependency Analyzer", "Analyze cross-repo dependencies", "code-analyzer")
   Task("Integration Tester", "Validate cross-repo changes", "tester")
 
   // Get matching repositories
@@ -136,8 +136,8 @@ mcp__claude-flow__swarm_init({
   mcp__claude-flow__swarm_init({ topology: "mesh", maxAgents: 5 })
 
   // Spawn sync agents
-  Task("Sync Coordinator", "Coordinate version alignment", "coordinator")
-  Task("Dependency Analyzer", "Analyze dependencies", "analyst")
+  Task("Sync Coordinator", "Coordinate version alignment", "sync-coordinator")
+  Task("Dependency Analyzer", "Analyze dependencies", "code-analyzer")
   Task("Integration Tester", "Validate synchronization", "tester")
 
   // Read package states
@@ -237,8 +237,8 @@ mcp__claude-flow__swarm_init({
   mcp__claude-flow__swarm_init({ topology: "hierarchical", maxAgents: 6 })
 
   // Spawn architecture agents
-  Task("Senior Architect", "Analyze repository structure", "architect")
-  Task("Structure Analyst", "Identify optimization opportunities", "analyst")
+  Task("Senior Architect", "Analyze repository structure", "repo-architect")
+  Task("Structure Analyst", "Identify optimization opportunities", "code-analyzer")
   Task("Performance Optimizer", "Optimize structure for scalability", "optimizer")
   Task("Best Practices Researcher", "Research architecture patterns", "researcher")
 
@@ -397,8 +397,8 @@ Part of #$TRACKING_ISSUE"
   mcp__claude-flow__swarm_init({ topology: "mesh", maxAgents: 8 })
 
   // Spawn specialized agents
-  Task("Refactoring Coordinator", "Coordinate refactoring across repos", "coordinator")
-  Task("Impact Analyzer", "Analyze refactoring impact", "analyst")
+  Task("Refactoring Coordinator", "Coordinate refactoring across repos", "multi-repo-swarm")
+  Task("Impact Analyzer", "Analyze refactoring impact", "code-analyzer")
   Task("Code Transformer", "Apply refactoring changes", "coder")
   Task("Migration Guide Creator", "Create migration documentation", "documenter")
   Task("Integration Tester", "Validate refactored code", "tester")

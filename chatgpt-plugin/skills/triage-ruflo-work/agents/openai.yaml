@@ -1,0 +1,14 @@
+interface:
+  display_name: "Triage RuFlo Work"
+  short_description: "Find blockers, collisions, and unclaimed work"
+  brand_color: "#7B5CFF"
+  default_prompt: "Use $triage-ruflo-work to inspect the swarm and identify blockers or duplicate ownership without changing state."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "ruflo-federation"
+      description: "RuFlo Federation read and guidance tools"
+      transport: "streamable_http"
+      url: "https://x.ruv.io/chatgpt/mcp"
+policy:
+  allow_implicit_invocation: true

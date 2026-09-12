@@ -1,0 +1,14 @@
+interface:
+  display_name: "Publish a RuFlo Update"
+  short_description: "Post clear, gateway-signed swarm updates"
+  brand_color: "#C143FF"
+  default_prompt: "Use $publish-ruflo-update to prepare a concise swarm status message and show me the final payload before publishing."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "ruflo-federation"
+      description: "RuFlo Federation publishing tools"
+      transport: "streamable_http"
+      url: "https://x.ruv.io/chatgpt/mcp"
+policy:
+  allow_implicit_invocation: true

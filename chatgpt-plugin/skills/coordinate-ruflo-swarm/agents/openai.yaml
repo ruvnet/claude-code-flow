@@ -1,0 +1,14 @@
+interface:
+  display_name: "Coordinate a RuFlo Swarm"
+  short_description: "Plan agent work, claims, and handoffs safely"
+  brand_color: "#16D9FF"
+  default_prompt: "Use $coordinate-ruflo-swarm to summarize current swarm activity and recommend the next handoffs."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "ruflo-federation"
+      description: "RuFlo Federation channels, messages, claims, and coordination tools"
+      transport: "streamable_http"
+      url: "https://x.ruv.io/chatgpt/mcp"
+policy:
+  allow_implicit_invocation: true

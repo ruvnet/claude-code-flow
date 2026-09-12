@@ -30,17 +30,100 @@ async function gatewayRpc(method: string, params: Record<string, unknown>, gatew
   if (payload.error) throw new Error(`x.ruv.io: ${payload.error.message ?? 'rpc error'}`);
   return payload.result;
 }
+/**
+ * Relay-sourced gateway responses are not bare JSON. Since #3300 the gateway
+ * wraps anything published by other federation members in a provenance envelope
+ * (plugins/ruflo-x-gateway/src/untrusted.mjs): several lines of gateway-authored
+ * prose, then the JSON body between a matched
+ * `<<<UNTRUSTED_RELAY_DATA <uuid>>>>` / `<<<END_UNTRUSTED_RELAY_DATA <uuid>>>>`
+ * pair. `JSON.parse` on the whole string fails on the first prose word, which is
+ * the `Unexpected token 'T', "The block "...` seen from every federation read.
+ *
+ * Three things keep a publisher from closing the block early, and it is worth
+ * being precise about which one is doing the work today:
+ *   1. The body is JSON.stringify'd, so it is a SINGLE line — a publisher's text
+ *      cannot contain a raw newline, and the markers below are newline-anchored.
+ *      This is what actually neutralises forged markers in relay content today.
+ *   2. The token backreference: a forged END carrying any other token does not
+ *      terminate the region. This is the defence that survives (1) — if the body
+ *      is ever pretty-printed, it becomes the only one left. It is tested
+ *      directly rather than incidentally, so it cannot be refactored away quietly.
+ *   3. Exactly one opening marker is permitted. `fenceUntrusted` splices its
+ *      `note` verbatim BEFORE the fence, so a caller that ever interpolates
+ *      relay-derived text into a note could otherwise smuggle in a complete
+ *      earlier envelope; first-match-wins would return it, with untrusted:false.
+ *
+ * We deliberately return the WHOLE envelope (`untrusted`, `provenance`, `relay`,
+ * `retrievedAt`, `data`) rather than lifting `data` out of it. The point of the
+ * envelope is that a caller can tell whose words these are; quietly unwrapping to
+ * the payload would restore valid JSON by discarding the labelling that made it
+ * safe to read. Unfenced responses (the registry resource, gateway-authored
+ * errors) parse unchanged.
+ */
+const UNTRUSTED_FENCE =
+  /<<<UNTRUSTED_RELAY_DATA ([0-9a-fA-F-]{36})>>>\n([\s\S]*?)\n<<<END_UNTRUSTED_RELAY_DATA \1>>>/;
+
+// Count only NEWLINE-ANCHORED opening markers. A marker inside the body is just
+// characters — the body is one JSON line, so it can never be preceded by a raw
+// newline and can never open a fence. Counting raw occurrences instead would make
+// a publisher able to hard-fail every read simply by typing the marker into a
+// message, which trades a parse bug for a denial of service.
+const OPEN_MARKER_ANCHORED = /(?:^|\n)<<<UNTRUSTED_RELAY_DATA /g;
+
+export function parseGatewayText(text: string): Record<string, unknown> {
+  // One response carries exactly one envelope. More than one means something
+  // upstream spliced an envelope-shaped string into the response, and picking
+  // either is a guess — refuse rather than choose.
+  const opens = (text.match(OPEN_MARKER_ANCHORED) ?? []).length;
+  if (opens > 1) {
+    throw new Error('x.ruv.io: response carries more than one untrusted-data envelope (tampered response)');
+  }
+  const fenced = UNTRUSTED_FENCE.exec(text);
+  if (fenced) return JSON.parse(fenced[2]) as Record<string, unknown>;
+  // An opening marker with no matching close is a truncated or tampered response.
+  // Fail loudly: parsing the remainder would silently drop relay content.
+  if (opens === 1) {
+    throw new Error('x.ruv.io: untrusted-data envelope is unterminated (truncated or tampered response)');
+  }
+  return JSON.parse(text) as Record<string, unknown>;
+}
+
+/**
+ * The payload, for consumers INSIDE this package that immediately index the
+ * value (`recent.messages`, `Object.keys(roster)`).
+ *
+ * At the MCP boundary we return the whole envelope so the caller can see whose
+ * words these are. Internally that shape is a hazard: reading `.messages` off an
+ * envelope yields undefined and `Object.keys()` yields the envelope's own five
+ * keys, so a miscount looks like a real answer. Never do a bare property read on
+ * a parseGatewayText result — come through here.
+ */
+export function relayPayload(text: string): Record<string, unknown> {
+  const parsed = parseGatewayText(text);
+  return (parsed.untrusted === true && parsed.data !== undefined
+    ? (parsed.data as Record<string, unknown>)
+    : parsed);
+}
+
 async function gatewayTool(name: string, args: Record<string, unknown>): Promise<unknown> {
   const { gatewayUrl, ...rest } = args;
   const r = (await gatewayRpc('tools/call', { name, arguments: rest }, gatewayUrl)) as { content?: Array<{ text?: string }>; isError?: boolean };
-  const text = r.content?.[0]?.text ?? '{}';
-  const parsed = JSON.parse(text) as Record<string, unknown>;
-  if (r.isError || parsed.error) throw new Error(String(parsed.error ?? 'gateway tool error'));
+  const raw = r.content?.[0]?.text ?? '{}';
+  // An isError result is the SDK's createToolError, whose message is raw text and
+  // not JSON. Parsing first turns "private channels cannot be published…" into
+  // "Unexpected token 'p'" — the same class of bug this parser exists to fix.
+  if (r.isError) {
+    let msg = raw;
+    try { msg = String((parseGatewayText(raw) as { error?: unknown }).error ?? raw); } catch { /* raw text: use as-is */ }
+    throw new Error(msg || 'gateway tool error');
+  }
+  const parsed = parseGatewayText(raw);
+  if (parsed.error) throw new Error(String(parsed.error));
   return parsed;
 }
 async function gatewayResource(uri: string, gatewayUrl?: unknown): Promise<unknown> {
   const r = (await gatewayRpc('resources/read', { uri }, gatewayUrl)) as { contents?: Array<{ text?: string }> };
-  return JSON.parse(r.contents?.[0]?.text ?? '{}');
+  return parseGatewayText(r.contents?.[0]?.text ?? '{}');
 }
 // Credential: intentionally env-only (a secret must never be a CLI flag — it would land in
 // shell history / process lists). Registered in scripts/audit-env-var-precedence.mjs.

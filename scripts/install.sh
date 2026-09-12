@@ -3,11 +3,19 @@
 # Ruflo Installer (formerly Claude Flow)
 # https://github.com/ruvnet/ruflo
 #
+# WSL2 CRLF NOTE: If this script is downloaded via a transit hop that mangles
+# line endings (e.g. some proxies, file shares, or CDN transit), bash will
+# fail with errors like "bash: line N: [: command not found". The CRLF detection
+# below catches this early and prints a fix hint.
+#
 # Usage:
 #   curl -fsSL https://cdn.jsdelivr.net/gh/ruvnet/claude-flow@main/scripts/install.sh | bash
 #   curl -fsSL https://cdn.jsdelivr.net/gh/ruvnet/claude-flow@main/scripts/install.sh | bash -s -- --full
 #   curl -fsSL https://cdn.jsdelivr.net/gh/ruvnet/claude-flow@main/scripts/install.sh | bash -s -- --global
 #   curl -fsSL https://cdn.jsdelivr.net/gh/ruvnet/claude-flow@main/scripts/install.sh | bash -s -- --minimal
+#
+#   # Bypass jsdelivr CDN cache (use raw GitHub URL):
+#   curl -fsSL https://raw.githubusercontent.com/ruvnet/ruflo/main/scripts/install.sh | bash
 #
 # Options (via arguments):
 #   --global              Global install (npm install -g)
@@ -22,6 +30,21 @@
 #
 
 set -euo pipefail
+
+# Ensure consistent parsing across locales
+export LANG=C
+export LC_ALL=C
+
+# CRLF detection — fail fast if script was mangled in transit.
+# On WSL2, downloading via certain proxies/CDNs can corrupt line endings,
+# causing bash to misparse "[ args" as a command instead of a test.
+if file "$0" 2>/dev/null | grep -q 'CRLF\|CR'; then
+    echo "Error: $0 has CRLF line endings. This breaks bash on WSL2." >&2
+    echo "Fix: curl -fsSL https://raw.githubusercontent.com/ruvnet/ruflo/main/scripts/install.sh | sed 's/\r$//' | bash" >&2
+    echo "Or bypass jsdelivr CDN cache directly:" >&2
+    echo "  curl -fsSL https://raw.githubusercontent.com/ruvnet/ruflo/main/scripts/install.sh | bash" >&2
+    exit 1
+fi
 
 # Colors
 RED='\033[0;31m'

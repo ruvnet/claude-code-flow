@@ -1,9 +1,9 @@
 {
-  "name": "@ruflo/x-gateway",
-  "version": "0.7.1",
+  "name": "@ruflo/chatgpt-federation",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "x.ruv.io gateway — MCP server for ruflo swarm federation + claims over a signed, membership-gated Nostr relay. Exposes /mcp tools and ruv:// resources.",
+  "description": "ChatGPT Federation publisher — signs ruflo swarm events with its own Nostr key and publishes them over its own NIP-42 authenticated relay connection. The key lives in this service and never leaves it.",
   "main": "src/server.mjs",
   "scripts": {
     "start": "node src/server.mjs",

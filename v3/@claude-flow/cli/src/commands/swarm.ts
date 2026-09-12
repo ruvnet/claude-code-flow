@@ -11,6 +11,56 @@ import { swarmJoinCommand } from './agntcy/swarm-join.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Read the CLI-side swarm state file (`.swarm/state.json`), written by
+// `swarm init` and rewritten by `swarm start` / `swarm stop`.
+function readLocalSwarmState(): Record<string, unknown> | null {
+  const swarmStateFile = path.join(process.cwd(), '.swarm', 'state.json');
+  if (!fs.existsSync(swarmStateFile)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(swarmStateFile, 'utf-8'));
+  } catch {
+    // Ignore parse errors
+    return null;
+  }
+}
+
+// Resolve the id of the current swarm. Three writers persist it, under two
+// different keys and in two different files:
+//
+//   `.swarm/state.json`                    `id`                 ← `swarm init`
+//   `.swarm/state.json`                    `swarmId`            ← `swarm start`
+//   `.claude-flow/swarm/swarm-state.json`  `swarms[id].swarmId` ← MCP `swarm_init`
+//
+// The status payload used to read only the first key of the first file, so a
+// Claude Code session (which drives the MCP path) reported an active swarm
+// with agents but no usable id. Check every writer, most local first.
+function resolveSwarmId(swarmState?: Record<string, unknown> | null): string | null {
+  // A state file left behind by a previous `swarm stop` must not shadow a
+  // swarm that is still live in the MCP store — otherwise `stop` names the
+  // dead id while `swarm_shutdown`'s own "most recent running" fallback
+  // terminates a different swarm.
+  if (swarmState?.status !== 'stopped') {
+    const fromState = swarmState?.id ?? swarmState?.swarmId;
+    if (typeof fromState === 'string' && fromState) return fromState;
+  }
+
+  try {
+    const storePath = path.join(process.cwd(), '.claude-flow', 'swarm', 'swarm-state.json');
+    if (!fs.existsSync(storePath)) return null;
+    const store = JSON.parse(fs.readFileSync(storePath, 'utf-8')) as {
+      swarms?: Record<string, { swarmId?: string; status?: string; updatedAt?: string }>;
+    };
+    // Most recently updated swarm that has not been shut down.
+    const live = Object.values(store.swarms ?? {})
+      .filter(swarm => swarm.status !== 'terminated')
+      .sort((a, b) => new Date(b.updatedAt ?? 0).getTime() - new Date(a.updatedAt ?? 0).getTime());
+    return live[0]?.swarmId ?? null;
+  } catch {
+    // Ignore — an unreadable MCP store just means no id to resolve.
+    return null;
+  }
+}
+
 // Get dynamic swarm status from memory/session files
 function getSwarmStatus(swarmId?: string) {
   const swarmDir = path.join(process.cwd(), '.swarm');
@@ -21,16 +71,7 @@ function getSwarmStatus(swarmId?: string) {
   ];
 
   // Check for active swarm state file
-  const swarmStateFile = path.join(swarmDir, 'state.json');
-  let swarmState: Record<string, unknown> | null = null;
-
-  if (fs.existsSync(swarmStateFile)) {
-    try {
-      swarmState = JSON.parse(fs.readFileSync(swarmStateFile, 'utf-8'));
-    } catch {
-      // Ignore parse errors
-    }
-  }
+  const swarmState = readLocalSwarmState();
 
   // Count active agents from process files
   let activeAgents = 0;
@@ -175,11 +216,24 @@ function getSwarmStatus(swarmId?: string) {
   } else if (completedTasks > 0 && pendingTasks === 0 && inProgressTasks === 0) {
     status = 'completed';
   } else if (swarmState) {
-    status = 'ready';
+    // The file's own lifecycle state wins over the "a file exists, so we are
+    // ready" default — a swarm explicitly recorded as stopped is not ready.
+    // Live agents still win above: they are observed reality, whereas the file
+    // records an intent that may be stale.
+    status = swarmState.status === 'stopped' ? 'stopped' : 'ready';
   }
 
+  // Resolve once — the id also settles whether there is a swarm to report.
+  // An MCP `swarm_init` with no agents spawned yet leaves no `.swarm/state.json`
+  // and no agent store, so without this the payload contradicted itself:
+  // a real `id` alongside `hasActiveSwarm: false`.
+  const resolvedId = swarmId || resolveSwarmId(swarmState);
+
   return {
-    id: swarmId || (swarmState as Record<string, string>)?.id || 'no-active-swarm',
+    // `null` when genuinely unknown — never a sentinel string. `status` and
+    // `hasActiveSwarm` already carry the "no active swarm" fact, and a
+    // consumer reading `.id` must get an id or nothing.
+    id: resolvedId,
     topology: (swarmState as Record<string, string>)?.topology || 'none',
     status,
     objective: (swarmState as Record<string, string>)?.objective || 'No active objective',
@@ -272,7 +326,13 @@ function getSwarmStatus(swarmId?: string) {
       }
       return { consensusRounds, messagesSent, conflictsResolved };
     })(),
-    hasActiveSwarm: !!swarmState || totalAgents > 0
+    // A state file left behind by `swarm stop` is not an active swarm — without
+    // this it claimed one it could not name (`id: null`, zero agents), which is
+    // the same contradiction from the other side. Live agents or a resolvable
+    // id still count, so a stopped file never masks real activity.
+    hasActiveSwarm: (!!swarmState && swarmState.status !== 'stopped')
+      || totalAgents > 0
+      || resolvedId !== null
   };
 }
 
@@ -646,6 +706,9 @@ const startCommand: Command = {
     if (!fs.existsSync(swarmDir)) fs.mkdirSync(swarmDir, { recursive: true });
 
     const executionState = {
+      // `id` mirrors what `swarm init` writes so both files share one key;
+      // `swarmId` stays for existing files and readers.
+      id: swarmId,
       swarmId,
       objective,
       strategy,
@@ -701,7 +764,7 @@ const statusCommand: Command = {
       return { success: true, data: status };
     }
 
-    output.writeln(output.bold(`Swarm Status: ${status.id}`));
+    output.writeln(output.bold(`Swarm Status: ${status.id ?? output.dim('unknown id')}`));
     output.writeln();
 
     // Progress bar
@@ -785,11 +848,17 @@ const stopCommand: Command = {
     }
   ],
   action: async (ctx: CommandContext): Promise<CommandResult> => {
-    const swarmId = ctx.args[0];
+    // Bare `swarm stop` used to hard-fail, and no CLI surface handed out an
+    // id to pass (there is no `swarm list`). Default to the persisted swarm;
+    // an explicit argument still wins.
+    const swarmId = ctx.args[0] || resolveSwarmId(readLocalSwarmState());
     const force = ctx.flags.force as boolean;
 
     if (!swarmId) {
-      output.printError('Swarm ID is required');
+      output.printError('No swarm found to stop');
+      output.writeln(output.dim('  Find an id with: claude-flow swarm status --format json   (the "id" field)'));
+      output.writeln(output.dim('  Or pass one:     claude-flow swarm stop <swarm-id>'));
+      output.writeln(output.dim('  Or start one:    claude-flow swarm init'));
       return { success: false, exitCode: 1 };
     }
 
@@ -855,12 +924,15 @@ const scaleCommand: Command = {
     }
   ],
   action: async (ctx: CommandContext): Promise<CommandResult> => {
-    const swarmId = ctx.args[0];
+    // Same resolution as `stop` — the id is persisted, so don't demand it.
+    const swarmId = ctx.args[0] || resolveSwarmId(readLocalSwarmState());
     const targetAgents = ctx.flags.agents as number;
     const agentType = ctx.flags.type as string;
 
     if (!swarmId) {
-      output.printError('Swarm ID is required');
+      output.printError('No swarm found to scale');
+      output.writeln(output.dim('  Find an id with: claude-flow swarm status --format json   (the "id" field)'));
+      output.writeln(output.dim('  Or pass one:     claude-flow swarm scale <swarm-id> --agents N'));
       return { success: false, exitCode: 1 };
     }
 

@@ -4,6 +4,9 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { agentCommand } from '../src/commands/agent.js';
 import { swarmCommand } from '../src/commands/swarm.js';
 import { memoryCommand } from '../src/commands/memory.js';
@@ -486,12 +489,22 @@ describe('Swarm Commands', () => {
       expect(result.data).toHaveProperty('stopped', true);
     });
 
-    it('should fail without swarm ID', async () => {
+    it('should fail without swarm ID when none is persisted', async () => {
       const stopCmd = swarmCommand.subcommands?.find(c => c.name === 'stop');
 
-      const result = await stopCmd!.action!(ctx);
-
-      expect(result.success).toBe(false);
+      // Bare `swarm stop` now defaults to the persisted swarm, so this has to
+      // run somewhere with no swarm state — the `swarm start` test above
+      // writes a real `.swarm/state.json` into the package directory.
+      const originalCwd = process.cwd();
+      const isolated = mkdtempSync(join(tmpdir(), 'ruflo-swarm-stop-'));
+      try {
+        process.chdir(isolated);
+        const result = await stopCmd!.action!(ctx);
+        expect(result.success).toBe(false);
+      } finally {
+        process.chdir(originalCwd);
+        rmSync(isolated, { recursive: true, force: true });
+      }
     });
   });
 

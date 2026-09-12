@@ -1,0 +1,20 @@
+﻿name: cost-tracker-smoke
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/ci-smoke.sh'
+      - '.github/workflows/cost-tracker-smoke.yml'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Make smoke runner executable
+        run: chmod +x ./scripts/ci-smoke.sh
+      - name: Run repository smoke + benchmark gate
+        # smoke.sh, bench.mjs, and winRate are enforced by the repo-local script.
+        run: ./scripts/ci-smoke.sh

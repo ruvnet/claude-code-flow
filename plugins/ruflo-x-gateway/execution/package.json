@@ -7,13 +7,19 @@
     "node": ">=22.18.0"
   },
   "scripts": {
-    "test": "node --test test/*.test.mjs",
+    "test": "node --test --test-concurrency=1 test/*.test.mjs",
     "benchmark": "node src/benchmark.mjs",
     "verify:report": "node src/evidence.mjs",
-    "evaluate": "node src/evaluation.mjs"
+    "evaluate": "node src/evaluation.mjs",
+    "benchmark:routing": "node src/routing-benchmark.mjs",
+    "task:serve": "node src/task-service.mjs",
+    "federation:serve": "node src/federation-service.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
     "@ruvector/core": "0.1.32",
-    "nostr-tools": "2.25.2"
+    "nostr-tools": "2.25.2",
+    "ws": "8.21.3",
+    "zod": "4.6.2"
   }
 }

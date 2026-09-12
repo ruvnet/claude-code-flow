@@ -1,0 +1,22 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {generateSecretKey,getPublicKey} from 'nostr-tools/pure';
+import {Coordinator} from '../src/coordinator.mjs';
+import {command} from '../src/client.mjs';
+import {scheduleOnce,verifyOnce} from '../src/task-runtime.mjs';
+test('scheduler reserves one task per worker, recovers unpulled assignments, and independent validator gates completion',async t=>{
+  const keys=Array.from({length:4},generateSecretKey),pks=keys.map(getPublicKey);let now=Date.now();
+  const c=new Coordinator({dbPath:':memory:',audience:'runtime',controllerPubkey:pks[0],verifierPubkeys:[pks[1]],workerPolicies:pks.slice(2).map(pubkey=>({pubkey,capabilities:['sum'],cost:1})),leaseMs:100,clock:()=>now});t.after(()=>c.close());
+  const req=i=>async(op,data={})=>c.execute(command(keys[i],'runtime',op,data,{now}));
+  const controller=req(0),worker=req(2),verifier=req(1),router={rank:async(task,workers)=>workers.filter(w=>w.available)};
+  await worker('register',{capabilities:['sum']});await req(3)('register',{capabilities:['sum']});
+  for(let i=0;i<3;i++)await controller('submit',{id:`t${i}`,capability:'sum',input:[1,2],vector:[1],budget:3,deadlineMs:now+10000});
+  assert.equal((await scheduleOnce({request:controller,router})).length,2);
+  assert.equal((await scheduleOnce({request:controller,router})).length,0);
+  now+=101;assert.equal((await scheduleOnce({request:controller,router})).length,2);
+  const {task}=await worker('pull');await worker('result',{taskId:task.id,epoch:task.epoch,inputHash:task.inputHash,artifact:3});
+  assert.deepEqual(await verifyOnce({request:verifier,validators:{sum:({input,artifact})=>input.reduce((a,b)=>a+b,0)===artifact}}),[{taskId:task.id,status:'completed'}]);
+  const second=await req(3)('pull');await req(3)('result',{taskId:second.task.id,epoch:second.task.epoch,inputHash:second.task.inputHash,artifact:99});
+  assert.equal((await verifyOnce({request:verifier,validators:{}}))[0].status,'queued');
+  await assert.rejects(worker('worker_list'),/controller/);
+});

@@ -28,6 +28,8 @@ jobs:
           cache-dependency-path: plugins/ruflo-x-gateway/execution/package-lock.json
       - run: npm ci --ignore-scripts
       - run: npm test
+      - name: Signed outcome routing on held out synthetic tasks
+        run: node src/routing-benchmark.mjs > "$RUNNER_TEMP/federation-routing.json"
       - name: Source bound routing and recovery evidence
         run: |
           node src/benchmark.mjs > "$RUNNER_TEMP/federation-proof.jsonl"
@@ -40,3 +42,4 @@ jobs:
           path: |
             ${{ runner.temp }}/federation-proof.jsonl
             ${{ runner.temp }}/federation-recovery.jsonl
+            ${{ runner.temp }}/federation-routing.json

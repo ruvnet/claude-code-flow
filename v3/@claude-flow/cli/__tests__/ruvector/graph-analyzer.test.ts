@@ -16,6 +16,7 @@ import {
   loadRuVector,
   fallbackMinCut,
   fallbackLouvain,
+  clearGraphCaches,
   type DependencyGraph,
   type GraphNode,
   type GraphEdge,
@@ -24,7 +25,7 @@ import {
   type CircularDependency,
   type GraphAnalysisResult,
 } from '../../src/ruvector/graph-analyzer.js';
-import { mkdir, writeFile, rm } from 'fs/promises';
+import { mkdir, mkdtemp, writeFile, rm } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -38,8 +39,18 @@ describe('Graph Analyzer', () => {
   let testDir: string;
 
   beforeEach(async () => {
-    testDir = join(tmpdir(), `graph-test-${Date.now()}`);
-    await mkdir(testDir, { recursive: true });
+    // graph-analyzer caches by directory path with a 5-minute TTL, and the cache
+    // is module-level state this suite never controlled. `Date.now()` alone is
+    // not a unique name at test speed — measured, 28 beforeEach calls produced
+    // only 22 distinct directories — so consecutive tests shared a path and a
+    // later test was served an earlier test's graph. That is the whole of the
+    // "should detect self-referencing imports" flake: 6 of 8 runs failed on
+    // untouched main, and clearing the cache OR making the path unique each
+    // brought it to 0 of 8 on its own. Both are applied: the unique path is
+    // correct fixture hygiene, and clearing the cache is what keeps this honest
+    // if a path is ever legitimately reused.
+    clearGraphCaches();
+    testDir = await mkdtemp(join(tmpdir(), 'graph-test-'));
   });
 
   afterEach(async () => {

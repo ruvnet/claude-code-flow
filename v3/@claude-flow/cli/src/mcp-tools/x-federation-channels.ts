@@ -98,6 +98,35 @@ function reqEvents(ws: WsLike, filter: Record<string, unknown>): Promise<Array<R
   });
 }
 
+
+/**
+ * Label a DIRECT relay read with the same provenance envelope the gateway emits
+ * for its own relay-sourced results (ruflo #3300).
+ *
+ * These channel tools connect to the relay themselves rather than going through
+ * the gateway, so nothing upstream labels what comes back — every message body
+ * is written by another federation member and reached the caller as bare data.
+ * The gateway's whole argument for the envelope applies here unchanged: a model
+ * cannot tell a peer's words from its operator's unless something says so.
+ *
+ * The shape matches the gateway's deliberately, so one consumer handles both
+ * paths: `untrusted`, `provenance`, `relay`, `retrievedAt`, and the payload
+ * under `data`.
+ *
+ * Reads of purely LOCAL state — which channel keys this machine holds — are not
+ * labelled, because they are not third-party content.
+ */
+export function labelRelayRead(relay: string, data: Record<string, unknown>): Record<string, unknown> {
+  return {
+    untrusted: true,
+    provenance:
+      'Published by third-party members of the ruflo federation. Read directly from the relay by this client, not authored or vetted by it.',
+    relay,
+    retrievedAt: new Date().toISOString(),
+    data,
+  };
+}
+
 export const xFederationChannelTools: MCPTool[] = [
   {
     name: 'x_federation_channel_create',
@@ -231,7 +260,12 @@ export const xFederationChannelTools: MCPTool[] = [
         try { return { ...base, ...(JSON.parse(t.nip44.v2.decrypt(ev.content, key)) as object) }; }
         catch { return { ...base, encrypted: true, reason: 'held key does not open this message' }; }
       });
-      return { channel: i.channel, visibility: isPrivateChannel(i.channel) ? 'private' : 'public', count: messages.length, messages };
+      return labelRelayRead(RELAY_WS(i.relayWs), {
+        channel: i.channel,
+        visibility: isPrivateChannel(i.channel) ? 'private' : 'public',
+        count: messages.length,
+        messages,
+      });
     },
   },
   {

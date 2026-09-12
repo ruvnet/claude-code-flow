@@ -889,3 +889,46 @@ test('untrusted: seraphina fences the swarm snapshot before it reaches the model
   // Content preserved, as everywhere else.
   assert.ok(sentUserTurn.includes(INJECTION.slice(0, 40)), 'snapshot content was mangled');
 });
+
+// A resourceId is a string a third party chose. The ledger was a plain object,
+// so any id colliding with an Object.prototype key was consulted on the
+// prototype instead of as an own entry: `if (!byRes[r])` saw a truthy inherited
+// value and never recorded the claim. The claim is signed, accepted by the
+// relay, and silently absent from the board — so two workers both read the
+// resource as unowned, which is the one thing this ledger exists to prevent.
+const PROTO_KEYS = ['__proto__', 'constructor', 'toString', 'valueOf', 'hasOwnProperty', 'isPrototypeOf'];
+
+test('a resourceId colliding with Object.prototype is still recorded as owned', () => {
+  for (const id of PROTO_KEYS) {
+    const l = reduceClaims([ev('ClaimIssued', 'A', id, 10, { ttlSeconds: 600 })], 20);
+    assert.deepEqual(Object.keys(l), [id], `${id} must appear on the board`);
+    assert.equal(l[id].owner, 'A', `${id} must name its owner`);
+  }
+});
+
+test('release and handoff work for an Object.prototype-shaped resourceId', () => {
+  for (const id of PROTO_KEYS) {
+    const released = reduceClaims([ev('ClaimIssued', 'A', id, 1), ev('ClaimReleased', 'A', id, 2)]);
+    assert.deepEqual(Object.keys(released), [], `${id} must be releasable`);
+    const handed = reduceClaims([ev('ClaimIssued', 'A', id, 1), ev('ClaimHandoff', 'A', id, 2, { toNode: 'B' })], 3);
+    assert.equal(handed[id].owner, 'B', `${id} must be handoff-able`);
+  }
+});
+
+test('a poisoned resourceId cannot hide a co-existing real claim', () => {
+  const l = reduceClaims([
+    ev('ClaimIssued', 'A', '__proto__', 10, { ttlSeconds: 600 }),
+    ev('ClaimIssued', 'B', 'repo/real', 10, { ttlSeconds: 600 }),
+  ], 20);
+  assert.deepEqual(Object.keys(l).sort(), ['__proto__', 'repo/real']);
+  assert.equal(l['repo/real'].owner, 'B');
+});
+
+test('a poisoned claim survives serialisation, which is what reaches consumers', () => {
+  // The gateway JSON-serialises the board immediately, so this round trip is the
+  // shape every reader actually sees.
+  const l = reduceClaims([ev('ClaimIssued', 'A', '__proto__', 10, { ttlSeconds: 600 })], 20);
+  const wire = JSON.parse(JSON.stringify(l));
+  assert.deepEqual(Object.keys(wire), ['__proto__']);
+  assert.equal(Object.getOwnPropertyDescriptor(wire, '__proto__').value.owner, 'A');
+});

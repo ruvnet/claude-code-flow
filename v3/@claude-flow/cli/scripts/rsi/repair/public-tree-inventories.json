@@ -1,0 +1,83 @@
+{
+  "schema": "ruflo.public-repair-tree-inventories/v1",
+  "createdAt": "2026-09-12T23:25:31Z",
+  "workloadManifestHash": "4f6cb0b90be2b8de5c438a637164bdc483ec2cf83bdd982e9121dc7a2a20307e",
+  "workloadManifestSourceCommit": "7f5f1e19377a36499eb044152c5c947ee904533f",
+  "capsuleManifestHash": "f581dc26bee0d8ff03460c2734e29a236ce14596af65b652f48eb3b62bb77d2c",
+  "capsuleManifestSourceCommit": "b24706bf9426f501507a9a4085614c312fa90ba8",
+  "purpose": "Freeze complete path, mode, type and object-id inventories for each exposed public base tree and reconstruct both reviewed Git tree identities offline without enabling candidate execution.",
+  "proofBoundary": {
+    "use": "EXPOSED_DEVELOPMENT_ACQUISITION_ONLY",
+    "fixesExposed": true,
+    "sealedEvaluation": false,
+    "evaluatorKeys": [],
+    "candidateExecutionEnabled": false,
+    "boundedRsiEvidenceAccepted": false
+  },
+  "coverage": {
+    "completeBaseTreeInventories": true,
+    "fixTreesReconstructedFromFrozenChanges": true,
+    "completeSourceTreePayloads": false,
+    "completeDependencyClosures": false,
+    "offlineExecutable": false,
+    "inventoryEntryCount": 12354,
+    "inventoryRawBytes": 1286134,
+    "inventoryCompressedBytes": 421836
+  },
+  "inventories": [
+    {
+      "repository": "ruvnet/RuVector",
+      "baseCommit": "99ea97607acd3498e3b48aeaa708ecb5df5d8f25",
+      "baseTree": "c342b626d419ccc782850fd7bf918252f3c5b0d4",
+      "fixCommit": "df644e2a4050901fe8b75db9d2c512255b854f78",
+      "fixTree": "ddaa12ef4bb8447d4c2758479ae94d9e62f6e35f",
+      "path": "public-tree-inventories/c342b626d419ccc782850fd7bf918252f3c5b0d4.ls-tree.gz.b64",
+      "encoding": "gzip+base64",
+      "entryCount": 12172,
+      "rawBytes": 1271935,
+      "compressedBytes": 415680,
+      "rawSha256": "18c86beeea375b5daa83f6dad8abde0d4a49d3516ffb439a2f02e9f281810a5d",
+      "compressedSha256": "399e2139bc60f5b1159a819a0031f3fd08b2d4f5bd35096c6a0014bcee5208cd"
+    },
+    {
+      "repository": "sindresorhus/p-limit",
+      "baseCommit": "df476048d023ff868cd45b35ee47f5fb0ca2b25a",
+      "baseTree": "21d1b1115ab955f499ca0de32b8819b936775dd9",
+      "fixCommit": "f3e7f9ba364a9357bd912d136367d06c46660917",
+      "fixTree": "15da3cf8d9426b331317aa3719e8a157721d3cbe",
+      "path": "public-tree-inventories/21d1b1115ab955f499ca0de32b8819b936775dd9.ls-tree.gz.b64",
+      "encoding": "gzip+base64",
+      "entryCount": 16,
+      "rawBytes": 1064,
+      "compressedBytes": 586,
+      "rawSha256": "1c58dce01b1aed9a99638486c4c1ebb061e1358f63e799da85778c8376b5adc2",
+      "compressedSha256": "5d6a0cd5fee5877dec8d1d42c4eca3e979c39372d98638c986854e6273bf616a"
+    },
+    {
+      "repository": "pallets/click",
+      "baseCommit": "420c8fb44eeadb537cae69d2fee3796e808558dd",
+      "baseTree": "2955d48825c98fd7dcbc60eb41cf18a952a2c0a3",
+      "fixCommit": "f58ca3e81424a35626c8a475eb59ab95589008ce",
+      "fixTree": "b119ee08d395dfe02e0efbfe605863d2eac816dc",
+      "path": "public-tree-inventories/2955d48825c98fd7dcbc60eb41cf18a952a2c0a3.ls-tree.gz.b64",
+      "encoding": "gzip+base64",
+      "entryCount": 166,
+      "rawBytes": 13135,
+      "compressedBytes": 5570,
+      "rawSha256": "9b21f1054a3319117a3b4e588b857d45dea9d01e3009c34efb3d7e510df270f7",
+      "compressedSha256": "4e88033e40c456d899e368822df73ffade89df3359c3d907449b86b891031566"
+    }
+  ],
+  "accounting": {
+    "legacyLedgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "legacyNativeFieldCallsReserved": 209784,
+    "legacyEpochsConsumed": 7,
+    "newNativeFieldCalls": 0,
+    "repairCandidateEvaluations": 0,
+    "repairProcessStarts": 0,
+    "repairWallMs": 0,
+    "externalProviderSpendUsd": 0,
+    "totalAcquisitionUsd": null,
+    "totalEvaluationUsd": null
+  }
+}

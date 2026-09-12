@@ -115,6 +115,10 @@ remain disabled. Read that increment before repeating accounting design work.
    manifest-bound changed source, upstream test, license and package-manifest
    blobs with offline Git-object verification, while explicitly refusing to
    treat that partial capsule as a whole source tree or runnable environment.
+   [WORKLOADS-003.md](WORKLOADS-003.md) freezes all 12354 base-tree path,
+   mode, type and object-id entries and reconstructs both base and one-commit
+   fix tree identities offline. Inventories prove whole-tree identity, but do
+   not contain every blob payload or make the workloads executable.
    Continue to acquire independently specified real
    defects across repository and bug lineages. Record exclusions, fix exposure,
    source dependencies and costs. Freeze the sample before comparing methods.

@@ -19,6 +19,7 @@
     "benchmark:product-plane": "npm run build && node scripts/benchmark-product-plane.mjs",
     "test:oauth-surface": "vitest run __tests__/oauth-export-surface.test.ts __tests__/oauth-pkce.test.ts __tests__/oauth-browser.test.ts",
     "build": "tsc && node scripts/verify-oauth-exports.mjs",
+    "prepare": "npm run build",
     "prepublishOnly": "npm run build && npm run test:oauth-surface"
   },
   "dependencies": {

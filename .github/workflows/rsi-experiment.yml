@@ -50,4 +50,4 @@ jobs:
         run: >-
           node v3/@claude-flow/cli/scripts/rsi/loop/replay-history.mjs
           v3/@claude-flow/cli/scripts/rsi/evidence/loop-development
-          98fbc3753edc28a14882e0f090177b69dd9c2b13c01506ea0ba5cd4a5e0719ec
+          5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e

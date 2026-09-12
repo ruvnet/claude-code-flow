@@ -47,6 +47,14 @@ for a joint mutation is recorded as a heuristic. Shared frozen/adaptive gains
 cannot establish learned or recursive advantage. The prior two sources remain
 replayable through `evidence/loop-sources.json`; no historical evidence is replaced.
 
+Hypothesis 3 completed epochs 5-7. The retained policy improved to MRR 0.458503,
+but adaptive tied frozen in all three probes and lost to static in epoch 6.
+[Full measured result](LOOP-003.md). The three-epoch batch is complete even though
+the ledger status remains `DEVELOPMENT`. Do not run this hypothesis unchanged.
+The next iteration should implement a bounded executable improver on fresh real
+development tasks, include the outer procedure in its comparisons, and retain
+the current budget semantics. Independent confirmation inputs are still absent.
+
 ### Development hypothesis 2 (frozen before execution)
 
 The saturated pilot cannot measure improvement. Expand the pinned corpus to all
@@ -102,7 +110,7 @@ node v3/@claude-flow/cli/scripts/rsi/loop/run.mjs run \
 # Validate the anchored chain and recompute native scores, candidates and credit.
 node v3/@claude-flow/cli/scripts/rsi/loop/replay-history.mjs \
   v3/@claude-flow/cli/scripts/rsi/evidence/loop-development \
-  98fbc3753edc28a14882e0f090177b69dd9c2b13c01506ea0ba5cd4a5e0719ec
+  5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e
 
 node --test v3/@claude-flow/cli/scripts/rsi/loop/loop.test.mjs
 ```

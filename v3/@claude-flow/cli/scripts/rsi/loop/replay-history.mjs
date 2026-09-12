@@ -17,13 +17,14 @@ export function replayHistory(dir, expectedHead) {
     .map(name => ({ name, text: readFileSync(join(dir, name), 'utf8') }));
   if (!events.some(e => JSON.parse(e.text).hash === anchor)) throw Error('original mission anchor absent');
   const archives = JSON.parse(readFileSync(new URL('../evidence/loop-sources.json', import.meta.url), 'utf8'));
+  const gitDir = execFileSync('git', ['rev-parse', '--absolute-git-dir'], { cwd: repo, encoding: 'utf8' }).trim();
   const covered = [], results = [];
   for (const archive of archives) {
     if (!/^[a-f0-9]{40}$/.test(archive.tree)) throw Error('invalid source tree');
     const end = events.findIndex(e => JSON.parse(e.text).hash === archive.head);
     if (end < 0) throw Error('historical anchor absent');
-    // A temporary subtree inside this repository lets the native adapter find the
-    // same Git object database without a checkout, fresh mission, or writable worktree.
+    // Use the original object database with the snapshot directory as work-tree
+    // root. This preserves root-relative ls-tree pathspecs in historical adapters.
     const temp = mkdtempSync(join(repo, '.rsi-replay-'));
     try {
       for (const name of sourceFiles) {
@@ -34,7 +35,7 @@ export function replayHistory(dir, expectedHead) {
       const ledger = join(temp, 'ledger'); mkdirSync(ledger);
       for (const e of events.slice(0, end + 1)) writeFileSync(join(ledger, e.name), e.text);
       const output = JSON.parse(execFileSync(process.execPath, [join(temp, prefix, 'run.mjs'), archive.command, ledger, archive.head],
-        { cwd: temp, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 }));
+        { cwd: temp, env: { ...process.env, GIT_DIR: gitDir, GIT_WORK_TREE: temp }, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 }));
       const epochs = output.replayedEpochNumbers ?? Array.from({ length: output.replayedEpochs }, (_, i) => i + 1);
       if (!(output.verified || output.sourceSubsetVerified) || hash(epochs) !== hash(archive.epochs) || !output.sourceMatches) throw Error('historical source replay mismatch');
       covered.push(...epochs); results.push({ sourceCommit: archive.commit, sourceTree: archive.tree, anchor: archive.head, replayedEpochNumbers: epochs });

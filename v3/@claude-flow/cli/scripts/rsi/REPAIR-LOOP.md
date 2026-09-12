@@ -93,6 +93,11 @@ work, not a new HYPOTHESIS or mission candidate evaluation.
 
 ## Required implementation sequence
 
+[MIGRATION-001.md](MIGRATION-001.md) records the implemented versioned projection
+and reservation algebra, adversarial tests and a concrete resource authorization
+proposal. Live application, durable version dispatch and candidate execution
+remain disabled. Read that increment before repeating accounting design work.
+
 1. **Accounting and source migration.** The v1 ledger only accepts retrieval
    policies and native BM25 calls. Design a versioned migration retaining its
    exact history, 209784 consumed native calls, 7 epochs, alpha, tasks, trust and

@@ -727,6 +727,15 @@ describe('MCP Tools Deep Test Suite', () => {
       expect(result).toBeDefined();
     });
 
+    it('hive-mind_status reports the same hiveId that hive-mind_init returned (#655)', async () => {
+      const initTool = hiveMindTools.find(t => t.name === 'hive-mind_init')!;
+      const statusTool = hiveMindTools.find(t => t.name === 'hive-mind_status')!;
+      const initResult: any = await initTool.handler({ topology: 'mesh' });
+      const statusResult: any = await statusTool.handler({});
+      expect(statusResult.hiveId).toBe(initResult.hiveId);
+      expect(statusResult.id).toBe(initResult.hiveId);
+    });
+
     it('hive-mind_consensus with list action returns data', async () => {
       const tool = hiveMindTools.find(t => t.name === 'hive-mind_consensus')!;
       const result: any = await tool.handler({ action: 'list' });

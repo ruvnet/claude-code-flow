@@ -7,7 +7,7 @@
  * @module @claude-flow/cli/mcp-tools/claims
  */
 
-import type { MCPTool } from './types.js';
+import { type MCPTool, getProjectCwd } from './types.js';
 import { validateIdentifier, validateText } from './validate-input.js';
 
 // Inline claim service since we can't import external modules
@@ -44,17 +44,17 @@ interface ClaimsStore {
 
 // File-based persistence
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
-import { join, resolve } from 'path';
+import { resolve } from 'path';
 
 const CLAIMS_DIR = '.claude-flow/claims';
 const CLAIMS_FILE = 'claims.json';
 
 function getClaimsPath(): string {
-  return resolve(join(CLAIMS_DIR, CLAIMS_FILE));
+  return resolve(getProjectCwd(), CLAIMS_DIR, CLAIMS_FILE);
 }
 
 function ensureClaimsDir(): void {
-  const dir = resolve(CLAIMS_DIR);
+  const dir = resolve(getProjectCwd(), CLAIMS_DIR);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }

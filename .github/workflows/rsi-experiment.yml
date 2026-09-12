@@ -29,3 +29,8 @@ jobs:
           node v3/@claude-flow/cli/scripts/rsi/run.mjs replay
           --bundle v3/@claude-flow/cli/scripts/rsi/evidence/default.json
           --public-key v3/@claude-flow/cli/scripts/rsi/evidence/public.pem
+      - name: Recompute preregistered generalization evidence (failure must remain failure)
+        run: >-
+          node v3/@claude-flow/cli/scripts/rsi/generalization.mjs replay
+          v3/@claude-flow/cli/scripts/rsi/evidence/generalization.json
+          v3/@claude-flow/cli/scripts/rsi/evidence/generalization-public.pem

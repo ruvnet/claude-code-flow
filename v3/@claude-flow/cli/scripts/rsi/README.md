@@ -27,6 +27,12 @@ local execution was below one second, not a latency guarantee.
 
 ## Run and verify
 
+The prospective [generalization experiment](GENERALIZATION.md) retains this
+learner unchanged and tests four training-excluded families at three checkpoints.
+Public source registration preceded its first official run. **0/36 gates passed**
+across 399,024 objective evaluations. All twelve adaptive-versus-frozen mean
+deltas are negative. The signed result replays exactly; real RSI remains unproven.
+
 From the repository root, with Node 22 or later; no install or build is required:
 
 ```bash
@@ -116,7 +122,7 @@ were not tuned after observing that null. The corrected run remains null. A
 plausible failure mechanism is negative raw deltas discouraging exploration of
 high-impact coordinates; this is a hypothesis, not a validated fix.
 
-Next experiment: predeclare a different credit estimator and new untouched task
+After the failed transfer test, a new experiment would need to predeclare a different credit estimator and new untouched task
 seeds; retain this negative baseline. Before any real RSI claim, add actual RuFlo
 retrieval tasks with externally frozen relevance labels, cost measurement, sealed
 evaluation controlled by another party, and optimizer-efficiency evidence over

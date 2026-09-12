@@ -4,6 +4,56 @@ This follow-up tests the **unchanged** learner from the initial NULL experiment.
 It tightens the evidence standard instead of tuning the learner against observed
 results. No deployment or real RSI claim is authorized by a passing simulation.
 
+## Registered result: generalization not supported
+
+The exact evaluator, learner, tests and registration were published at
+[`34a49bcda463dcac90124bb623b2da02413ea547`](https://github.com/ruvnet/ruflo/commit/34a49bcda463dcac90124bb623b2da02413ea547)
+before the first registered outer run. GitHub readback verified tree
+`4cb849f0818f288b09292c67254a01be9717c817` matched the local source tree. No
+learner, source, seed, budget or gate was changed after observing its results.
+
+**0 of 36 comparisons passed.** All 12 adaptive-versus-frozen mean deltas were
+negative. Thirteen of the full 36 comparisons had positive means, but none met
+both registered thresholds. There were 399,024 objective evaluations across 16
+seeds. Reset, null and split guards all passed. This is a failed transfer test,
+not evidence that every possible RSI system is impossible.
+
+Final checkpoint (generation 6), mean paired score-gain differences on [0,1]:
+
+| Held-out family | Adaptive minus frozen | Adaptive minus shuffled | Adaptive g6 minus g4 |
+|---|---:|---:|---:|
+| Permuted coordinates | -0.001563499772 | +0.001995738703 | +0.001092420659 |
+| Absolute loss | -0.003804941146 | +0.004638185250 | -0.001024650553 |
+| Coupled loss | -0.001346027341 | -0.000069988409 | -0.000566795870 |
+| Multimodal loss | -0.010877938995 | +0.014939308181 | -0.003667240583 |
+
+The strongest favorable sign-test result was multimodal g4 versus shuffled:
+mean +0.016391608429, 14/16 wins, p=0.002090454102. It still failed the registered
+0.05/36 threshold (approximately 0.001388889), and that checkpoint's frozen
+comparison was negative. Reporting its uncorrected p-value as proof would be wrong.
+
+[`evidence/generalization.json`](evidence/generalization.json) contains the raw
+signed histories, snapshots, per-task gains, all comparisons and decision.
+The separately committed [`generalization-public.pem`](evidence/generalization-public.pem)
+pins the signer for replay, not independent identity. A read-only reviewer
+recomputed the full bundle exactly and repeated all 18 focused tests. This is
+reproducibility review, **not independent blind efficacy replication**.
+Post-run adversarial checks rejected both an unsigned false verdict and a newly
+signed false verdict: valid signatures alone cannot bypass full recomputation.
+
+```bash
+node --test v3/@claude-flow/cli/scripts/rsi/experiment.test.mjs \
+  v3/@claude-flow/cli/scripts/rsi/generalization.test.mjs
+node v3/@claude-flow/cli/scripts/rsi/generalization.mjs replay \
+  v3/@claude-flow/cli/scripts/rsi/evidence/generalization.json \
+  v3/@claude-flow/cli/scripts/rsi/evidence/generalization-public.pem
+```
+
+The earlier MetaHarness projection rejected the original learner. The earlier
+Autogenous native fixture demonstrated bounded parameter evolution, not transfer.
+Those cross checks are preserved unchanged; neither replaces this evaluation or
+turns its negative result into RSI proof. No production promotion is permitted.
+
 ## Frozen design
 
 Training uses only eight-dimensional separable squared loss. The four outer

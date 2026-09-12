@@ -80,8 +80,14 @@ export function isEncryptionEnabled(): boolean {
 export function getKey(): Buffer {
   const raw = process.env[ENV_KEY_VAR];
   if (!raw) {
+    // "0"/"false" are truthy strings but leave encryption disabled, so the
+    // canonical gate (not Boolean) decides which message is accurate (#3212).
+    const reason = isEncryptionEnabled()
+      ? `${ENV_ENABLE_FLAG} is set but ${ENV_KEY_VAR} is not.`
+      : `${ENV_KEY_VAR} is required to access encrypted storage, but is not set.`;
+
     throw new Error(
-      `${ENV_ENABLE_FLAG} is set but ${ENV_KEY_VAR} is not. ` +
+      `${reason} ` +
       `Provide a 32-byte key as 64-char hex or 44-char base64. ` +
       `See ADR-096 for keychain/passphrase support (coming in a follow-up).`,
     );

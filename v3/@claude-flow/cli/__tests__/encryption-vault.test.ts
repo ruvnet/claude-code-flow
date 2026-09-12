@@ -109,6 +109,35 @@ describe('vault (ADR-096 Phase 1)', () => {
       expect(() => getKey()).toThrow(/CLAUDE_FLOW_ENCRYPTION_KEY/);
     });
 
+    it('names the flag when encryption is enabled but the key is missing', () => {
+      process.env.CLAUDE_FLOW_ENCRYPT_AT_REST = '1';
+      delete process.env.CLAUDE_FLOW_ENCRYPTION_KEY;
+      expect(() => getKey()).toThrow(
+        /CLAUDE_FLOW_ENCRYPT_AT_REST is set but CLAUDE_FLOW_ENCRYPTION_KEY is not/,
+      );
+    });
+
+    it('does not claim the flag is set when it is unset (RFE1-on-disk case, #3212)', () => {
+      delete process.env.CLAUDE_FLOW_ENCRYPT_AT_REST;
+      delete process.env.CLAUDE_FLOW_ENCRYPTION_KEY;
+      expect(() => getKey()).toThrow(
+        /required to access encrypted storage/,
+      );
+      expect(() => getKey()).not.toThrow(/is set but/);
+    });
+
+    it.each(['0', 'false', 'no', 'off'])(
+      'does not claim the flag is set for disabled value "%s" (#3212)',
+      (v) => {
+        process.env.CLAUDE_FLOW_ENCRYPT_AT_REST = v;
+        delete process.env.CLAUDE_FLOW_ENCRYPTION_KEY;
+        expect(() => getKey()).not.toThrow(/is set but/);
+        expect(() => getKey()).toThrow(
+          /required to access encrypted storage/,
+        );
+      },
+    );
+
     it('returns a 32-byte buffer when the env var holds valid hex', () => {
       process.env.CLAUDE_FLOW_ENCRYPTION_KEY = 'c'.repeat(64);
       expect(getKey().length).toBe(32);

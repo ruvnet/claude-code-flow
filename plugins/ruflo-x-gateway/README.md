@@ -41,3 +41,9 @@ not `wss://x.ruv.io`. Otherwise you get `auth-required: verification failed`.
 Signed events (secp256k1/Schnorr) → verifiable authorship. Relay membership +
 NIP-42 auth gate participation. Never put secrets in payloads. Treat message
 content as data, not privileged commands.
+
+## Optional execution proof
+
+The [execution package](execution/README.md) runs three signed local workers,
+independent artifact verification, durable fenced leases, native RuVector routing
+and reproducible fault tests. It is opt-in and does not alter gateway deployment.

@@ -1,0 +1,42 @@
+name: Federation execution proof
+on:
+  pull_request:
+    paths:
+      - 'plugins/ruflo-x-gateway/execution/**'
+      - '.github/workflows/federation-execution-proof.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'plugins/ruflo-x-gateway/execution/**'
+      - '.github/workflows/federation-execution-proof.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  execution-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: plugins/ruflo-x-gateway/execution
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: plugins/ruflo-x-gateway/execution/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - name: Source bound routing and recovery evidence
+        run: |
+          node src/benchmark.mjs > "$RUNNER_TEMP/federation-proof.jsonl"
+          node src/evidence.mjs "$RUNNER_TEMP/federation-proof.jsonl"
+          node src/benchmark.mjs fixed disconnect > "$RUNNER_TEMP/federation-recovery.jsonl"
+          node src/evidence.mjs "$RUNNER_TEMP/federation-recovery.jsonl"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: federation-execution-evidence
+          path: |
+            ${{ runner.temp }}/federation-proof.jsonl
+            ${{ runner.temp }}/federation-recovery.jsonl

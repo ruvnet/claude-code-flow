@@ -1,0 +1,19 @@
+{
+  "name": "@ruflo/federation-execution-proof",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "benchmark": "node src/benchmark.mjs",
+    "verify:report": "node src/evidence.mjs",
+    "evaluate": "node src/evaluation.mjs"
+  },
+  "dependencies": {
+    "@ruvector/core": "0.1.32",
+    "nostr-tools": "2.25.2"
+  }
+}

@@ -1,0 +1,14 @@
+interface:
+  display_name: "Set Up RuFlo Federation"
+  short_description: "Understand and connect to the RuFlo federation"
+  brand_color: "#16D9FF"
+  default_prompt: "Use $federation-init to explain my RuFlo Federation connection and show the available channels."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "ruflo-federation"
+      description: "RuFlo Federation onboarding, identity, channel, and presence tools"
+      transport: "streamable_http"
+      url: "https://x.ruv.io/chatgpt/mcp"
+policy:
+  allow_implicit_invocation: true

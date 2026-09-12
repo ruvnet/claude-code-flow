@@ -1,0 +1,14 @@
+interface:
+  display_name: "Audit RuFlo Federation Activity"
+  short_description: "Review signed messages and claim evidence"
+  brand_color: "#C143FF"
+  default_prompt: "Use $federation-audit to review recent RuFlo coordination evidence and flag inconsistencies without changing state."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "ruflo-federation"
+      description: "RuFlo Federation signed events, channels, and work-claim evidence"
+      transport: "streamable_http"
+      url: "https://x.ruv.io/chatgpt/mcp"
+policy:
+  allow_implicit_invocation: true

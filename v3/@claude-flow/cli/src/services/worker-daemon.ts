@@ -537,19 +537,31 @@ export class WorkerDaemon extends EventEmitter {
     }
 
     try {
-      // Support both flat keys at root and nested under scopes.project
-      const cfg = raw?.scopes?.project ?? raw;
-      const rawCpuLoad = cfg['daemon.resourceThresholds.maxCpuLoad'] ?? raw['daemon.resourceThresholds.maxCpuLoad'];
-      const rawMinMem = cfg['daemon.resourceThresholds.minFreeMemoryPercent'] ?? raw['daemon.resourceThresholds.minFreeMemoryPercent'];
-      const rawMaxConcurrent = cfg['daemon.maxConcurrent'] ?? raw['daemon.maxConcurrent'];
-      const rawTimeout = cfg['daemon.workerTimeoutMs'] ?? raw['daemon.workerTimeoutMs'];
+      // Support flat keys at root, nested under scopes.project, and the
+      // `values` envelope config_set writes for its default scope (#3192 —
+      // without this, config_set daemon.idleSecs 0 has no effect on the
+      // running daemon even though it succeeds and updates config.json).
+      //
+      // Each key below resolves independently through
+      // scopes.project -> values -> root, rather than picking one whole
+      // object as "cfg" — a config.json can legitimately have some keys
+      // written under scopes.project (project-scoped config_set calls) and
+      // others under values (default-scope config_set calls) at the same
+      // time, and every key must still be found regardless of which other
+      // keys happen to live in a different shape.
+      const project = raw?.scopes?.project;
+      const values = raw?.values;
+      const rawCpuLoad = project?.['daemon.resourceThresholds.maxCpuLoad'] ?? values?.['daemon.resourceThresholds.maxCpuLoad'] ?? raw['daemon.resourceThresholds.maxCpuLoad'];
+      const rawMinMem = project?.['daemon.resourceThresholds.minFreeMemoryPercent'] ?? values?.['daemon.resourceThresholds.minFreeMemoryPercent'] ?? raw['daemon.resourceThresholds.minFreeMemoryPercent'];
+      const rawMaxConcurrent = project?.['daemon.maxConcurrent'] ?? values?.['daemon.maxConcurrent'] ?? raw['daemon.maxConcurrent'];
+      const rawTimeout = project?.['daemon.workerTimeoutMs'] ?? values?.['daemon.workerTimeoutMs'] ?? raw['daemon.workerTimeoutMs'];
       // #2356 — lifecycle limits are configured in SECONDS in config.json
       // (`daemon.ttlSecs` / `daemon.idleSecs`) for parity with the CLI flag
       // and env var; stored internally as ms. An explicit 0 disables.
-      const rawTtl = cfg['daemon.ttlSecs'] ?? raw['daemon.ttlSecs'];
-      const rawIdle = cfg['daemon.idleSecs'] ?? raw['daemon.idleSecs'];
+      const rawTtl = project?.['daemon.ttlSecs'] ?? values?.['daemon.ttlSecs'] ?? raw['daemon.ttlSecs'];
+      const rawIdle = project?.['daemon.idleSecs'] ?? values?.['daemon.idleSecs'] ?? raw['daemon.idleSecs'];
       // #2661 — explicit opt-in for scheduled AI workers.
-      const rawAiEnabled = cfg['daemon.aiWorkers.enabled'] ?? raw['daemon.aiWorkers.enabled'];
+      const rawAiEnabled = project?.['daemon.aiWorkers.enabled'] ?? values?.['daemon.aiWorkers.enabled'] ?? raw['daemon.aiWorkers.enabled'];
       return {
         autoStart: typeof raw['daemon.autoStart'] === 'boolean' ? raw['daemon.autoStart'] : undefined,
         maxConcurrent: (typeof rawMaxConcurrent === 'number' && rawMaxConcurrent > 0) ? rawMaxConcurrent : undefined,

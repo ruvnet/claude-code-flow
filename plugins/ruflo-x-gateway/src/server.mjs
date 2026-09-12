@@ -30,40 +30,75 @@ export function createGateway({ relay, keyFile, port } = {}) {
   const gated = (fn) => async (args) => (checkAdmin(args.adminToken) ? fn(args) : denied());
   const adminArg = { adminToken: z.string().describe('Gateway admin token (RUFLO_ADMIN_TOKEN). Required for any write made with the gateway identity.') };
 
+  // ---- MCP ToolAnnotations (spec 2025-03-26) ----
+  // An ABSENT hint is not neutral. The spec's defaults for a missing annotation
+  // are readOnlyHint:false, destructiveHint:true, idempotentHint:false,
+  // openWorldHint:true — so a tool that declares nothing renders in a client as
+  // "public write / destructive / open world". Every tool below therefore states
+  // all four explicitly; none of them relies on a default.
+  //
+  // These are HINTS and the spec says a client MUST NOT trust them for security.
+  // They change how a tool is PRESENTED, never what it is allowed to do: the
+  // `gated()` admin check below is the enforcement and is untouched.
+  const READ = (title) => ({ title, readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+  // Every write here lands on our own membership-gated relay, so openWorld stays
+  // false unless a tool genuinely reaches an open-ended external service.
+  const WRITE = (title, { destructive = false, idempotent = false, openWorld = false } = {}) =>
+    ({ title, readOnlyHint: false, destructiveHint: destructive, idempotentHint: idempotent, openWorldHint: openWorld });
+
   function buildMcp(req) {
     const mcp = new McpServer({ name: 'ruflo-x-gateway', version: '0.7.1' });
     // ---- open reads ----
-    mcp.tool('federation_identity', 'Gateway Nostr pubkey + relay. Open read.', {}, async () => text({ pubkey, relay: RELAY, httpBase: HTTP_BASE }));
+    mcp.tool('federation_identity', 'Gateway Nostr pubkey + relay. Open read.', {}, READ('Gateway identity'), async () => text({ pubkey, relay: RELAY, httpBase: HTTP_BASE }));
     mcp.tool('federation_sync', 'Fetch recent verified swarm coordination messages (#t=ruflo-swarm). Open read; optional type filter.',
       { sinceSeconds: z.number().optional(), limit: z.number().optional(), type: z.string().optional() },
+      READ('Read swarm messages'),
       async (a) => { const msgs = await fetchRecent(RELAY, sk, a); return text({ count: msgs.length, messages: msgs }); });
     mcp.tool('claims_status', 'Current owner-per-resource claims ledger from recent verified claim events. Open read.', {},
+      READ('Read claims ledger'),
       async () => { const ev = await fetchRecent(RELAY, sk, { sinceSeconds: 86400, limit: 500 }); return text(reduceClaims(ev.filter((e) => String(e.type).startsWith('Claim')))); });
     // ---- admin-gated writes (use the GATEWAY identity) ----
     mcp.tool('federation_join', 'Publish a signed PeerHello AS THE GATEWAY. Admin-gated. Users should join with their own key via invite→claim instead.',
       { name: z.string(), platform: z.string().optional(), note: z.string().optional(), ...adminArg },
+      // Appends a PeerHello event. Additive, and each call is a NEW event, so not idempotent.
+      WRITE('Announce gateway peer'),
       gated(async ({ name, platform, note }) => text({ ok: true, eventId: await publish(RELAY, sk, 'PeerHello', { from: name, platform, note }) })));
     mcp.tool('federation_publish', 'Publish a signed coordination message AS THE GATEWAY (Status/Task/Result…). Admin-gated.',
       { msgType: z.string(), payload: z.record(z.any()), ...adminArg },
+      WRITE('Publish coordination message'),
       gated(async ({ msgType, payload }) => text({ ok: true, eventId: await publish(RELAY, sk, msgType, payload) })));
     mcp.tool('claims_issue', 'Issue a work claim AS THE GATEWAY. Admin-gated. One owner per resourceId.',
       { resourceId: z.string(), ttlSeconds: z.number().optional(), ...adminArg },
+      // Not idempotent: re-issuing the same claim extends its TTL, which is a real
+      // additional effect even though the owner does not change.
+      WRITE('Issue work claim'),
       gated(async ({ resourceId, ttlSeconds }) => text({ ok: true, eventId: await publish(RELAY, sk, 'ClaimIssued', { from: pubkey, resourceId, ttlSeconds }), resourceId })));
     mcp.tool('claims_release', 'Release a gateway-held work claim. Admin-gated.',
       { resourceId: z.string(), ...adminArg },
+      // The one genuinely destructive tool here: it REMOVES an ownership grant
+      // rather than adding one, and another agent can take the resource the
+      // moment it lands. Releasing twice changes nothing, so it is idempotent.
+      WRITE('Release work claim', { destructive: true, idempotent: true }),
       gated(async ({ resourceId }) => text({ ok: true, eventId: await publish(RELAY, sk, 'ClaimReleased', { from: pubkey, resourceId }), resourceId })));
     mcp.tool('federation_invite_mint', 'Mint a self-service invite code (v2, use-limited, expiring) so a new ruflo user can claim relay membership with their own key. Admin-gated; the gateway must hold relay admin role.',
       { ttlSecs: z.number().optional(), maxUses: z.number().optional(), ...adminArg },
+      // Each call mints a DIFFERENT code, so repeating it is not a no-op.
+      WRITE('Mint relay invite'),
       gated(async ({ ttlSecs, maxUses }) => text(await mintInvite(HTTP_BASE, sk, { ttlSecs, maxUses }))));
     mcp.tool('federation_admit', 'Admit a pubkey as a relay member directly (NIP-43 kind 9030). Admin-gated.',
       { pubkey: z.string(), role: z.enum(['member', 'admin']).optional(), ...adminArg },
+      // Additive grant, and admitting the same pubkey at the same role twice
+      // leaves the roster identical — idempotent.
+      WRITE('Admit relay member', { idempotent: true }),
       gated(async ({ pubkey: pk, role }) => text(await admitMember(RELAY, sk, pk, role))));
     // ---- ADR-386 channels ----
     mcp.tool('channel_list', 'List swarm channels seen recently, with visibility, message count and publisher count. Open read. Public channel ids carry their name (pub:<name>); private ids are opaque (prv:<hex>) and reveal nothing about the topic. Well-known channels (pub:announce, pub:help, pub:claims, pub:showcase) are always listed even when quiet, with messages:0 and a purpose — a channel nobody posted in today is otherwise undiscoverable, which is how it stays empty. Use when you want to find where coordination is happening before reading a stream. Reading the flat firehose with federation_sync instead is wrong once channels are in use, because it mixes unrelated work and cannot show you private traffic exists at all.',
       { sinceSeconds: z.number().optional(), limit: z.number().optional() },
+      READ('List swarm channels'),
       async (a) => text({ channels: await listChannels(RELAY, sk, a) }));
     mcp.tool('channel_sync', 'Read one channel. Open read. A public channel returns parsed JSON messages. A PRIVATE channel returns NIP-44 ciphertext verbatim with encrypted:true — the gateway holds no channel keys and cannot decrypt, by design (ADR-386); open it client-side with `ruflo federation channel read`. Use when you know the channel id. Asking the gateway to decrypt is wrong because a gateway that could would be a custodian of every private channel on the service.',
       { channel: z.string().describe('Channel id: pub:<name> or prv:<16 hex>'), sinceSeconds: z.number().optional(), limit: z.number().optional() },
+      READ('Read a channel'),
       async ({ channel, sinceSeconds, limit }) => {
         if (!CHANNEL_ID_RE.test(String(channel))) throw new Error('channel must be pub:<name> or prv:<16 hex>');
         const messages = await fetchChannel(RELAY, sk, { channelId: channel, sinceSeconds, limit });
@@ -71,6 +106,7 @@ export function createGateway({ relay, keyFile, port } = {}) {
       });
     mcp.tool('channel_publish', 'Publish a message to a PUBLIC channel as the gateway. Admin-gated. Private channels are refused here on purpose: their content is encrypted with a key only clients hold, so publish to them with your own key via `ruflo federation channel publish`. Use when a service-side process needs to post to a shared public stream; for anything attributable to a person or agent, publish with that identity instead.',
       { channel: z.string(), msgType: z.string(), payload: z.record(z.any()), ...adminArg },
+      WRITE('Publish to public channel'),
       gated(async ({ channel, msgType, payload }) => {
         // Refuse private BEFORE normalising, so a prv: id gets the real reason rather
         // than a name-validation error from the public-id helper.
@@ -82,10 +118,20 @@ export function createGateway({ relay, keyFile, port } = {}) {
     mcp.tool('federation_onboarding',
       "How to join and publish as yourself, and which identity signs what. Open — no token. Use when you are new here, when a publish was refused for a credential, or before telling someone to paste a token anywhere. Reaching for federation_publish to speak as a person is the usual wrong turn: it signs as the GATEWAY, which is why it is gated; you publish with your own key over the relay connection. This never generates or asks for a secret key — it returns the code for you to run locally, because a service that mints your key has seen it.",
       {},
+      READ('Joining guide'),
       async () => text(onboardingGuide({ relay: RELAY, httpBase: HTTP_BASE, gatewayPubkey: pubkey, defaultChannels: DEFAULT_CHANNELS })));
     // ---- Seraphina: swarm queen guidance (admin-gated: it spends meta-llm budget) ----
     mcp.tool('seraphina_guidance', 'Ask Seraphina — swarm queen / primary coordinator — for guidance on a goal. Reads the live roster, claims board and recent messages, reasons via the cognitum meta-llm gateway (cognitum-auto default; tier override), returns {guidance, proposals[], risks[]}. Admin-gated because it spends meta-llm budget. Use when deciding what the swarm should do next or how to resolve a claim conflict. Assigning work from raw sync output is wrong because it ignores current claims and node liveness, which Seraphina checks first.',
       { goal: z.string(), tier: z.enum(['cognitum-auto','cognitum-low','cognitum-mid','cognitum-high','cognitum-ultra']).optional(), adminToken: z.string().optional().describe('Optional. Lifts the shared budget cap and allows the high/ultra tiers. Never put this in a browser — it also authorises gateway-identity writes.'), sinceSeconds: z.number().optional(), limit: z.number().optional() },
+      // The one debatable classification on this server, so the reasoning is here.
+      // It publishes nothing and holds no authority, which argues for readOnly —
+      // but it DOES modify state: every call decrements a shared daily budget and
+      // an IP-hourly allowance, and spends real meta-llm money. readOnlyHint:true
+      // tells a client the call is free to repeat, which for this tool is false.
+      // openWorld is true because the answer comes from an external model whose
+      // output is not drawn from any closed set this gateway owns — unlike every
+      // other tool here, which only ever reads or writes our own relay.
+      WRITE('Ask Seraphina for guidance', { openWorld: true }),
       (async ({ goal, tier, sinceSeconds, limit, adminToken }) => {
         // Seraphina reads and advises; it writes nothing and carries no authority,
         // so it is bounded by budget rather than by a bearer secret a browser

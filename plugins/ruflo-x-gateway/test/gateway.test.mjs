@@ -355,3 +355,116 @@ test('onboarding: exposed as an open tool and an open resource', async () => {
   assert.ok(info.resources.includes('ruv://federation/onboarding'));
   gw.server.close();
 });
+
+// ─── MCP tool annotations (spec 2025-03-26) ───
+//
+// The bug these lock down: a tool that declares NO `annotations` is not
+// "unspecified" to a client — the spec's per-hint defaults are readOnlyHint
+// false, destructiveHint TRUE, idempotentHint false, openWorldHint TRUE. So
+// before this, ChatGPT rendered every tool on this server, `federation_sync`
+// and `channel_list` included, as public / destructive / open-world. Asserting
+// the hints are PRESENT is therefore the real regression test; asserting their
+// values is what keeps them honest.
+
+/** Expected hints per tool. Grouped by class, stated exhaustively. */
+const EXPECTED_ANNOTATIONS = {
+  // Reads: closed world, no mutation, safe to repeat.
+  federation_identity:    { readOnlyHint: true,  destructiveHint: false, idempotentHint: true,  openWorldHint: false },
+  federation_sync:        { readOnlyHint: true,  destructiveHint: false, idempotentHint: true,  openWorldHint: false },
+  claims_status:          { readOnlyHint: true,  destructiveHint: false, idempotentHint: true,  openWorldHint: false },
+  channel_list:           { readOnlyHint: true,  destructiveHint: false, idempotentHint: true,  openWorldHint: false },
+  channel_sync:           { readOnlyHint: true,  destructiveHint: false, idempotentHint: true,  openWorldHint: false },
+  federation_onboarding:  { readOnlyHint: true,  destructiveHint: false, idempotentHint: true,  openWorldHint: false },
+  // Additive writes onto our own relay: each call appends a new event.
+  federation_join:        { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  federation_publish:     { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  channel_publish:        { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  claims_issue:           { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  federation_invite_mint: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  // Additive but idempotent: same pubkey + role leaves the roster identical.
+  federation_admit:       { readOnlyHint: false, destructiveHint: false, idempotentHint: true,  openWorldHint: false },
+  // Destructive: removes an ownership grant. Releasing twice is a no-op.
+  claims_release:         { readOnlyHint: false, destructiveHint: true,  idempotentHint: true,  openWorldHint: false },
+  // Open world: answers come from an external model, and each call spends budget.
+  seraphina_guidance:     { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true  },
+};
+
+/** Tools whose handler cannot mutate anything — the server's own read set. */
+const READ_ONLY_TOOL_NAMES = new Set([
+  'federation_identity', 'federation_sync', 'claims_status',
+  'channel_list', 'channel_sync', 'federation_onboarding',
+]);
+
+async function listToolsOverHttp() {
+  process.env.RUFLO_ADMIN_TOKEN = 'test-admin-token';
+  const gw = createGateway({ relay: 'ws://127.0.0.1:1', keyFile: '/tmp/x-gw-ann-' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.key', port: 0 });
+  const port = await gw.listen(0);
+  const raw = await fetch(`http://127.0.0.1:${port}/mcp`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }),
+  }).then((r) => r.text());
+  gw.server.close();
+  return JSON.parse(raw.slice(raw.indexOf('{'))).result.tools;
+}
+
+test('annotations: every exposed tool declares all four hints explicitly', async () => {
+  const tools = await listToolsOverHttp();
+  assert.ok(tools.length > 0, 'tools/list returned nothing');
+  for (const t of tools) {
+    assert.ok(t.annotations, `${t.name} has no annotations — a client reads it as destructive + open-world`);
+    for (const hint of ['readOnlyHint', 'destructiveHint', 'idempotentHint', 'openWorldHint']) {
+      assert.equal(typeof t.annotations[hint], 'boolean',
+        `${t.name}.annotations.${hint} must be an explicit boolean; absent means the spec default applies`);
+    }
+  }
+});
+
+test('annotations: hint values match the declared classification for every tool', async () => {
+  const tools = await listToolsOverHttp();
+  // Neither direction may drift: a new tool with no expectation fails here, and
+  // an expectation for a tool that no longer exists fails too.
+  assert.deepEqual(
+    tools.map((t) => t.name).sort(),
+    Object.keys(EXPECTED_ANNOTATIONS).sort(),
+    'tool list and the annotation expectation table disagree',
+  );
+  for (const t of tools) {
+    for (const [hint, value] of Object.entries(EXPECTED_ANNOTATIONS[t.name])) {
+      assert.equal(t.annotations[hint], value, `${t.name}.${hint} should be ${value}`);
+    }
+  }
+});
+
+test('annotations: readOnlyHint agrees with the server read/write split', async () => {
+  // This is the drift that caused the bug in the first place — a hint saying one
+  // thing while the gating says another. Here the gate is the `adminToken`
+  // parameter: a tool that writes with the gateway identity REQUIRES one, and a
+  // tool that only reads must never ask for one.
+  const tools = await listToolsOverHttp();
+  for (const t of tools) {
+    const gatedByToken = (t.inputSchema.required ?? []).includes('adminToken');
+    if (t.annotations.readOnlyHint) {
+      assert.ok(READ_ONLY_TOOL_NAMES.has(t.name), `${t.name} claims readOnlyHint but is not in the read set`);
+      assert.equal(gatedByToken, false, `${t.name} claims readOnlyHint yet demands an admin token`);
+    } else {
+      assert.equal(READ_ONLY_TOOL_NAMES.has(t.name), false, `${t.name} is in the read set but advertises a write`);
+    }
+    // Every admin-gated tool must be advertised as a write. The converse is not
+    // required: seraphina_guidance publishes no event but spends budget, so it
+    // is a non-read whose token is OPTIONAL.
+    if (gatedByToken) {
+      assert.equal(t.annotations.readOnlyHint, false, `${t.name} is admin-gated but advertises readOnlyHint`);
+    }
+  }
+});
+
+test('annotations: destructiveHint is reserved for tools that remove state', async () => {
+  const tools = await listToolsOverHttp();
+  // Blanket-setting destructive is exactly as misleading as omitting it.
+  assert.deepEqual(
+    tools.filter((t) => t.annotations.destructiveHint).map((t) => t.name),
+    ['claims_release'],
+    'only claims_release removes state; every other write here appends',
+  );
+});

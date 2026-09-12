@@ -12,16 +12,21 @@
  *     30m idle default; RUFLO_DAEMON_TTL_SECS / RUFLO_DAEMON_IDLE_SECS) —
  *     auto-start never means "runs forever",
  *   - opt-out: RUFLO_DAEMON_AUTOSTART=0|false|no disables it entirely, OR a
- *     project-local `daemon.autostart: false` in claude-flow.config.json —
- *     the file-based opt-out exists because the env var only reaches a
- *     process that inherited it. A non-interactive shell (cron, CI, many
+ *     project-local `daemon.autostart: false` in claude-flow.config.json, OR
+ *     `claudeFlow.daemon.autoStart: false` in .claude/settings.json — the
+ *     file-based opt-outs exist because the env var only reaches a process
+ *     that inherited it. A non-interactive shell (cron, CI, many
  *     tool-invoked shells — bash skips ~/.bashrc entirely for these; see
  *     its own `case $- in *i*) ;; *) return;; esac` guard) never re-sources
  *     a shell rc file per invocation, so `export RUFLO_DAEMON_AUTOSTART=0`
  *     in one such shell does NOT persist to the next one. A project config
  *     field has no such gap — it's read fresh from disk every time,
  *     independent of which shell (or whether any shell at all) launched
- *     the command,
+ *     the command. `.claude/settings.json`'s `claudeFlow.daemon.autoStart`
+ *     is checked too because `ruflo init` writes exactly that field, with
+ *     that default (false), into every generated project — a user who
+ *     trusts the file `init` handed them and never learns about
+ *     claude-flow.config.json otherwise has no working opt-out at all.
  *   - cheap: a pidfile read + a signal-0 liveness check on the fast path,
  *   - best-effort + silent: never blocks or fails a command.
  *
@@ -76,9 +81,28 @@ function autostartDisabledByProjectConfig(projectRoot: string): boolean {
   return false;
 }
 
+/**
+ * Project-local opt-out: `{ "claudeFlow": { "daemon": { "autoStart": false } } }`
+ * in `.claude/settings.json` — the exact field `ruflo init` generates by
+ * default. Without this check that field is silently inert: a user (or an
+ * agent acting on their behalf) who sets it to `false`, or simply trusts the
+ * `init`-generated default, gets no actual opt-out, because nothing else in
+ * this module ever reads `.claude/settings.json`.
+ */
+function autostartDisabledBySettingsJson(projectRoot: string): boolean {
+  try {
+    const raw = fs.readFileSync(path.join(projectRoot, '.claude', 'settings.json'), 'utf-8');
+    const settings = JSON.parse(raw);
+    return settings?.claudeFlow?.daemon?.autoStart === false;
+  } catch {
+    return false; // absent/malformed settings = not disabled
+  }
+}
+
 function autostartDisabled(projectRoot: string): boolean {
   if (/^(0|false|no|off)$/i.test(process.env.RUFLO_DAEMON_AUTOSTART ?? '')) return true;
-  return autostartDisabledByProjectConfig(projectRoot);
+  if (autostartDisabledByProjectConfig(projectRoot)) return true;
+  return autostartDisabledBySettingsJson(projectRoot);
 }
 
 /**
@@ -186,7 +210,7 @@ export function ensureDaemonRunning(
 ): EnsureResult {
   try {
     const projectRoot = resolveDaemonProjectRoot(startDir);
-    if (autostartDisabled(projectRoot)) return { started: false, reason: 'disabled (RUFLO_DAEMON_AUTOSTART=0 or project config)' };
+    if (autostartDisabled(projectRoot)) return { started: false, reason: 'disabled (RUFLO_DAEMON_AUTOSTART=0, claude-flow.config.json, or .claude/settings.json)' };
     if (!isRufloProject(projectRoot)) {
       return { started: false, reason: 'not a ruflo project' };
     }

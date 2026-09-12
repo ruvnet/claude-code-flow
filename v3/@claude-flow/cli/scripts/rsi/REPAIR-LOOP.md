@@ -107,7 +107,11 @@ remain disabled. Read that increment before repeating accounting design work.
    optimization. Preserve original source snapshots and test mixed-version replay,
    interrupted reservations and retained charges. Do not invent zero acquisition
    costs. The current adapter always reports execution disabled.
-2. **Broader public development tasks.** Acquire independently specified real
+2. **Broader public development tasks.** [WORKLOADS-001.md](WORKLOADS-001.md)
+   freezes the first three exact public base/fix lineages and fail-closed
+   admission checks. Complete source archives, offline dependency closures,
+   toolchains and hidden development tests remain missing, so candidate
+   execution stays disabled. Continue to acquire independently specified real
    defects across repository and bug lineages. Record exclusions, fix exposure,
    source dependencies and costs. Freeze the sample before comparing methods.
    The three known witnesses may calibrate tooling but cannot become final data.

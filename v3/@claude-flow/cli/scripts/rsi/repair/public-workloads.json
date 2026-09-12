@@ -1,0 +1,162 @@
+{
+  "schema": "ruflo.public-repair-workloads/v1",
+  "frozenAt": "2026-09-12T21:15:12Z",
+  "selection": {
+    "source": "PUBLIC_GITHUB_ONE_COMMIT_FIXES",
+    "sampleFrozenBeforeMethodComparison": true,
+    "selectionMethod": "Three low-cost, unrelated bug domains from distinct public repositories; exact one-parent fixes verified before admission.",
+    "excluded": [
+      {
+        "repository": "ruvnet/RuView",
+        "reason": "Valuable sensing-domain diversity, but the selected Rust server target is compile-heavy and its hidden history-path test is not yet frozen."
+      },
+      {
+        "repository": "python-attrs/attrs",
+        "reason": "The strongest ForwardRef scenario requires a frozen Python 3.14 environment that is not yet available."
+      },
+      {
+        "repository": "ruvnet/ruflo",
+        "reason": "Additional same-repository defects would not expand repository lineage beyond the existing one-cluster calibration."
+      }
+    ]
+  },
+  "proofBoundary": {
+    "use": "EXPOSED_DEVELOPMENT_ONLY",
+    "fixesExposed": true,
+    "sealedEvaluation": false,
+    "clusterIndependenceReviewed": false,
+    "evaluatorKeys": [],
+    "candidateExecutionEnabled": false,
+    "boundedRsiEvidenceAccepted": false
+  },
+  "accounting": {
+    "legacyLedgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "legacyNativeFieldCallsReserved": 209784,
+    "legacyEpochsConsumed": 7,
+    "newNativeFieldCalls": 0,
+    "repairCandidateEvaluations": 0,
+    "repairProcessStarts": 0,
+    "repairWallMs": 0,
+    "externalProviderSpendUsd": 0,
+    "totalAcquisitionUsd": null,
+    "totalEvaluationUsd": null
+  },
+  "workloads": [
+    {
+      "id": "ruvector-cypher-not-precedence",
+      "repository": "ruvnet/RuVector",
+      "license": "MIT",
+      "cluster": "rust-cypher-parser-precedence",
+      "reference": "https://github.com/ruvnet/RuVector/commit/df644e2a4050901fe8b75db9d2c512255b854f78",
+      "source": {
+        "baseCommit": "99ea97607acd3498e3b48aeaa708ecb5df5d8f25",
+        "fixCommit": "df644e2a4050901fe8b75db9d2c512255b854f78",
+        "fixParents": ["99ea97607acd3498e3b48aeaa708ecb5df5d8f25"],
+        "baseTree": "c342b626d419ccc782850fd7bf918252f3c5b0d4",
+        "fixTree": "ddaa12ef4bb8447d4c2758479ae94d9e62f6e35f",
+        "diffSha256": "0217071881467bf6773fcbfcc3139f4c35812a89ac1dd5fb793c22bb90ef0d93",
+        "diffBytes": 4232,
+        "compareUrl": "https://github.com/ruvnet/RuVector/compare/99ea97607acd3498e3b48aeaa708ecb5df5d8f25...df644e2a4050901fe8b75db9d2c512255b854f78"
+      },
+      "changedFiles": [
+        {
+          "path": "crates/ruvector-graph/src/cypher/parser.rs",
+          "baseBlob": "c1669376437688c8eead82471410ed5366dfa8bf",
+          "fixBlob": "f392d90f5a5fa2bef1b6b0323fd98f09b3c31d93"
+        }
+      ],
+      "supportBindings": [
+        {"path": "Cargo.lock", "blob": "2a7d2169469cefb3a431c3a08a511814e8ac246d", "role": "dependency-lock"},
+        {"path": "LICENSE", "blob": "2dd524ac380d7e2f68710913b95e3dbd4cce7319", "role": "license"}
+      ],
+      "test": {
+        "cwd": ".",
+        "argv": ["cargo", "test", "--locked", "--offline", "-p", "ruvector-graph", "test_not_binds"],
+        "environment": {"CARGO_NET_OFFLINE": "true"},
+        "hiddenTestsFrozen": false
+      },
+      "exposure": "PUBLISHED_FIX_AND_UPSTREAM_TESTS_KNOWN",
+      "admission": {
+        "eligibleForDevelopment": false,
+        "blockers": ["SOURCE_ARCHIVES_NOT_YET_MIRRORED", "VENDORED_DEPENDENCY_CLOSURE_NOT_YET_FROZEN", "EVALUATOR_AUTHORED_HIDDEN_TESTS_NOT_YET_FROZEN"]
+      }
+    },
+    {
+      "id": "p-limit-limit-function-clear-queue",
+      "repository": "sindresorhus/p-limit",
+      "license": "MIT",
+      "cluster": "javascript-async-queue-api",
+      "reference": "https://github.com/sindresorhus/p-limit/commit/f3e7f9ba364a9357bd912d136367d06c46660917",
+      "source": {
+        "baseCommit": "df476048d023ff868cd45b35ee47f5fb0ca2b25a",
+        "fixCommit": "f3e7f9ba364a9357bd912d136367d06c46660917",
+        "fixParents": ["df476048d023ff868cd45b35ee47f5fb0ca2b25a"],
+        "baseTree": "21d1b1115ab955f499ca0de32b8819b936775dd9",
+        "fixTree": "15da3cf8d9426b331317aa3719e8a157721d3cbe",
+        "diffSha256": "265905aeb1727496ea8c41a8cf60e9826c8724d778a409b5d8233e23a562f818",
+        "diffBytes": 3066,
+        "compareUrl": "https://github.com/sindresorhus/p-limit/compare/df476048d023ff868cd45b35ee47f5fb0ca2b25a...f3e7f9ba364a9357bd912d136367d06c46660917"
+      },
+      "changedFiles": [
+        {"path": "index.d.ts", "baseBlob": "5a6496341ba8a9efacff16ed3734f203b4186461", "fixBlob": "1a20857eadff3f14d22cbf94fb740c6e728cb0b8"},
+        {"path": "index.js", "baseBlob": "5ecd39257c623b6dd4df204bbd7c94fbdf0b8d12", "fixBlob": "b74d48ab0e37788e657e5ad12d90e281ef1f39d1"},
+        {"path": "index.test-d.ts", "baseBlob": "672c31a4869223c57367a0f1ac640fc5281b524f", "fixBlob": "457778a30d3abf77f9371a2df7e0e20a043ffed1"},
+        {"path": "readme.md", "baseBlob": "0e019f47889766721c4a6424c7915dc40a81532a", "fixBlob": "64347920c589731fccd568dd3fa4d34e71bee451"},
+        {"path": "test.js", "baseBlob": "e303a46c6f9b263089954e13c99dfa32adb27934", "fixBlob": "356c4d8194eb451df3aa932ab9fc493b51f95833"}
+      ],
+      "supportBindings": [
+        {"path": "package.json", "blob": "77daf847424ab0af12350aeda27d810a60c92562", "role": "package-manifest"},
+        {"path": "license", "blob": "fa7ceba3eb4a9657a9db7f3ffca4e4e97a9019de", "role": "license"}
+      ],
+      "test": {
+        "cwd": ".",
+        "argv": ["npx", "--no-install", "ava", "test.js", "--match=limitFunction exposes clearQueue"],
+        "environment": {"npm_config_offline": "true"},
+        "hiddenTestsFrozen": false
+      },
+      "exposure": "PUBLISHED_FIX_AND_UPSTREAM_TESTS_KNOWN",
+      "admission": {
+        "eligibleForDevelopment": false,
+        "blockers": ["SOURCE_ARCHIVES_NOT_YET_MIRRORED", "IMMUTABLE_NODE_DEPENDENCY_CLOSURE_NOT_YET_FROZEN", "NODE_RUNTIME_NOT_YET_PINNED", "EVALUATOR_AUTHORED_HIDDEN_TESTS_NOT_YET_FROZEN"]
+      }
+    },
+    {
+      "id": "click-sentinel-copy-pickle-identity",
+      "repository": "pallets/click",
+      "license": "BSD-3-Clause",
+      "cluster": "python-sentinel-serialization-identity",
+      "reference": "https://github.com/pallets/click/commit/f58ca3e81424a35626c8a475eb59ab95589008ce",
+      "source": {
+        "baseCommit": "420c8fb44eeadb537cae69d2fee3796e808558dd",
+        "fixCommit": "f58ca3e81424a35626c8a475eb59ab95589008ce",
+        "fixParents": ["420c8fb44eeadb537cae69d2fee3796e808558dd"],
+        "baseTree": "2955d48825c98fd7dcbc60eb41cf18a952a2c0a3",
+        "fixTree": "b119ee08d395dfe02e0efbfe605863d2eac816dc",
+        "diffSha256": "62142e2a4dabb213968b998be77b1ea00865381d4ef66c82818322bee480b8b8",
+        "diffBytes": 2674,
+        "compareUrl": "https://github.com/pallets/click/compare/420c8fb44eeadb537cae69d2fee3796e808558dd...f58ca3e81424a35626c8a475eb59ab95589008ce"
+      },
+      "changedFiles": [
+        {"path": "CHANGES.md", "baseBlob": "3c9a94e6c9d9a5ba8b658b4c58ede428e95ac515", "fixBlob": "7c1a1bab9ddc769beb2c1ee506ca990b5d9e84d6"},
+        {"path": "src/click/_utils.py", "baseBlob": "05ee2e99757adb19882664e1fc0377ac29c92f80", "fixBlob": "2d4e8f242619dce6fe36d6f262500ea513214db5"},
+        {"path": "tests/test_utils/test_sentinel.py", "baseBlob": "1dd5b15166b342afcc3daf344bc91b26578664b3", "fixBlob": "4ced0d5fad8270b7e0308b70584dba4dedbbb503"}
+      ],
+      "supportBindings": [
+        {"path": "pyproject.toml", "blob": "b41d72a5ee1d48e201f3da02187dba4fc9192cb2", "role": "package-manifest"},
+        {"path": "uv.lock", "blob": "5f3a69c95e73a96cda399c7c83591a859de7f834", "role": "dependency-lock"},
+        {"path": "LICENSE.txt", "blob": "d12a849186982399c537c5b9a8fd77bf2edd5eab", "role": "license"}
+      ],
+      "test": {
+        "cwd": ".",
+        "argv": ["python", "-m", "pytest", "tests/test_utils/test_sentinel.py", "-q"],
+        "environment": {"PYTHONNOUSERSITE": "1"},
+        "hiddenTestsFrozen": false
+      },
+      "exposure": "PUBLISHED_FIX_AND_UPSTREAM_TESTS_KNOWN",
+      "admission": {
+        "eligibleForDevelopment": false,
+        "blockers": ["SOURCE_ARCHIVES_NOT_YET_MIRRORED", "IMMUTABLE_PYTHON_ENVIRONMENT_NOT_YET_FROZEN", "PYTHON_RUNTIME_NOT_YET_PINNED", "EVALUATOR_AUTHORED_HIDDEN_TESTS_NOT_YET_FROZEN"]
+      }
+    }
+  ]
+}

@@ -82,9 +82,18 @@ export function createGateway({ relay, keyFile, port } = {}) {
   // The token is only ever read from the request and compared. It is never
   // echoed into a tool result, a description, or a log line.
   const headerAdminToken = (req) => {
-    const raw = req?.headers?.authorization || '';
-    const bearer = /^Bearer\s+(.+)$/i.exec(String(raw));
-    if (bearer) return bearer[1].trim();
+    const raw = String(req?.headers?.authorization || '');
+    // No quantified regex here, deliberately. `/^Bearer\s+(.+)$/` lets `\s+` and
+    // `.+` BOTH match whitespace, so an Authorization header of many spaces makes
+    // the engine try every split point — polynomial backtracking on input an
+    // unauthenticated caller controls (CodeQL js/polynomial-redos). A prefix
+    // compare, a single-character class with no quantifier, and trim() are all
+    // linear.
+    if (raw.length > 8192) return undefined; // no legitimate bearer is this long
+    if (raw.slice(0, 6).toLowerCase() === 'bearer' && /^\s/.test(raw.slice(6))) {
+      const token = raw.slice(6).trim();
+      return token || undefined;
+    }
     const direct = req?.headers?.['x-ruflo-admin-token'];
     return typeof direct === 'string' && direct ? direct.trim() : undefined;
   };

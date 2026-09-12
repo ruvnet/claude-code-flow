@@ -60,7 +60,11 @@ function loadEd25519(probeRoots) {
   // pnpm's isolated layout (where transitive deps don't hoist to the
   // workspace root) still resolves @noble/ed25519. Callers don't need
   // to know about this — the function just probes more places.
+  // WITNESS_ED25519_ROOT is the escape hatch the thrown error below
+  // advertises — it must actually be probed, first, or the message lies.
+  const envRoot = process.env.WITNESS_ED25519_ROOT;
   const expanded = [
+    ...(envRoot ? [envRoot] : []),
     ...probeRoots,
     ...probeRoots.flatMap(r => [
       join(r, 'v3/@claude-flow/cli'),

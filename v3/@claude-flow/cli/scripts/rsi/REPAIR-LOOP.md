@@ -4,6 +4,49 @@ Decision: build a bounded executable improver for real repository work. The
 current deliverable is a working admission and historical regression calibration
 tool, not a repair optimizer or evidence of recursive improvement.
 
+## First measured calibration
+
+Reviewed implementation and plan were published at
+`642ecff20e3641545bea0d5fa3d3806d6c0e7736`, tree
+`cf6b51f3de741df78b17584cfd6ac88da3172cb1`, before recording this benchmark.
+The historical fixes and unit-test results were already known; this is not a
+preregistered efficacy experiment or a final confirmation reservation.
+
+Frozen plan: `278b2fcdd4be671857eb28354eafcd37b3342a5b7188a14c72594ea0e437908f`.
+Raw outcomes, transformed source hashes, process stdout/stderr and costs are in
+[`evidence/repair-calibration.json`](evidence/repair-calibration.json).
+
+| Witness | Original passes | Fixed passes |
+| --- | ---: | ---: |
+| Receipt fractions | 2/5 | 5/5 |
+| Decimal statistics round trip | 2/3 | 3/3 |
+| Unknown receipt fields | 2/4 | 4/4 |
+
+All three defects reproduce; all fixed checks pass. This measures the calibration
+tool's ability to distinguish known source revisions, not an agent repair rate.
+Six subprocesses took 314.337 ms total wall time on this Node 24 host. Parent CPU
+was 168649 microseconds; measured child import/check CPU was 125151 microseconds,
+excluding child startup. External provider spend was $0; full acquisition and
+evaluation dollar costs remain unknown. No latency superiority is claimed from
+this single benchmark. Profiling does not justify optimizing this subsecond
+calibration ahead of implementing the missing improvement procedure.
+
+There were zero mission candidate evaluations and zero new native field calls.
+The mission retains seven epochs, 209784 reserved calls and head
+`5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e`.
+The 35 existing focused tests and 13 new tests pass. All seven historical epochs
+replay using their original source. Calibration unit tests and CI reruns are
+additional engineering validation, excluded from the single benchmark above.
+
+```bash
+node v3/@claude-flow/cli/scripts/rsi/repair/run.mjs replay \
+  v3/@claude-flow/cli/scripts/rsi/evidence/repair-readiness-plan.json \
+  278b2fcdd4be671857eb28354eafcd37b3342a5b7188a14c72594ea0e437908f
+```
+
+Expected: `regressionWitnessesVerified: true`, `ledgerUnchanged: true`,
+`candidateExecutionEnabled: false`, `boundedRsiEvidenceAccepted: false`.
+
 ## Implemented and reproducible
 
 `repair/corpus.json` contains three actual RuFlo TypeScript defects, original

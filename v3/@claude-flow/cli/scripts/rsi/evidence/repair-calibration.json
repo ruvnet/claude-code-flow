@@ -1,0 +1,406 @@
+{
+  "schema": "ruflo.repair-calibration-result/v1",
+  "planHash": "278b2fcdd4be671857eb28354eafcd37b3342a5b7188a14c72594ea0e437908f",
+  "calibrationReady": true,
+  "candidateExecutionEnabled": false,
+  "boundedRsiEvidenceAccepted": false,
+  "blockers": [
+    "ACCOUNTING_AND_SOURCE_MIGRATION_REQUIRED",
+    "SEALED_WORKLOADS_AND_APPROVED_EVALUATORS_REQUIRED",
+    "FULL_ACQUISITION_COSTS_UNKNOWN"
+  ],
+  "regressionWitnessesVerified": true,
+  "missionHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+  "ledgerUnchanged": true,
+  "independentClusters": 1,
+  "exposure": "PUBLIC_KNOWN_FIXES",
+  "nodeVersion": "v24.19.0",
+  "platform": "linux",
+  "arch": "x64",
+  "pairs": [
+    {
+      "taskId": "receipt-fractions",
+      "basePasses": 2,
+      "fixedPasses": 5,
+      "checks": 5,
+      "witnessed": true
+    },
+    {
+      "taskId": "receipt-roundtrip",
+      "basePasses": 2,
+      "fixedPasses": 3,
+      "checks": 3,
+      "witnessed": true
+    },
+    {
+      "taskId": "receipt-unknown-fields",
+      "basePasses": 2,
+      "fixedPasses": 4,
+      "checks": 4,
+      "witnessed": true
+    }
+  ],
+  "rows": [
+    {
+      "taskId": "receipt-fractions",
+      "cluster": "ruflo-flywheel-receipt",
+      "role": "base",
+      "commit": "a295c68703158377a6ce827738bf8f13b94bd695",
+      "sourceBlobs": [
+        "00078ce76426190240d9cbe4ad15352c0ce61203",
+        "0577e2eee3a44a21f233c9626c694741c3ad9de7"
+      ],
+      "transformed": {
+        "flywheel-receipt.mjs": "b72ca65593d9f28efe43e2bc6075c551541ffb33abdd7b1b398f444be8660bc5",
+        "flywheel-sequential-evidence.mjs": "5c12ed1b98c923abd933579e51903a55e3b0c1c8c2b3098a2a334671759f9b37"
+      },
+      "processWallMs": 43.100196999999994,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"observations\":[{\"name\":\"valid-receipt-integrity\",\"passed\":true,\"actual\":[]},{\"name\":\"content-tampering-rejected\",\"passed\":true,\"actual\":[\"receipt content ID mismatch\"]},{\"name\":\"fractional-policy-is-decimal-string\",\"passed\":false,\"actual\":0.3},{\"name\":\"raw-and-encoded-policy-have-same-id\",\"passed\":false,\"actual\":[\"sha256:5f3bf651255bd175f356b47f47342573d6a3e617f87b37d4b6f35f3b33ddcf9b\",\"sha256:540c2c7edd8e6d45245763cee36e01e216b5aa1766c7ecfb5415216f9422206c\"]},{\"name\":\"nested-fractions-encoded\",\"passed\":false,\"actual\":{\"nested\":[1,0.25]}}],\"elapsedMs\":12.881087999999998,\"cpuMicros\":{\"user\":19890,\"system\":0},\"maxRssKb\":31864}\n",
+      "stderr": "",
+      "error": null,
+      "measurement": {
+        "observations": [
+          {
+            "name": "valid-receipt-integrity",
+            "passed": true,
+            "actual": []
+          },
+          {
+            "name": "content-tampering-rejected",
+            "passed": true,
+            "actual": [
+              "receipt content ID mismatch"
+            ]
+          },
+          {
+            "name": "fractional-policy-is-decimal-string",
+            "passed": false,
+            "actual": 0.3
+          },
+          {
+            "name": "raw-and-encoded-policy-have-same-id",
+            "passed": false,
+            "actual": [
+              "sha256:5f3bf651255bd175f356b47f47342573d6a3e617f87b37d4b6f35f3b33ddcf9b",
+              "sha256:540c2c7edd8e6d45245763cee36e01e216b5aa1766c7ecfb5415216f9422206c"
+            ]
+          },
+          {
+            "name": "nested-fractions-encoded",
+            "passed": false,
+            "actual": {
+              "nested": [
+                1,
+                0.25
+              ]
+            }
+          }
+        ],
+        "elapsedMs": 12.881087999999998,
+        "cpuMicros": {
+          "user": 19890,
+          "system": 0
+        },
+        "maxRssKb": 31864
+      }
+    },
+    {
+      "taskId": "receipt-fractions",
+      "cluster": "ruflo-flywheel-receipt",
+      "role": "fixed",
+      "commit": "ea2df4726cbeaa181d4f3bba8335b1c4160ebb35",
+      "sourceBlobs": [
+        "83b760e7f84af7ef9f4814e3e1cc069624e82880",
+        "0577e2eee3a44a21f233c9626c694741c3ad9de7"
+      ],
+      "transformed": {
+        "flywheel-receipt.mjs": "020fe706a6eae1ed34de4e8ab5abb6098ad805f449b61df4f767bb2f8c03a3ab",
+        "flywheel-sequential-evidence.mjs": "5c12ed1b98c923abd933579e51903a55e3b0c1c8c2b3098a2a334671759f9b37"
+      },
+      "processWallMs": 39.505562,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"observations\":[{\"name\":\"valid-receipt-integrity\",\"passed\":true,\"actual\":[]},{\"name\":\"content-tampering-rejected\",\"passed\":true,\"actual\":[\"receipt content ID mismatch\"]},{\"name\":\"fractional-policy-is-decimal-string\",\"passed\":true,\"actual\":\"0.3\"},{\"name\":\"raw-and-encoded-policy-have-same-id\",\"passed\":true,\"actual\":[\"sha256:540c2c7edd8e6d45245763cee36e01e216b5aa1766c7ecfb5415216f9422206c\",\"sha256:540c2c7edd8e6d45245763cee36e01e216b5aa1766c7ecfb5415216f9422206c\"]},{\"name\":\"nested-fractions-encoded\",\"passed\":true,\"actual\":{\"nested\":[1,\"0.25\"]}}],\"elapsedMs\":12.804363000000002,\"cpuMicros\":{\"user\":12981,\"system\":5496},\"maxRssKb\":33780}\n",
+      "stderr": "",
+      "error": null,
+      "measurement": {
+        "observations": [
+          {
+            "name": "valid-receipt-integrity",
+            "passed": true,
+            "actual": []
+          },
+          {
+            "name": "content-tampering-rejected",
+            "passed": true,
+            "actual": [
+              "receipt content ID mismatch"
+            ]
+          },
+          {
+            "name": "fractional-policy-is-decimal-string",
+            "passed": true,
+            "actual": "0.3"
+          },
+          {
+            "name": "raw-and-encoded-policy-have-same-id",
+            "passed": true,
+            "actual": [
+              "sha256:540c2c7edd8e6d45245763cee36e01e216b5aa1766c7ecfb5415216f9422206c",
+              "sha256:540c2c7edd8e6d45245763cee36e01e216b5aa1766c7ecfb5415216f9422206c"
+            ]
+          },
+          {
+            "name": "nested-fractions-encoded",
+            "passed": true,
+            "actual": {
+              "nested": [
+                1,
+                "0.25"
+              ]
+            }
+          }
+        ],
+        "elapsedMs": 12.804363000000002,
+        "cpuMicros": {
+          "user": 12981,
+          "system": 5496
+        },
+        "maxRssKb": 33780
+      }
+    },
+    {
+      "taskId": "receipt-roundtrip",
+      "cluster": "ruflo-flywheel-receipt",
+      "role": "base",
+      "commit": "fa13ee4ad60ac2090b1480656eb233521790d640",
+      "sourceBlobs": [
+        "fbd7f5eddf24efa36cccb347bac2d5d73e389980",
+        "0577e2eee3a44a21f233c9626c694741c3ad9de7"
+      ],
+      "transformed": {
+        "flywheel-receipt.mjs": "eecb292eb963aab4d735b0706d74cb14f480f4d6c61055c3f51d6dbb114ee20f",
+        "flywheel-sequential-evidence.mjs": "5c12ed1b98c923abd933579e51903a55e3b0c1c8c2b3098a2a334671759f9b37"
+      },
+      "processWallMs": 41.075568000000004,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"observations\":[{\"name\":\"valid-receipt-integrity\",\"passed\":true,\"actual\":[]},{\"name\":\"content-tampering-rejected\",\"passed\":true,\"actual\":[\"receipt content ID mismatch\"]},{\"name\":\"nonterminating-decimal-roundtrip\",\"passed\":false,\"actual\":[\"statistical decision does not recompute\"]}],\"elapsedMs\":12.201101000000001,\"cpuMicros\":{\"user\":9135,\"system\":8588},\"maxRssKb\":31860}\n",
+      "stderr": "",
+      "error": null,
+      "measurement": {
+        "observations": [
+          {
+            "name": "valid-receipt-integrity",
+            "passed": true,
+            "actual": []
+          },
+          {
+            "name": "content-tampering-rejected",
+            "passed": true,
+            "actual": [
+              "receipt content ID mismatch"
+            ]
+          },
+          {
+            "name": "nonterminating-decimal-roundtrip",
+            "passed": false,
+            "actual": [
+              "statistical decision does not recompute"
+            ]
+          }
+        ],
+        "elapsedMs": 12.201101000000001,
+        "cpuMicros": {
+          "user": 9135,
+          "system": 8588
+        },
+        "maxRssKb": 31860
+      }
+    },
+    {
+      "taskId": "receipt-roundtrip",
+      "cluster": "ruflo-flywheel-receipt",
+      "role": "fixed",
+      "commit": "a38647e1f90f126cac0d23e452cfb2fa7fa3b196",
+      "sourceBlobs": [
+        "343c371d2c419465d6d2662604652c9499ee6190",
+        "0577e2eee3a44a21f233c9626c694741c3ad9de7"
+      ],
+      "transformed": {
+        "flywheel-receipt.mjs": "4477575b5a07b4c4a467c7de10932a26800ec0aee1a85fbe9cc5e380fabb8570",
+        "flywheel-sequential-evidence.mjs": "5c12ed1b98c923abd933579e51903a55e3b0c1c8c2b3098a2a334671759f9b37"
+      },
+      "processWallMs": 43.41774700000002,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"observations\":[{\"name\":\"valid-receipt-integrity\",\"passed\":true,\"actual\":[]},{\"name\":\"content-tampering-rejected\",\"passed\":true,\"actual\":[\"receipt content ID mismatch\"]},{\"name\":\"nonterminating-decimal-roundtrip\",\"passed\":true,\"actual\":[]}],\"elapsedMs\":15.562318999999999,\"cpuMicros\":{\"user\":17311,\"system\":1063},\"maxRssKb\":31728}\n",
+      "stderr": "",
+      "error": null,
+      "measurement": {
+        "observations": [
+          {
+            "name": "valid-receipt-integrity",
+            "passed": true,
+            "actual": []
+          },
+          {
+            "name": "content-tampering-rejected",
+            "passed": true,
+            "actual": [
+              "receipt content ID mismatch"
+            ]
+          },
+          {
+            "name": "nonterminating-decimal-roundtrip",
+            "passed": true,
+            "actual": []
+          }
+        ],
+        "elapsedMs": 15.562318999999999,
+        "cpuMicros": {
+          "user": 17311,
+          "system": 1063
+        },
+        "maxRssKb": 31728
+      }
+    },
+    {
+      "taskId": "receipt-unknown-fields",
+      "cluster": "ruflo-flywheel-receipt",
+      "role": "base",
+      "commit": "fa13ee4ad60ac2090b1480656eb233521790d640",
+      "sourceBlobs": [
+        "fbd7f5eddf24efa36cccb347bac2d5d73e389980",
+        "0577e2eee3a44a21f233c9626c694741c3ad9de7"
+      ],
+      "transformed": {
+        "flywheel-receipt.mjs": "eecb292eb963aab4d735b0706d74cb14f480f4d6c61055c3f51d6dbb114ee20f",
+        "flywheel-sequential-evidence.mjs": "5c12ed1b98c923abd933579e51903a55e3b0c1c8c2b3098a2a334671759f9b37"
+      },
+      "processWallMs": 43.12299100000001,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"observations\":[{\"name\":\"valid-receipt-integrity\",\"passed\":true,\"actual\":[]},{\"name\":\"content-tampering-rejected\",\"passed\":true,\"actual\":[\"receipt content ID mismatch\"]},{\"name\":\"unknown-payload-field-rejected\",\"passed\":false,\"actual\":[]},{\"name\":\"unknown-nested-field-rejected\",\"passed\":false,\"actual\":[\"statistical decision does not recompute\"]}],\"elapsedMs\":15.205287999999996,\"cpuMicros\":{\"user\":23517,\"system\":0},\"maxRssKb\":33908}\n",
+      "stderr": "",
+      "error": null,
+      "measurement": {
+        "observations": [
+          {
+            "name": "valid-receipt-integrity",
+            "passed": true,
+            "actual": []
+          },
+          {
+            "name": "content-tampering-rejected",
+            "passed": true,
+            "actual": [
+              "receipt content ID mismatch"
+            ]
+          },
+          {
+            "name": "unknown-payload-field-rejected",
+            "passed": false,
+            "actual": []
+          },
+          {
+            "name": "unknown-nested-field-rejected",
+            "passed": false,
+            "actual": [
+              "statistical decision does not recompute"
+            ]
+          }
+        ],
+        "elapsedMs": 15.205287999999996,
+        "cpuMicros": {
+          "user": 23517,
+          "system": 0
+        },
+        "maxRssKb": 33908
+      }
+    },
+    {
+      "taskId": "receipt-unknown-fields",
+      "cluster": "ruflo-flywheel-receipt",
+      "role": "fixed",
+      "commit": "7d0bb9c53b9d26dc32e08788608ace9b18f4f8a9",
+      "sourceBlobs": [
+        "d13f7b1e2b9519e0f134b8ad4f435505aeee07dc",
+        "0577e2eee3a44a21f233c9626c694741c3ad9de7"
+      ],
+      "transformed": {
+        "flywheel-receipt.mjs": "890e34ef1b970efa684e6156f7947f4abd9fd1fadb62ecb7dde8d2473cd1036b",
+        "flywheel-sequential-evidence.mjs": "5c12ed1b98c923abd933579e51903a55e3b0c1c8c2b3098a2a334671759f9b37"
+      },
+      "processWallMs": 49.64459199999999,
+      "exitCode": 0,
+      "signal": null,
+      "stdout": "{\"observations\":[{\"name\":\"valid-receipt-integrity\",\"passed\":true,\"actual\":[]},{\"name\":\"content-tampering-rejected\",\"passed\":true,\"actual\":[\"receipt content ID mismatch\"]},{\"name\":\"unknown-payload-field-rejected\",\"passed\":true,\"actual\":[\"unknown field: payload.extra\"]},{\"name\":\"unknown-nested-field-rejected\",\"passed\":true,\"actual\":[\"unknown field: payload.statistics.extra\",\"statistical decision does not recompute\"]}],\"elapsedMs\":19.815092999999997,\"cpuMicros\":{\"user\":21219,\"system\":5951},\"maxRssKb\":34932}\n",
+      "stderr": "",
+      "error": null,
+      "measurement": {
+        "observations": [
+          {
+            "name": "valid-receipt-integrity",
+            "passed": true,
+            "actual": []
+          },
+          {
+            "name": "content-tampering-rejected",
+            "passed": true,
+            "actual": [
+              "receipt content ID mismatch"
+            ]
+          },
+          {
+            "name": "unknown-payload-field-rejected",
+            "passed": true,
+            "actual": [
+              "unknown field: payload.extra"
+            ]
+          },
+          {
+            "name": "unknown-nested-field-rejected",
+            "passed": true,
+            "actual": [
+              "unknown field: payload.statistics.extra",
+              "statistical decision does not recompute"
+            ]
+          }
+        ],
+        "elapsedMs": 19.815092999999997,
+        "cpuMicros": {
+          "user": 21219,
+          "system": 5951
+        },
+        "maxRssKb": 34932
+      }
+    }
+  ],
+  "costs": {
+    "scope": "FIXED_REGRESSION_CALIBRATION_ONLY",
+    "witnessProcesses": 6,
+    "totalWallMs": 314.337499,
+    "parentCpuMicros": {
+      "user": 136595,
+      "system": 32054
+    },
+    "childMeasuredCpuMicros": 125151,
+    "childCpuScope": "module import and witness checks; excludes Node startup",
+    "externalProviderSpendUsd": 0,
+    "totalAcquisitionUsd": null,
+    "totalEvaluationUsd": null,
+    "missionCandidateEvaluations": 0,
+    "missionNativeFieldCallsAdded": 0,
+    "exclusions": [
+      "source acquisition",
+      "research and code generation",
+      "other tests and CI",
+      "host dollar allocation"
+    ]
+  },
+  "sourceCommit": "642ecff20e3641545bea0d5fa3d3806d6c0e7736",
+  "sourceTree": "cf6b51f3de741df78b17584cfd6ac88da3172cb1"
+}

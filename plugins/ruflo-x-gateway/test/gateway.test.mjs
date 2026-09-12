@@ -395,10 +395,10 @@ const EXPECTED_ANNOTATIONS = {
   channel_list:           { readOnlyHint: true,  destructiveHint: false, idempotentHint: true,  openWorldHint: false },
   channel_sync:           { readOnlyHint: true,  destructiveHint: false, idempotentHint: true,  openWorldHint: false },
   federation_onboarding:  { readOnlyHint: true,  destructiveHint: false, idempotentHint: true,  openWorldHint: false },
-  // Additive writes onto our own relay: each call appends a new event.
-  federation_join:        { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-  federation_publish:     { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-  channel_publish:        { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  // Irreversible sends: these append signed events that cannot be retracted.
+  federation_join:        { readOnlyHint: false, destructiveHint: true,  idempotentHint: false, openWorldHint: false },
+  federation_publish:     { readOnlyHint: false, destructiveHint: true,  idempotentHint: false, openWorldHint: false },
+  channel_publish:        { readOnlyHint: false, destructiveHint: true,  idempotentHint: false, openWorldHint: false },
   claims_issue:           { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   federation_invite_mint: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   // Additive but idempotent: same pubkey + role leaves the roster identical.
@@ -479,13 +479,13 @@ test('annotations: readOnlyHint agrees with the server read/write split', async 
   }
 });
 
-test('annotations: destructiveHint is reserved for tools that remove state', async () => {
+test('annotations: destructiveHint marks removals and irreversible external sends', async () => {
   const tools = await listToolsOverHttp();
   // Blanket-setting destructive is exactly as misleading as omitting it.
   assert.deepEqual(
     tools.filter((t) => t.annotations.destructiveHint).map((t) => t.name),
-    ['claims_release'],
-    'only claims_release removes state; every other write here appends',
+    ['federation_join', 'federation_publish', 'claims_release', 'channel_publish'],
+    'destructive tools must include claim removal and append-only sends that cannot be retracted',
   );
 });
 

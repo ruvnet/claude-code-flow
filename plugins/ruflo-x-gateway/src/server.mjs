@@ -244,16 +244,124 @@ export function createGateway({ relay, keyFile, port } = {}) {
         authorization: { type: 'oauth2', issuer: OAUTH_ISSUER, clientId: OAUTH_CLIENT_ID || null,
           scopes: [SCOPE_READ, SCOPE_PUBLISH], protectedResourceMetadata: prmUrl('/mcp'),
           note: 'Additive: reads stay open and adminToken still works; an access token with swarm:publish is an alternative write credential.' } })); }
+    // ---- MCP Server Registry (modelcontextprotocol/registry) ----
+    // Several clients treat a URL you hand them as a REGISTRY — a directory of
+    // servers — before they treat it as a server. Lovable does: every failure it
+    // reported named "registry", and once the body finally parsed it said
+    // `This registry currently advertises no servers.`
+    //
+    // So this gateway publishes itself as a one-entry registry. The shape is the
+    // official one, taken from a live response of
+    // registry.modelcontextprotocol.io/v0/servers rather than from prose: a
+    // `servers` array whose items wrap the entry under `server`, with `_meta`
+    // alongside, and a sibling `metadata` for the page.
+    //
+    // It lists THIS gateway only. Listing api.cognitum.one here would be this
+    // service asserting the shape and availability of another one, which is not
+    // its to claim.
+    const registryEntry = () => ({
+      server: {
+        $schema: 'https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json',
+        name: 'io.ruv.x/mcp',
+        title: 'Ruflo Federation Gateway',
+        description: 'Swarm federation coordination over Nostr: read the roster, claims board and '
+          + 'channels, and publish signed coordination messages. Anonymous reads are open; writes '
+          + 'take an OAuth token carrying ' + SCOPE_PUBLISH + '.',
+        version: '0.7.0',
+        remotes: [{ type: 'streamable-http', url: `${PUBLIC_URL}/mcp` }],
+      },
+      _meta: {
+        'io.modelcontextprotocol.registry/official': { status: 'active', isLatest: true },
+      },
+    });
+    const registryDoc = () => ({ servers: [registryEntry()], metadata: { count: 1 } });
+
+    // The conventional registry paths, so a client pointed at the ORIGIN finds
+    // the listing where the spec says it lives. v0 is what the live registry
+    // serves today; v0.1 is its stated successor, and answering both costs one
+    // line rather than a future outage.
+    if (req.method === 'GET' && /^\/v0(\.1)?\/servers\/?$/.test(url.pathname)) {
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+      return res.end(JSON.stringify(registryDoc()));
+    }
+
     if (url.pathname === '/mcp' && req.method === 'GET') {
-      // Streamable HTTP allows a GET to open a server->client SSE stream, but
-      // this transport is STATELESS (sessionIdGenerator: undefined) so there is
-      // no session to attach one to: the SDK holds the socket open and Cloud Run
-      // eventually severs it at 300s with "Truncated response body". A client
-      // probing GET then waits five minutes instead of failing in milliseconds.
-      // 405 is the spec's answer for a server that does not offer the GET stream.
-      res.writeHead(405, { 'content-type': 'application/json', allow: 'POST, OPTIONS' });
-      return res.end(JSON.stringify({ error: 'method_not_allowed',
-        error_description: 'this MCP endpoint is stateless; use POST' }));
+      // Streamable HTTP's GET opens a server->client SSE stream. This one
+      // response has now failed five clients five ways. The whole sequence is
+      // recorded because each attempt DISPROVED the previous theory, and the
+      // final shape only makes sense as the answer to all five:
+      //
+      //   1. Unbounded open stream -> Cloud Run severed it at 300s with
+      //      "Truncated response body"; a probe waited five minutes.
+      //   2. Bare 405 (spec-correct for a server offering no GET stream) -> it
+      //      carries no WWW-Authenticate, so a probing client cannot discover
+      //      this resource speaks OAuth: `registry returned 405`.
+      //   3. 401 + challenge -> `registry returned 401`. The probe wants 2xx and
+      //      never reads a challenge.
+      //   4. Bounded long-lived stream -> `context deadline exceeded ... while
+      //      reading body`. The client reads to COMPLETION, so ANY open stream is
+      //      a timeout however well bounded — and it never arrived through the
+      //      load balancer at all, because a proxy flushes when a response ENDS.
+      //   5. Immediate open-and-close SSE -> `parsing registry response: invalid
+      //      character ':' looking for beginning of value`. That ':' is the SSE
+      //      comment leader: the client parses this body as JSON.
+      //
+      // (5) is not conformant — the MCP spec says GET opens an event stream —
+      // but it is real, and the two demands are not in conflict, because they
+      // are distinguishable by Accept. So: honour the spec for a client that
+      // ASKS for an event stream, and serve a finite JSON descriptor to
+      // everything else. Both end immediately, which is what (1) and (4) require.
+      //
+      // Nothing regresses: GET /mcp answered 405 until today, so no working
+      // client depends on a long-lived stream. Anonymous reads were always over
+      // POST and are untouched.
+      const accept = String(req.headers.accept || '');
+      const wantsStream = accept.includes('text/event-stream');
+      if (wantsStream) {
+        res.writeHead(200, {
+          'content-type': 'text/event-stream',
+          'cache-control': 'no-cache, no-transform',
+          'x-accel-buffering': 'no',
+        });
+        return res.end(
+          `: ruflo-x-gateway ${new Date().toISOString()}\n` +
+          ': stateless Streamable HTTP; no server-initiated messages. POST JSON-RPC to this URL.\n\n',
+        );
+      }
+      // A finite JSON descriptor. Deliberately NOT a JSON-RPC envelope: this is
+      // not a response to any request, and dressing it as one would invite a
+      // client to treat it as the result of a call it never made. Tool names are
+      // not listed here — they would drift from the real registry — so it points
+      // at `tools/list`, which is always current.
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+      return res.end(JSON.stringify({
+        // `servers` FIRST and at the top level, because a client that probes this
+        // URL as a registry looks for exactly that and reports "advertises no
+        // servers" when it is absent. The descriptive fields below are additive:
+        // a registry client reads the array, a human reading the response gets
+        // told what this endpoint is and how to call it.
+        ...registryDoc(),
+        service: 'ruflo-x-gateway',
+        version: '0.7.0',
+        protocol: 'mcp',
+        transport: 'streamable-http',
+        endpoint: `${PUBLIC_URL}/mcp`,
+        methods: ['POST'],
+        note: 'Stateless Streamable HTTP. Send JSON-RPC over POST to this same URL; '
+            + 'call tools/list for the current tool set. A GET returns this descriptor, '
+            + 'or an immediately-closed event stream if you ask for text/event-stream.',
+        gatewayPubkey: pubkey,
+        relay: RELAY,
+        authorization: {
+          type: 'oauth2',
+          issuer: OAUTH_ISSUER,
+          clientId: OAUTH_CLIENT_ID || null,
+          scopes: [SCOPE_READ, SCOPE_PUBLISH],
+          protectedResourceMetadata: prmUrl('/mcp'),
+          note: 'Additive: anonymous reads stay open over POST; an access token carrying '
+              + `${SCOPE_PUBLISH} authorises writes.`,
+        },
+      }));
     }
     if (url.pathname === '/mcp') {
       if (rateLimited(req)) return res.writeHead(429, { 'content-type': 'application/json' }).end('{"error":"rate limited"}');

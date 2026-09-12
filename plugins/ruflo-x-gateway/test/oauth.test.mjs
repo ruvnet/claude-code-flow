@@ -250,17 +250,120 @@ test('a dynamically registered client\'s token is accepted; a stranger\'s is not
   } finally { as.close(); }
 });
 
-test('GET /mcp is refused immediately instead of hanging a stateless stream', async () => {
-  // It used to hold the socket until Cloud Run severed it at 300s, so a client
-  // probing GET waited five minutes instead of failing in milliseconds.
+test('GET /mcp serves JSON by default and SSE only when asked — both finite and fast', async () => {
+  // Five clients, five failures, all on this one response. Each disproved the
+  // previous theory, so the sequence is the justification for the final shape:
+  //
+  //   1. Unbounded stream -> Cloud Run severed at 300s; probe waited 5 min.
+  //   2. Bare 405 -> no WWW-Authenticate, so OAuth was undiscoverable:
+  //      `registry returned 405`.
+  //   3. 401 + challenge -> `registry returned 401`; the probe wants 2xx.
+  //   4. Bounded long-lived stream -> `context deadline exceeded ... while
+  //      reading body`; the client reads to COMPLETION, and a proxy only flushes
+  //      when a response ENDS.
+  //   5. Immediate open-and-close SSE -> `parsing registry response: invalid
+  //      character ':'`; the client parses the body as JSON.
+  //
+  // (4) and (5) are the two that pin this test: the body must COMPLETE, and the
+  // default content type must PARSE AS JSON.
   const as = await fakeAuthServer();
   try {
     await withGateway(as, async (port) => {
+      // Default: JSON, because that is what a client that does not ask for a
+      // stream turned out to expect.
       const t0 = Date.now();
-      const r = await fetch(`http://127.0.0.1:${port}/mcp`, { headers: { accept: 'text/event-stream' } });
-      assert.equal(r.status, 405);
-      assert.match(r.headers.get('allow') || '', /POST/);
-      assert.ok(Date.now() - t0 < 2000, 'must answer immediately, not hold the stream open');
+      const r = await fetch(`http://127.0.0.1:${port}/mcp`);
+      assert.equal(r.status, 200, 'a reachability probe must get 2xx');
+      assert.match(r.headers.get('content-type') || '', /application\/json/);
+      const body = await Promise.race([
+        r.text(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('body did not complete within 3s')), 3000)),
+      ]);
+      assert.ok(Date.now() - t0 < 3000, 'must complete immediately, not hold the connection');
+      // The exact failure from (5), asserted directly: this must PARSE.
+      const doc = JSON.parse(body);
+      assert.equal(doc.transport, 'streamable-http');
+      assert.deepEqual(doc.methods, ['POST'], 'point the caller at the transport that works');
+      assert.ok(doc.authorization.protectedResourceMetadata.includes('oauth-protected-resource'),
+        'keep OAuth discovery reachable from the descriptor');
+      assert.ok(!('jsonrpc' in doc),
+        'this is not a response to any request; dressing it as JSON-RPC would invite a client to treat it as one');
+
+      // Asking for a stream still gets the spec-conformant answer — closed
+      // immediately, per (1) and (4).
+      const t1 = Date.now();
+      const sse = await fetch(`http://127.0.0.1:${port}/mcp`, { headers: { accept: 'text/event-stream' } });
+      assert.equal(sse.status, 200);
+      assert.match(sse.headers.get('content-type') || '', /text\/event-stream/);
+      const stream = await Promise.race([
+        sse.text(),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('stream did not complete within 3s')), 3000)),
+      ]);
+      assert.ok(Date.now() - t1 < 3000, 'the event stream must end, not stay open');
+      assert.match(stream, /^: /, 'an SSE body is comments/events, never JSON');
+    });
+  } finally { as.close(); }
+});
+
+test('the gateway publishes itself as an MCP registry, in the official shape', async () => {
+  // Several clients probe a URL as a REGISTRY before treating it as a server.
+  // Every failure Lovable reported named "registry", and once the body finally
+  // parsed it said `This registry currently advertises no servers.`
+  //
+  // The shape asserted here was taken from a live response of
+  // registry.modelcontextprotocol.io/v0/servers, not from prose: items in
+  // `servers` wrap the entry under `server`, with `_meta` alongside.
+  const as = await fakeAuthServer();
+  try {
+    await withGateway(as, async (port) => {
+      for (const path of ['/v0/servers', '/v0.1/servers', '/mcp']) {
+        const r = await fetch(`http://127.0.0.1:${port}${path}`);
+        assert.equal(r.status, 200, path);
+        const doc = await r.json();
+        assert.ok(Array.isArray(doc.servers), `${path}: a registry client looks for a servers array`);
+        assert.equal(doc.servers.length, 1, `${path}: must advertise this gateway`);
+
+        const entry = doc.servers[0];
+        assert.ok(entry.server, `${path}: the entry is wrapped under "server"`);
+        assert.match(entry.server.$schema, /server\.schema\.json$/);
+        assert.equal(entry.server.name, 'io.ruv.x/mcp');
+        assert.ok(entry.server.version, `${path}: a registry entry needs a version`);
+        assert.ok(entry.server.description, `${path}: a registry entry needs a description`);
+
+        // The point of the entry: it must send a client to the transport that
+        // actually works, which is POST to /mcp.
+        const remote = entry.server.remotes[0];
+        assert.equal(remote.type, 'streamable-http');
+        assert.match(remote.url, /\/mcp$/);
+      }
+    });
+  } finally { as.close(); }
+});
+
+test('the registry entry points at an endpoint that really answers', async () => {
+  // A registry that advertises a URL nothing serves is worse than an empty one:
+  // it fails later, in a client, instead of here.
+  const as = await fakeAuthServer();
+  try {
+    await withGateway(as, async (port) => {
+      const doc = await (await fetch(`http://127.0.0.1:${port}/v0/servers`)).json();
+      const advertised = new URL(doc.servers[0].server.remotes[0].url);
+      // PUBLIC_URL is the deployed host in the entry; exercise the same PATH here.
+      const r = await call(port, 'federation_identity', {});
+      assert.equal(r.status, 200, `${advertised.pathname} must answer a JSON-RPC POST`);
+    });
+  } finally { as.close(); }
+});
+
+test('anonymous POST reads stay open — the GET change is a probe change only', async () => {
+  // The gateway's whole design is that reads are open. If tightening the GET
+  // probe had also closed anonymous reads, that would be a regression dressed up
+  // as a fix.
+  const as = await fakeAuthServer();
+  try {
+    await withGateway(as, async (port) => {
+      const r = await call(port, 'federation_identity', {});
+      assert.equal(r.status, 200, 'an anonymous read must still succeed over POST');
     });
   } finally { as.close(); }
 });

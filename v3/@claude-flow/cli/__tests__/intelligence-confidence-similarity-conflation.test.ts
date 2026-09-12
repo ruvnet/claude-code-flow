@@ -14,10 +14,34 @@
 // Baseline (pre-fix) fails every assertion below; candidate (post-fix)
 // passes all of them. See docs/dream-cycle/dream-gist-2026-09-12.md.
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
+// findSimilarPatterns() generates a real query embedding (ONNX, falling back
+// to a hash) before calling findSimilar(). That's an environment-dependent
+// path (model cache/network availability) this file has no business
+// depending on for a RETRIEVE-stage confidence/similarity contract test —
+// mock both embedding sources so the query embedding is fixed and
+// deterministic regardless of CI sandbox network/model-cache state.
+const FIXED_QUERY_EMBEDDING = [1, 0, 0];
+vi.mock('../src/memory/memory-bridge.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/memory/memory-bridge.js')>();
+  return { ...actual, bridgeGenerateEmbedding: vi.fn(async () => null) };
+});
+vi.mock('../src/memory/memory-initializer.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/memory/memory-initializer.js')>();
+  return {
+    ...actual,
+    generateEmbedding: vi.fn(async () => ({
+      embedding: FIXED_QUERY_EMBEDDING,
+      dimensions: FIXED_QUERY_EMBEDDING.length,
+      model: 'mock-deterministic',
+      backend: 'mock' as const,
+    })),
+  };
+});
 
 // IMPORTANT: do NOT process.chdir() at module load — vitest shares the
 // process across files in a worker, so changing CWD here would break every
@@ -181,6 +205,8 @@ describe('findSimilarPatterns() public API reports genuinely distinct fields', (
     expect(hit).toBeDefined();
     expect(hit!.confidence).toBe(0.85);
     expect(typeof hit!.similarity).toBe('number');
+    // cosine([1,0,0], [0.45, 0.8930658, 0]) == 0.45 (mocked query embedding,
+    // see the vi.mock block above — deterministic, no ONNX/network needed).
     // Prior to the fix these were structurally forced to be equal for every
     // result; a real embedding for this exact-content query won't land at
     // precisely 0.85, so a non-conflated implementation must diverge here.

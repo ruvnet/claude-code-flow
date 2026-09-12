@@ -1,0 +1,45 @@
+{
+  "plan": {
+    "schema": "ruflo.repair-readiness-plan/v1",
+    "mission": {
+      "mission": "rsi-ruflo-loop-20260912",
+      "head": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+      "originalAnchor": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088",
+      "fingerprint": "63258db258f134fe91277a3a542ba847f4c57a20e50027fb04cd51310a19c45b",
+      "epochs": 7,
+      "nativeFieldCallsReserved": 209784,
+      "proofIndex": 0,
+      "consumedDatasets": [],
+      "consumedTasks": [],
+      "trustHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "rulesHash": "f6a04994d6c576c8c85840109f9acfb653338f66ff9e77a44f7c7142d0b4e653",
+      "sourceHash": "b83696de9d2a9b3f95cc74bef2b3ed0c48f3bc52abfcfcbf84b6bd5e5c66269f"
+    },
+    "corpusSha256": "7cfaf3308807390bab9d627ffb818871bfd0e0d1062b606fd9cbf831e47e3ba1",
+    "acquisitionSha256": "704d1018eeb92b85bbe82755a6cdfad76471d0aeb494ac8a41353164e4ef9e56",
+    "snapshotHashes": {
+      "snapshots/00078ce76426190240d9cbe4ad15352c0ce61203.ts": "afb0220f8dfd14aef5d09904b55c8ff58ed24db8089210786539aef493a47ea1",
+      "snapshots/0577e2eee3a44a21f233c9626c694741c3ad9de7.ts": "4f1b3e2bb7b4da8fe6bf5af263e9b94a009d00fd62ac49732d4d48ed698f5b70",
+      "snapshots/83b760e7f84af7ef9f4814e3e1cc069624e82880.ts": "05493b86f82ac5ce28fb84d39b60e70b7747bb15a869c37c600b92b79ff79268",
+      "snapshots/fbd7f5eddf24efa36cccb347bac2d5d73e389980.ts": "5c04a53210fb5df21dce9e6eeb05c3212c06b0c29155b9b64208020636c2d32d",
+      "snapshots/343c371d2c419465d6d2662604652c9499ee6190.ts": "65afa329740df4c619c1144a224dc65d5381f76bda01064743f2930f01e6d111",
+      "snapshots/d13f7b1e2b9519e0f134b8ad4f435505aeee07dc.ts": "376973f3cda0c88413ea62e6ab18e04d549455197b285852a7cb107bf13d52be"
+    },
+    "adapterSource": {
+      "admission.mjs": "ea58849fd46762946484703a77b76e860f7899c9ff44171f962a9cbe013ad895",
+      "witness.mjs": "87c06dae85d04f862a148bfae24789fb4d190727737c570f68241f49585c7636",
+      "run.mjs": "72190af0c104b00553c362a293139642cbc875fb75003653add21583ff8ca242"
+    },
+    "limits": {
+      "witnessProcesses": 6,
+      "timeoutMs": 5000,
+      "maxOutputBytes": 65536,
+      "heapMb": 128
+    },
+    "mode": "KNOWN_REGRESSION_CALIBRATION",
+    "candidateExecutionEnabled": false,
+    "accountingMigrationImplemented": false,
+    "sealedEvaluationEnabled": false
+  },
+  "planHash": "278b2fcdd4be671857eb28354eafcd37b3342a5b7188a14c72594ea0e437908f"
+}

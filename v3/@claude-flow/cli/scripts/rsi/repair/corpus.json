@@ -1,0 +1,133 @@
+{
+  "schema": "ruflo.repair-calibration/v1",
+  "exposure": "PUBLIC_KNOWN_FIXES",
+  "independentClusters": 1,
+  "tasks": [
+    {
+      "id": "receipt-fractions",
+      "repository": "ruvnet/ruflo",
+      "cluster": "ruflo-flywheel-receipt",
+      "role": "calibration",
+      "fixExposure": "known",
+      "issue": 3229,
+      "base": {
+        "commit": "a295c68703158377a6ce827738bf8f13b94bd695",
+        "modules": [
+          {
+            "path": "flywheel-receipt.ts",
+            "gitBlob": "00078ce76426190240d9cbe4ad15352c0ce61203",
+            "stored": "snapshots/00078ce76426190240d9cbe4ad15352c0ce61203.ts",
+            "url": "https://github.com/ruvnet/ruflo/blob/a295c68703158377a6ce827738bf8f13b94bd695/v3/@claude-flow/cli/src/services/flywheel-receipt.ts"
+          },
+          {
+            "path": "flywheel-sequential-evidence.ts",
+            "gitBlob": "0577e2eee3a44a21f233c9626c694741c3ad9de7",
+            "stored": "snapshots/0577e2eee3a44a21f233c9626c694741c3ad9de7.ts",
+            "url": "https://github.com/ruvnet/ruflo/blob/a295c68703158377a6ce827738bf8f13b94bd695/v3/@claude-flow/cli/src/services/flywheel-sequential-evidence.ts"
+          }
+        ]
+      },
+      "fixed": {
+        "commit": "ea2df4726cbeaa181d4f3bba8335b1c4160ebb35",
+        "modules": [
+          {
+            "path": "flywheel-receipt.ts",
+            "gitBlob": "83b760e7f84af7ef9f4814e3e1cc069624e82880",
+            "stored": "snapshots/83b760e7f84af7ef9f4814e3e1cc069624e82880.ts",
+            "url": "https://github.com/ruvnet/ruflo/blob/ea2df4726cbeaa181d4f3bba8335b1c4160ebb35/v3/@claude-flow/cli/src/services/flywheel-receipt.ts"
+          },
+          {
+            "path": "flywheel-sequential-evidence.ts",
+            "gitBlob": "0577e2eee3a44a21f233c9626c694741c3ad9de7",
+            "stored": "snapshots/0577e2eee3a44a21f233c9626c694741c3ad9de7.ts",
+            "url": "https://github.com/ruvnet/ruflo/blob/ea2df4726cbeaa181d4f3bba8335b1c4160ebb35/v3/@claude-flow/cli/src/services/flywheel-sequential-evidence.ts"
+          }
+        ]
+      }
+    },
+    {
+      "id": "receipt-roundtrip",
+      "repository": "ruvnet/ruflo",
+      "cluster": "ruflo-flywheel-receipt",
+      "role": "calibration",
+      "fixExposure": "known",
+      "issue": 3072,
+      "base": {
+        "commit": "fa13ee4ad60ac2090b1480656eb233521790d640",
+        "modules": [
+          {
+            "path": "flywheel-receipt.ts",
+            "gitBlob": "fbd7f5eddf24efa36cccb347bac2d5d73e389980",
+            "stored": "snapshots/fbd7f5eddf24efa36cccb347bac2d5d73e389980.ts",
+            "url": "https://github.com/ruvnet/ruflo/blob/fa13ee4ad60ac2090b1480656eb233521790d640/v3/@claude-flow/cli/src/services/flywheel-receipt.ts"
+          },
+          {
+            "path": "flywheel-sequential-evidence.ts",
+            "gitBlob": "0577e2eee3a44a21f233c9626c694741c3ad9de7",
+            "stored": "snapshots/0577e2eee3a44a21f233c9626c694741c3ad9de7.ts",
+            "url": "https://github.com/ruvnet/ruflo/blob/fa13ee4ad60ac2090b1480656eb233521790d640/v3/@claude-flow/cli/src/services/flywheel-sequential-evidence.ts"
+          }
+        ]
+      },
+      "fixed": {
+        "commit": "a38647e1f90f126cac0d23e452cfb2fa7fa3b196",
+        "modules": [
+          {
+            "path": "flywheel-receipt.ts",
+            "gitBlob": "343c371d2c419465d6d2662604652c9499ee6190",
+            "stored": "snapshots/343c371d2c419465d6d2662604652c9499ee6190.ts",
+            "url": "https://github.com/ruvnet/ruflo/blob/a38647e1f90f126cac0d23e452cfb2fa7fa3b196/v3/@claude-flow/cli/src/services/flywheel-receipt.ts"
+          },
+          {
+            "path": "flywheel-sequential-evidence.ts",
+            "gitBlob": "0577e2eee3a44a21f233c9626c694741c3ad9de7",
+            "stored": "snapshots/0577e2eee3a44a21f233c9626c694741c3ad9de7.ts",
+            "url": "https://github.com/ruvnet/ruflo/blob/a38647e1f90f126cac0d23e452cfb2fa7fa3b196/v3/@claude-flow/cli/src/services/flywheel-sequential-evidence.ts"
+          }
+        ]
+      }
+    },
+    {
+      "id": "receipt-unknown-fields",
+      "repository": "ruvnet/ruflo",
+      "cluster": "ruflo-flywheel-receipt",
+      "role": "calibration",
+      "fixExposure": "known",
+      "issue": 3068,
+      "base": {
+        "commit": "fa13ee4ad60ac2090b1480656eb233521790d640",
+        "modules": [
+          {
+            "path": "flywheel-receipt.ts",
+            "gitBlob": "fbd7f5eddf24efa36cccb347bac2d5d73e389980",
+            "stored": "snapshots/fbd7f5eddf24efa36cccb347bac2d5d73e389980.ts",
+            "url": "https://github.com/ruvnet/ruflo/blob/fa13ee4ad60ac2090b1480656eb233521790d640/v3/@claude-flow/cli/src/services/flywheel-receipt.ts"
+          },
+          {
+            "path": "flywheel-sequential-evidence.ts",
+            "gitBlob": "0577e2eee3a44a21f233c9626c694741c3ad9de7",
+            "stored": "snapshots/0577e2eee3a44a21f233c9626c694741c3ad9de7.ts",
+            "url": "https://github.com/ruvnet/ruflo/blob/fa13ee4ad60ac2090b1480656eb233521790d640/v3/@claude-flow/cli/src/services/flywheel-sequential-evidence.ts"
+          }
+        ]
+      },
+      "fixed": {
+        "commit": "7d0bb9c53b9d26dc32e08788608ace9b18f4f8a9",
+        "modules": [
+          {
+            "path": "flywheel-receipt.ts",
+            "gitBlob": "d13f7b1e2b9519e0f134b8ad4f435505aeee07dc",
+            "stored": "snapshots/d13f7b1e2b9519e0f134b8ad4f435505aeee07dc.ts",
+            "url": "https://github.com/ruvnet/ruflo/blob/7d0bb9c53b9d26dc32e08788608ace9b18f4f8a9/v3/@claude-flow/cli/src/services/flywheel-receipt.ts"
+          },
+          {
+            "path": "flywheel-sequential-evidence.ts",
+            "gitBlob": "0577e2eee3a44a21f233c9626c694741c3ad9de7",
+            "stored": "snapshots/0577e2eee3a44a21f233c9626c694741c3ad9de7.ts",
+            "url": "https://github.com/ruvnet/ruflo/blob/7d0bb9c53b9d26dc32e08788608ace9b18f4f8a9/v3/@claude-flow/cli/src/services/flywheel-sequential-evidence.ts"
+          }
+        ]
+      }
+    }
+  ]
+}

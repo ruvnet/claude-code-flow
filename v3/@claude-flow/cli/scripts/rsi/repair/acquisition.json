@@ -1,0 +1,148 @@
+{
+  "schema": "ruflo.repair-source-acquisition/v1",
+  "recordedDate": "2026-09-12",
+  "method": "GitHub connector fetch_file at exact revision",
+  "independentAttestation": false,
+  "bindings": [
+    {
+      "request": {
+        "repository_full_name": "ruvnet/ruflo",
+        "ref": "a295c68703158377a6ce827738bf8f13b94bd695",
+        "path": "v3/@claude-flow/cli/src/services/flywheel-receipt.ts"
+      },
+      "response": {
+        "sha": "00078ce76426190240d9cbe4ad15352c0ce61203",
+        "display_url": "https://github.com/ruvnet/ruflo/blob/a295c68703158377a6ce827738bf8f13b94bd695/v3/@claude-flow/cli/src/services/flywheel-receipt.ts",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "request": {
+        "repository_full_name": "ruvnet/ruflo",
+        "ref": "a295c68703158377a6ce827738bf8f13b94bd695",
+        "path": "v3/@claude-flow/cli/src/services/flywheel-sequential-evidence.ts"
+      },
+      "response": {
+        "sha": "0577e2eee3a44a21f233c9626c694741c3ad9de7",
+        "display_url": "https://github.com/ruvnet/ruflo/blob/a295c68703158377a6ce827738bf8f13b94bd695/v3/@claude-flow/cli/src/services/flywheel-sequential-evidence.ts",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "request": {
+        "repository_full_name": "ruvnet/ruflo",
+        "ref": "ea2df4726cbeaa181d4f3bba8335b1c4160ebb35",
+        "path": "v3/@claude-flow/cli/src/services/flywheel-receipt.ts"
+      },
+      "response": {
+        "sha": "83b760e7f84af7ef9f4814e3e1cc069624e82880",
+        "display_url": "https://github.com/ruvnet/ruflo/blob/ea2df4726cbeaa181d4f3bba8335b1c4160ebb35/v3/@claude-flow/cli/src/services/flywheel-receipt.ts",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "request": {
+        "repository_full_name": "ruvnet/ruflo",
+        "ref": "ea2df4726cbeaa181d4f3bba8335b1c4160ebb35",
+        "path": "v3/@claude-flow/cli/src/services/flywheel-sequential-evidence.ts"
+      },
+      "response": {
+        "sha": "0577e2eee3a44a21f233c9626c694741c3ad9de7",
+        "display_url": "https://github.com/ruvnet/ruflo/blob/ea2df4726cbeaa181d4f3bba8335b1c4160ebb35/v3/@claude-flow/cli/src/services/flywheel-sequential-evidence.ts",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "request": {
+        "repository_full_name": "ruvnet/ruflo",
+        "ref": "fa13ee4ad60ac2090b1480656eb233521790d640",
+        "path": "v3/@claude-flow/cli/src/services/flywheel-receipt.ts"
+      },
+      "response": {
+        "sha": "fbd7f5eddf24efa36cccb347bac2d5d73e389980",
+        "display_url": "https://github.com/ruvnet/ruflo/blob/fa13ee4ad60ac2090b1480656eb233521790d640/v3/@claude-flow/cli/src/services/flywheel-receipt.ts",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "request": {
+        "repository_full_name": "ruvnet/ruflo",
+        "ref": "fa13ee4ad60ac2090b1480656eb233521790d640",
+        "path": "v3/@claude-flow/cli/src/services/flywheel-sequential-evidence.ts"
+      },
+      "response": {
+        "sha": "0577e2eee3a44a21f233c9626c694741c3ad9de7",
+        "display_url": "https://github.com/ruvnet/ruflo/blob/fa13ee4ad60ac2090b1480656eb233521790d640/v3/@claude-flow/cli/src/services/flywheel-sequential-evidence.ts",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "request": {
+        "repository_full_name": "ruvnet/ruflo",
+        "ref": "a38647e1f90f126cac0d23e452cfb2fa7fa3b196",
+        "path": "v3/@claude-flow/cli/src/services/flywheel-receipt.ts"
+      },
+      "response": {
+        "sha": "343c371d2c419465d6d2662604652c9499ee6190",
+        "display_url": "https://github.com/ruvnet/ruflo/blob/a38647e1f90f126cac0d23e452cfb2fa7fa3b196/v3/@claude-flow/cli/src/services/flywheel-receipt.ts",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "request": {
+        "repository_full_name": "ruvnet/ruflo",
+        "ref": "a38647e1f90f126cac0d23e452cfb2fa7fa3b196",
+        "path": "v3/@claude-flow/cli/src/services/flywheel-sequential-evidence.ts"
+      },
+      "response": {
+        "sha": "0577e2eee3a44a21f233c9626c694741c3ad9de7",
+        "display_url": "https://github.com/ruvnet/ruflo/blob/a38647e1f90f126cac0d23e452cfb2fa7fa3b196/v3/@claude-flow/cli/src/services/flywheel-sequential-evidence.ts",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "request": {
+        "repository_full_name": "ruvnet/ruflo",
+        "ref": "7d0bb9c53b9d26dc32e08788608ace9b18f4f8a9",
+        "path": "v3/@claude-flow/cli/src/services/flywheel-receipt.ts"
+      },
+      "response": {
+        "sha": "d13f7b1e2b9519e0f134b8ad4f435505aeee07dc",
+        "display_url": "https://github.com/ruvnet/ruflo/blob/7d0bb9c53b9d26dc32e08788608ace9b18f4f8a9/v3/@claude-flow/cli/src/services/flywheel-receipt.ts",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "request": {
+        "repository_full_name": "ruvnet/ruflo",
+        "ref": "7d0bb9c53b9d26dc32e08788608ace9b18f4f8a9",
+        "path": "v3/@claude-flow/cli/src/services/flywheel-sequential-evidence.ts"
+      },
+      "response": {
+        "sha": "0577e2eee3a44a21f233c9626c694741c3ad9de7",
+        "display_url": "https://github.com/ruvnet/ruflo/blob/7d0bb9c53b9d26dc32e08788608ace9b18f4f8a9/v3/@claude-flow/cli/src/services/flywheel-sequential-evidence.ts",
+        "encoding": "utf-8"
+      }
+    }
+  ],
+  "fixParents": [
+    {
+      "commit": "ea2df4726cbeaa181d4f3bba8335b1c4160ebb35",
+      "parents": [
+        "a295c68703158377a6ce827738bf8f13b94bd695"
+      ]
+    },
+    {
+      "commit": "a38647e1f90f126cac0d23e452cfb2fa7fa3b196",
+      "parents": [
+        "fa13ee4ad60ac2090b1480656eb233521790d640"
+      ]
+    },
+    {
+      "commit": "7d0bb9c53b9d26dc32e08788608ace9b18f4f8a9",
+      "parents": [
+        "fa13ee4ad60ac2090b1480656eb233521790d640"
+      ]
+    }
+  ]
+}

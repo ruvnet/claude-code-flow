@@ -38,6 +38,13 @@ not an authorization to change a deployed system.
 
 ### Current research direction
 
+The continuing engineering sequence is now [REPAIR-LOOP.md](REPAIR-LOOP.md).
+The implemented repair admission and native regression calibration cover three
+known TypeScript defects in one cluster. They do not execute optimization or
+append mission epochs. A reviewed accounting/source migration must precede
+repair candidate execution; native field calls cannot be relabeled as repairs.
+The original seven-epoch ledger and all confirmation rules below remain intact.
+
 [SOTA review and hypothesis 3](SOTA-20260912.md) incorporates primary literature
 through August 2026. The next reviewed source guarantees one joint and one single
 mutation per arm and adds an unchanged legacy proposer control. Six arms consume

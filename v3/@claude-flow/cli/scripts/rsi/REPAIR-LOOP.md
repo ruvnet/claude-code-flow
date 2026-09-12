@@ -111,7 +111,11 @@ remain disabled. Read that increment before repeating accounting design work.
    freezes the first three exact public base/fix lineages and fail-closed
    admission checks. Complete source archives, offline dependency closures,
    toolchains and hidden development tests remain missing, so candidate
-   execution stays disabled. Continue to acquire independently specified real
+   execution stays disabled. [WORKLOADS-002.md](WORKLOADS-002.md) mirrors all 23
+   manifest-bound changed source, upstream test, license and package-manifest
+   blobs with offline Git-object verification, while explicitly refusing to
+   treat that partial capsule as a whole source tree or runnable environment.
+   Continue to acquire independently specified real
    defects across repository and bug lineages. Record exclusions, fix exposure,
    source dependencies and costs. Freeze the sample before comparing methods.
    The three known witnesses may calibrate tooling but cannot become final data.

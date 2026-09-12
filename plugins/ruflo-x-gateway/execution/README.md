@@ -1,4 +1,4 @@
-# Federation execution proof
+# Federation execution and useful task capabilities
 
 Turn a bounded task into an independently checked artifact, with evidence of who
 submitted, executed and verified it. This opt-in package runs beside the existing
@@ -59,11 +59,13 @@ the same identity. Completion requires a newer epoch and another attempt.
   Generic production artifact verification requires its own verifier adapter.
 
 The coordinator implements `submit`, `register`, `heartbeat`, `assign`, `pull`,
-`wait`, `renew`, `result`, `verify`, `cancel`, and restricted `status` commands.
+`wait`, `renew`, `result`, `verify`, `cancel`, and restricted `status`, `worker_list`,
+`task_get` and paginated `task_list` commands.
 `wait` is an authenticated long poll that wakes immediately on assignment;
 three-hour community coordination is not on the execution critical path.
-`createExecutionServer` binds only loopback. No public listener, CORS, shell
-execution, credential sharing, external fetch or arbitrary plugin execution exists.
+`createExecutionServer` binds only loopback. The optional relay and task services
+described below add authenticated interfaces. Task payloads cannot select shell
+commands, credentials, verifier policy or workspace authority.
 
 ## Evaluation and governance
 
@@ -100,18 +102,57 @@ It is a small-corpus reference, not a demonstrated scalable ANN optimization.
 Native handles lack an explicit close API on the pinned version; the bounded
 benchmark process exits after its run. Use fresh storage paths per routing build.
 
-## Integration and rollout
+## Implemented follow-up capabilities
 
-1. Run acceptance and replay the signed artifacts locally and in CI.
-2. Map relay transport envelopes to this signed command contract without trusting
-   user-supplied identity fields. Bind a coordinator audience and permission set.
-3. Add an authenticated remote transport, durable deployment storage and trusted
-   verifier before enrolling independently operated workers.
-4. Compare static and history-based routing on hidden tasks with overlapping
-   worker capabilities and equal compute budgets.
-5. Expose task status and verified artifact references through MCP; map capability
-   records and task states to A2A after protocol conformance testing.
+| Capability | Interface | Enforced boundary |
+| --- | --- | --- |
+| Encrypted relay execution | `createRelayAuthority`, `createRelayClient` | NIP42 challenge ACK bound to event ID, NIP44 encryption, exact audience and sender pins, response binding and bounded fragmentation |
+| Workspace isolation | `WorkspaceRegistry` | Separate private SQLite directory, authority policy and audience per workspace |
+| Worker execution | `runWorker` | Trusted installed handlers, lease renewal, cancellation signal and fenced result submission |
+| Scheduling and verification | `scheduleOnce`, `verifyOnce` | Worker reservations expire, independent capability validators decide acceptance |
+| Issue to verified patch | `createPatchAdapter` | Allowlisted local mirror, immutable base SHA, bounded patch, fresh independent checkout and controller test policy |
+| Draft PR publication | `createPatchPublisher` | Reverification, exact Git tree, deterministic branch and controller-held GitHub credentials |
+| Task API and console | `startTaskService` | Per-token workspace and scopes; real MCP SDK; A2A 0.3.0 subset; only verified artifact retrieval |
+| Persistent learned routing | `OutcomeMemory`, `createAdaptiveRouter` | Pinned signed receipt chain, workspace partition, deterministic fallback, optional exploration at most 5% |
 
-Steps 2 through 5 are deployment follow-ups, not claims of implementation here.
-Rollback is removing the opt-in service; the existing gateway is untouched.
-See [the architecture decision](docs/0001-execution-proof.md).
+Run `npm run task:serve -- /absolute/config.json` or
+`npm run federation:serve -- /absolute/config.json`. See
+[configuration and key ownership](CONFIGURATION.md) for the two service formats.
+The relay service uses outbound TLS WebSockets; it does not deploy or reconfigure
+the public x.ruv.io gateway. Task service defaults to loopback; remote binding
+requires explicit configuration and an operator-managed TLS reverse proxy.
+
+`runWorker` accepts an authenticated request client and a map of trusted handlers.
+Use `createPatchCapability` to bind patch handlers and validators to local policy.
+Workers submit artifacts; a separate verifier client runs `verifyOnce`. The
+controller uses `scheduleOnce` and invokes draft publication only after acceptance.
+Handlers must honor AbortSignal before side effects. Lease fencing covers the
+artifact transaction, not an uncooperative handler's external side effects.
+
+Patch tasks default to an 8 KiB patch and a 12 KiB artifact to fit the signed
+command limit. Repository symlinks, submodules, binary edits, path traversal and
+workflow edits are refused. The declarative JSON evaluator executes no repository
+code. Bubblewrap additionally requires bounded cgroup v2 memory, process and CPU
+limits, and fails closed if unavailable. This environment could not validate actual
+bubblewrap execution; its capability test reports a skip, never an insecure fallback.
+Refresh credential-free local mirrors through a trusted controller workflow.
+The proposer is an injected local function or trusted model integration; this
+package does not assume a model provider or distribute model credentials.
+
+`npm run benchmark:routing` trains on 12 signed synthetic executions and evaluates
+20 disjoint inputs with overlapping worker capabilities. Fixed routing verified
+10/20 and native RuVector 20/20 at equal quoted cost in the reference workload.
+Worker specialization is constructed; this is an integration regression, not a
+production or state-of-the-art claim. Rebuild the router after admitting new
+outcomes; only pinned controller-attested receipts may enter persistent memory.
+
+MCP has actual SDK protocol tests. The A2A adapter explicitly supports structured
+`message/send`, `tasks/get`, and `tasks/cancel` only. Streaming, continuation and
+push notifications are unsupported. Do not advertise full A2A conformance.
+
+Local WebSocket tests exercise authenticated relay messages and reconnects. Public
+swarm development notices are coordination evidence, not evidence that independent
+remote hosts executed this code. Production rollout still requires enrollment,
+durable host provisioning, TLS and sandbox capability validation on that host.
+Rollback removes the opt-in services. See [the original architecture decision](docs/0001-execution-proof.md)
+and [the follow-up decision](docs/0002-useful-capabilities.md).

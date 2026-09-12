@@ -84,6 +84,7 @@ export class Coordinator {
     for (const task of Object.values(state.tasks)) {
       if (['completed','cancelled','failed'].includes(task.status)) continue;
       if (task.spec.deadlineMs <= now) { task.status = 'failed'; task.reason = 'deadline'; task.assigned = null; continue; }
+      if (task.status === 'queued' && task.assigned && task.assignedUntil <= now) task.assigned = null;
       if (['leased','submitted'].includes(task.status) && task.leaseUntil <= now) {
         task.status = task.attempts >= task.spec.maxAttempts ? 'failed' : 'queued';
         task.reason = 'lease expired'; task.assigned = null; task.owner = null;
@@ -134,8 +135,8 @@ export class Coordinator {
       controller(); const t = getTask(), w = state.workers[data.worker];
       if (t.status !== 'queued' || !w || !this.policies.has(data.worker) || w.lastSeen + this.heartbeatMs <= now ||
           !w.capabilities.includes(t.spec.capability) || w.cost + t.spent > t.spec.budget ||
-          Object.values(state.tasks).some(x => ['leased','submitted'].includes(x.status) && x.owner === data.worker)) fail('worker ineligible');
-      t.assigned = data.worker; return {taskId:t.spec.id,assigned:data.worker};
+          Object.values(state.tasks).some(x => (['leased','submitted'].includes(x.status) && x.owner === data.worker) || (x.status === 'queued' && x.assigned === data.worker && x !== t))) fail('worker ineligible');
+      t.assigned = data.worker; t.assignedUntil = Math.min(now + this.leaseMs, t.spec.deadlineMs); return {taskId:t.spec.id,assigned:data.worker};
     }
     if (op === 'wait') {
       worker(); if (!state.workers[who]) fail('register first');
@@ -179,9 +180,19 @@ export class Coordinator {
       if (t.status === 'completed') fail('completed task cannot cancel');
       t.status = 'cancelled'; t.epoch++; t.assigned = null; t.owner = null; return {status:'cancelled'};
     }
-    if (op === 'status') {
+    if (op === 'task_get' || op === 'task_list') {
+      if (who !== this.controller && !this.verifiers.has(who)) fail('task access requires controller or verifier');
+      if (op === 'task_get') return {task:getTask()};
+      const limit=data.limit ?? 25;
+      if (!Number.isInteger(limit) || limit<1 || limit>100) fail('invalid page limit');
+      if (data.cursor !== undefined && (typeof data.cursor!=='string' || !/^\d{1,6}$/.test(data.cursor))) fail('invalid cursor');
+      const offset=Number(data.cursor ?? 0), tasks=Object.values(state.tasks);
+      return {tasks:tasks.slice(offset,offset+limit).map(t=>({id:t.spec.id,taskId:t.spec.id,status:t.status,owner:t.owner,epoch:t.epoch,capability:t.spec.capability,spent:t.spent,artifactHash:t.artifactHash ?? null,verified:t.status==='completed' && t.verification?.accepted===true})),nextCursor:offset+limit<tasks.length?String(offset+limit):null};
+    }
+    if (op === 'status' || op === 'worker_list') {
       if (who !== this.controller && !this.verifiers.has(who)) fail('status requires controller or verifier');
-      return {tasks:Object.values(state.tasks), workers:Object.values(state.workers).map(w => ({...w,available:w.lastSeen + this.heartbeatMs > now && !Object.values(state.tasks).some(t => ['leased','submitted'].includes(t.status) && t.owner === w.pubkey)}))};
+      const workers=Object.values(state.workers).map(w => ({...w,available:w.lastSeen + this.heartbeatMs > now && !Object.values(state.tasks).some(t => (['leased','submitted'].includes(t.status) && t.owner === w.pubkey) || (t.status === 'queued' && t.assigned === w.pubkey))}));
+      return op === 'worker_list' ? {workers} : {tasks:Object.values(state.tasks),workers};
     }
     fail('unknown operation');
   }

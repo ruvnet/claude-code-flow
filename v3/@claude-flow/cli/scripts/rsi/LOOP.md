@@ -36,6 +36,17 @@ not an authorization to change a deployed system.
 
 ## Execute and resume
 
+### Current research direction
+
+[SOTA review and hypothesis 3](SOTA-20260912.md) incorporates primary literature
+through August 2026. The next reviewed source guarantees one joint and one single
+mutation per arm and adds an unchanged legacy proposer control. Six arms consume
+12 candidates and 49,848 native field calls per epoch, within the original ceilings.
+At most three epochs are executed for this hypothesis. Equal credit allocation
+for a joint mutation is recorded as a heuristic. Shared frozen/adaptive gains
+cannot establish learned or recursive advantage. The prior two sources remain
+replayable through `evidence/loop-sources.json`; no historical evidence is replaced.
+
 ### Development hypothesis 2 (frozen before execution)
 
 The saturated pilot cannot measure improvement. Expand the pinned corpus to all

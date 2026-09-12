@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { generateKeyPairSync, sign } from 'node:crypto';
 import { RULES, ROOT_POLICY, hash, alphaAt, initLedger, loadLedger, append, reserveProof, validatePolicy, recoverWriter } from './ledger.mjs';
 import { evaluateProof, signTest } from './proof.mjs';
-import { sourceIdentity, loadCorpus, TASKS, ARMS, scorePolicy, makeReservation, runReserved, propose } from './retrieval.mjs';
+import { sourceIdentity, loadCorpus, TASKS, ARMS, scorePolicy, makeReservation, runReserved, propose, proposeLegacy, creditUpdate } from './retrieval.mjs';
 import { step, recover, replayDevelopment } from './run.mjs';
 
 function fixture(t, trust = []) {
@@ -91,13 +91,13 @@ test('resumable epochs execute all attempts without promoting development to pro
   const s = loadLedger(dir), r = s.completed[0];
   assert.equal(s.epochs, 1); assert.equal(s.pending, null); assert.ok(r.attempts.length > 0);
   assert.equal(r.actualUnits, s.reservedUnits); assert.equal(r.providerSpendUsd, 0);
-  assert.equal(r.actualUnits, 41808); assert.equal(r.attempts.length, 10);
+  assert.equal(r.actualUnits, 49848); assert.equal(r.attempts.length, 12);
   assert.deepEqual(r.improvementCapacity.map(c => c.arm), ARMS);
   assert.ok(r.improvementCapacity.every(c => c.actualUnits === 8040 && hash(c.optimizationStartPolicy) === hash(ROOT_POLICY)));
   assert.equal(r.improvementCapacity.reduce((n, c) => n + c.actualUnits, r.parentAuditUnits), r.actualUnits);
-  assert.equal(r.controlComparisons.length, 4);
+  assert.equal(r.controlComparisons.length, 5);
   const adaptive = r.attempts.filter(a => a.arm === 'adaptive'), expectedCredits = r.beforeCredits.map(c => Math.max(1, c * 0.9));
-  adaptive.forEach(a => { expectedCredits[a.axis] = Math.min(100, expectedCredits[a.axis] + Math.max(0, a.delta) * 10); });
+  adaptive.forEach(a => { for (const axis of a.editedAxes) expectedCredits[axis] = Math.min(100, expectedCredits[axis] + Math.max(0, a.delta) * 10 / a.editedAxes.length); });
   assert.deepEqual(r.credits, expectedCredits, 'control and selection outcomes cannot update credits');
   assert.equal(s.boundedRsiEvidenceAccepted, false); assert.equal(s.productionPromotion, false);
   assert.equal(replayDevelopment(dir, s.head).replayedEpochs, 1);
@@ -105,6 +105,31 @@ test('resumable epochs execute all attempts without promoting development to pro
   const first = JSON.parse(readFileSync(join(dir, '00000000.json'))); first.payload.mission = 'tampered';
   writeFileSync(join(dir, '00000000.json'), JSON.stringify(first));
   assert.throws(() => loadLedger(dir), /chain/);
+});
+
+test('joint coverage is explicit and old implementation control preserves its exact source', () => {
+  const pinned = spawnSync('git', ['show', 'a59659ebcf4a29e1c616ac9a6a0dad5b619a1de8:v3/@claude-flow/cli/scripts/rsi/loop/retrieval.mjs'], { encoding: 'utf8' });
+  assert.equal(pinned.status, 0, pinned.stderr);
+  const old = pinned.stdout.slice(pinned.stdout.indexOf('export function propose('), pinned.stdout.indexOf('export function makeReservation('))
+    .trim().replace('export function propose(', 'function proposeLegacy(');
+  assert.equal(proposeLegacy.toString(), old);
+  for (let epoch = 0; epoch < 8; epoch++) {
+    const state = { epochs: epoch, champion: ROOT_POLICY, credits: [7, 1, 3] };
+    const candidates = propose(state);
+    assert.equal(candidates.length, 2); assert.equal(candidates[0].editedAxes.length, 3);
+    assert.equal(candidates[1].editedAxes.length, 1);
+    assert.notEqual(hash(candidates[0].policy), hash(candidates[1].policy));
+    assert.deepEqual(candidates[0], propose({ ...state, credits: [1, 1, 1] })[0]);
+  }
+});
+
+test('joint credit records heuristic allocation and ignores control or selection outcomes', () => {
+  const joint = { arm: 'adaptive', policy: { b: 1, k1: 2.5, subjectWeight: 6 }, axis: 0, editedAxes: [0, 1, 2], delta: 0.3 };
+  const result = creditUpdate([1, 1, 1], [joint]);
+  assert.deepEqual(result.credits, [2, 2, 2]);
+  assert.equal(result.allocations[0].assigned.reduce((n, a) => n + a.added, 0), 3);
+  assert.deepEqual(creditUpdate([1, 1, 1], [{ ...joint, candidateSelection: [{ score: -999 }] }, { ...joint, arm: 'static', delta: 999 }]), result);
+  assert.deepEqual(creditUpdate([1, 1, 1], [{ ...joint, delta: -1 }]).credits, [1, 1, 1]);
 });
 
 test('proposer controls share random addresses and bind previous optimizer ancestry', t => {

@@ -70,8 +70,9 @@ export function scorePolicy(corpus, policy, tasks, meter) {
   });
 }
 const mean = xs => xs.reduce((a, b) => a + b, 0) / xs.length;
-export const ARMS = Object.freeze(['adaptive', 'frozen', 'static', 'shuffled', 'previous']);
-export function propose(s, count = 2) {
+export const ARMS = Object.freeze(['adaptive', 'frozen', 'static', 'shuffled', 'previous', 'legacy']);
+// Exact v2 proposer body retained as an implementation control, not an independent evaluator.
+export function proposeLegacy(s, count = 2) {
   const axes = ['b', 'k1', 'subjectWeight'], values = [[0, 0.5, 0.75, 1], [0.5, 1.5, 2.5], [0, 1, 3, 6]];
   const candidates = [], seen = new Set([hash(s.champion)]);
   // Common random addresses across arms. Credits affect operator selection, not the seed.
@@ -87,6 +88,31 @@ export function propose(s, count = 2) {
   }
   return candidates;
 }
+export function propose(s, count = 2) {
+  if (count !== 2) throw Error('joint coverage requires exactly two proposals');
+  const axes = ['b', 'k1', 'subjectWeight'];
+  // Predeclared alternating corners. The high corner was a known development
+  // winner before this source was frozen; it is not a novel discovery or learned rule.
+  const policy = (s.epochs + 1) % 2 === 1
+    ? { b: 1, k1: 2.5, subjectWeight: 6 } : { b: 0, k1: 0.5, subjectWeight: 0 };
+  const editedAxes = axes.flatMap((key, i) => policy[key] !== s.champion[key] ? [i] : []);
+  const single = proposeLegacy(s, RULES.maxCandidates).find(c => axes.filter(key => c.policy[key] !== s.champion[key]).length === 1);
+  if (editedAxes.length < 2 || !single) throw Error('joint and single-axis coverage unavailable');
+  return [{ axis: editedAxes[0], editedAxes, operator: 'joint-corner', policy },
+    { ...single, editedAxes: [single.axis], operator: 'credit-guided-single' }];
+}
+export function creditUpdate(before, attempts) {
+  const credits = before.map(c => Math.max(1, c * 0.9)), allocations = [];
+  for (const a of attempts.filter(a => a.arm === 'adaptive')) {
+    const editedAxes = a.editedAxes ?? [a.axis], share = Math.max(0, a.delta) * 10 / editedAxes.length;
+    const assigned = editedAxes.map(axis => {
+      const added = Math.min(100 - credits[axis], share); credits[axis] += added;
+      return { axis, added };
+    });
+    allocations.push({ policyHash: hash(a.policy), editedAxes, assigned });
+  }
+  return { credits, allocations };
+}
 export function makeReservation(s, corpus) {
   const previousSnapshot = s.snapshots.at(-2) ?? s.snapshots[0];
   const previousCredits = previousSnapshot.credits;
@@ -97,17 +123,19 @@ export function makeReservation(s, corpus) {
     static: { rule: 'fixed-two-corners/v1' },
     shuffled: { credits: [s.credits[1], s.credits[2], s.credits[0]], checkpoint: s.snapshots.at(-1).id },
     previous: { credits: previousCredits, checkpoint: previousSnapshot.id },
+    legacy: { credits: [1, 1, 1], checkpoint: s.snapshots[0].id, implementation: 'v2-uniform',
+      sourceCommit: '959d70cebcd413cee16b181999b0fb6a962fed1b' },
   };
   const candidates = ARMS.flatMap(arm => (arm === 'static'
     ? [{ axis: 0, policy: { b: 0, k1: 0.5, subjectWeight: 0 } }, { axis: 2, policy: { b: 1, k1: 2.5, subjectWeight: 6 } }]
-    : propose({ epochs: s.epochs, champion: ROOT_POLICY, credits: optimizerInputs[arm].credits }))
+    : (arm === 'legacy' ? proposeLegacy : propose)({ epochs: s.epochs, champion: ROOT_POLICY, credits: optimizerInputs[arm].credits }))
     .map(c => ({ arm, ...c })));
-  if (candidates.length !== 10 || candidates.length > RULES.maxCandidates) throw Error('matched candidate plan');
+  if (candidates.length !== 12 || candidates.length > RULES.maxCandidates) throw Error('matched candidate plan');
   const trainCount = TASKS.filter(t => t.split === 'train').length;
   const selectionCount = TASKS.length - trainCount;
   // Each native field BM25 call is metered; no uncharged baseline, failed candidate, or audit calls.
-  // Five independent common-start baselines, ten failed/successful proposals, five child
-  // selection evaluations and five selection baselines. Parent audit is charged separately.
+  // Six common-start baselines, twelve failed/successful proposals, six child
+  // selection evaluations and six selection baselines. Parent audit is charged separately.
   const units = (trainCount * (ARMS.length + candidates.length) + selectionCount * (2 * ARMS.length + 1)) * corpus.docs.length * 2;
   return { epoch: s.epochs + 1, sourceHash: hash(s.source), corpusHash: corpus.commitment, units, candidates, optimizerInputs };
 }
@@ -120,7 +148,6 @@ export function runReserved(s, corpus) {
   const meter = { used: 0, charge(n) { if (this.used + n > reservation.units) throw Error('evaluation reservation exhausted'); this.used += n; } };
   const train = TASKS.filter(t => t.split === 'train'), selection = TASKS.filter(t => t.split === 'selection');
   const attempts = [], improvementCapacity = [];
-  const credits = s.credits.map(c => Math.max(1, c * 0.9));
   for (const arm of ARMS) {
     const beforeUnits = meter.used;
     const baselineTrain = scorePolicy(corpus, ROOT_POLICY, train, meter), baselineMean = mean(baselineTrain.map(r => r.score));
@@ -128,8 +155,6 @@ export function runReserved(s, corpus) {
     for (const c of reservation.candidates.filter(c => c.arm === arm)) {
       const a = { ...c, rows: scorePolicy(corpus, c.policy, train, meter) };
       a.mean = mean(a.rows.map(r => r.score)); a.delta = a.mean - baselineMean; attempts.push(a);
-      // Control outcomes and selection labels never train the adaptive optimizer.
-      if (arm === 'adaptive') credits[a.axis] = Math.min(100, credits[a.axis] + Math.max(0, a.delta) * 10);
       if (a.mean > best + 1e-12) { winner = a.policy; best = a.mean; }
     }
     const baselineSelection = scorePolicy(corpus, ROOT_POLICY, selection, meter);
@@ -141,6 +166,8 @@ export function runReserved(s, corpus) {
       selectionGain, actualUnits, gainPer10000Calls: selectionGain * 10000 / actualUnits });
   }
   const adaptive = improvementCapacity[0], winner = adaptive.childPolicy;
+  // Shared credit for a joint mutation is a learning heuristic, not causal axis attribution.
+  const { credits, allocations: creditAllocations } = creditUpdate(s.credits, attempts);
   const baselineSelection = scorePolicy(corpus, s.champion, selection, meter), candidateSelection = adaptive.candidateSelection;
   const selectionDelta = mean(candidateSelection.map((r, i) => r.score - baselineSelection[i].score));
   const selectionImproved = selectionDelta > 1e-12 && adaptive.trainGain > 1e-12;
@@ -148,7 +175,7 @@ export function runReserved(s, corpus) {
   return { dataSource: 'REPOSITORY_DEVELOPMENT', sourceHash: reservation.sourceHash, corpusHash: corpus.commitment,
     corpusCommit: CORPUS_COMMIT, corpusFiles: corpus.docs.map(d => ({ path: d.path, bodyHash: d.bodyHash })),
     epoch: reservation.epoch, beforePolicy: s.champion, proposedPolicy: winner, nextPolicy: selectionImproved ? winner : s.champion,
-    optimizationStartPolicy: ROOT_POLICY, beforeCredits: s.credits,
+    optimizationStartPolicy: ROOT_POLICY, beforeCredits: s.credits, creditAllocations,
     baselineTrain: adaptive.baselineTrain, attempts, baselineSelection, candidateSelection, rootSelection: adaptive.baselineSelection, credits,
     improvementCapacity, controlComparisons: improvementCapacity.slice(1).map(c => ({ control: c.arm,
       pairedSelectionDeltas: candidateSelection.map((r, i) => ({ taskId: r.taskId, delta: r.score - c.candidateSelection[i].score })),

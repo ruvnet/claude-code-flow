@@ -1,0 +1,34 @@
+name: Realtime cancellation contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'v3/@claude-flow/integration/src/realtime-session.ts'
+      - 'v3/@claude-flow/integration/validation/**'
+      - 'v3/@claude-flow/integration/tsconfig.realtime.json'
+      - '.github/workflows/realtime-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.16.0'
+      - name: Install pinned compiler without lifecycle scripts
+        run: npm install --prefix "$RUNNER_TEMP/realtime-tools" --ignore-scripts --no-fund --no-audit typescript@5.8.3
+      - name: Record environment
+        run: |
+          node --version
+          "$RUNNER_TEMP/realtime-tools/node_modules/.bin/tsc" --version
+      - name: Strict compile of opt-in adapter
+        run: '"$RUNNER_TEMP/realtime-tools/node_modules/.bin/tsc" -p v3/@claude-flow/integration/tsconfig.realtime.json'
+      - name: Contract, degradation, and loopback HTTP cancellation tests
+        run: node --test v3/@claude-flow/integration/validation/realtime.contract.mjs

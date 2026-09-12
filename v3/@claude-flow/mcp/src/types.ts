@@ -5,6 +5,8 @@
  * Zero external @claude-flow dependencies
  */
 
+import type { MCPRequestContext } from './request-context.js';
+
 // ============================================================================
 // Core Protocol Types
 // ============================================================================
@@ -267,7 +269,7 @@ export interface ResourceContent {
   uri: string;
   mimeType?: string;
   text?: string;
-  blob?: string; // base64 encoded
+  blob?: string;
 }
 
 export interface ResourceTemplate {
@@ -320,14 +322,14 @@ export interface TextContent {
 
 export interface ImageContent {
   type: 'image';
-  data: string; // base64
+  data: string;
   mimeType: string;
   annotations?: ContentAnnotations;
 }
 
 export interface AudioContent {
   type: 'audio';
-  data: string; // base64
+  data: string;
   mimeType: string;
   annotations?: ContentAnnotations;
 }
@@ -499,9 +501,15 @@ export interface CompletionResult {
 // Transport Types
 // ============================================================================
 
-export type RequestHandler = (request: MCPRequest) => Promise<MCPResponse>;
+export type RequestHandler = (
+  request: MCPRequest,
+  context?: MCPRequestContext
+) => Promise<MCPResponse>;
 
-export type NotificationHandler = (notification: MCPNotification) => Promise<void>;
+export type NotificationHandler = (
+  notification: MCPNotification,
+  context?: MCPRequestContext
+) => Promise<void>;
 
 export interface TransportHealthStatus {
   healthy: boolean;

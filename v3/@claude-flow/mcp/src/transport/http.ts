@@ -1,7 +1,7 @@
 /**
  * @claude-flow/mcp - HTTP Transport
  *
- * HTTP/REST transport with WebSocket support
+ * HTTP/REST transport with legacy SSE/WebSocket compatibility.
  */
 
 import { EventEmitter } from 'events';
@@ -11,7 +11,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import cors from 'cors';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
-import { randomUUID } from 'crypto';
+import { randomUUID, timingSafeEqual } from 'crypto';
 import type {
   ITransport,
   TransportType,
@@ -24,6 +24,19 @@ import type {
   ILogger,
   AuthConfig,
 } from '../types.js';
+import type { AuthenticatedPrincipal, MCPRequestContext } from '../request-context.js';
+import {
+  MCP_2026_07_28,
+  MCP_HEADER_MISMATCH,
+  MCP_UNSUPPORTED_PROTOCOL_VERSION,
+  anonymousPrincipal,
+  bodyProtocolVersion,
+  freezeRequestContext,
+  getResponseTransportMetadata,
+  principalFromSecret,
+  validateModernEnvelope,
+  validateRoutingHeaders,
+} from '../request-context.js';
 
 export interface HttpTransportConfig {
   host: string;
@@ -42,17 +55,35 @@ export interface HttpTransportConfig {
   };
 }
 
+type ContextualRequestHandler = (
+  request: MCPRequest,
+  context?: MCPRequestContext
+) => Promise<MCPResponse>;
+
+type ContextualNotificationHandler = (
+  notification: MCPNotification,
+  context?: MCPRequestContext
+) => Promise<void>;
+
+interface AuthValidationResult {
+  valid: boolean;
+  principal?: AuthenticatedPrincipal;
+  error?: string;
+}
+
 export class HttpTransport extends EventEmitter implements ITransport {
   public readonly type: TransportType = 'http';
 
-  private requestHandler?: RequestHandler;
-  private notificationHandler?: NotificationHandler;
+  private requestHandler?: ContextualRequestHandler;
+  private notificationHandler?: ContextualNotificationHandler;
   private app: Express;
   private server?: Server;
   private wss?: WebSocketServer;
   private running = false;
   private activeConnections = new Set<WebSocket>();
   private sseClients = new Map<string, Response>();
+  private wsPrincipals = new WeakMap<WebSocket, AuthenticatedPrincipal>();
+  private wsSessions = new WeakMap<WebSocket, string>();
 
   private messagesReceived = 0;
   private messagesSent = 0;
@@ -71,9 +102,7 @@ export class HttpTransport extends EventEmitter implements ITransport {
   }
 
   async start(): Promise<void> {
-    if (this.running) {
-      throw new Error('HTTP transport already running');
-    }
+    if (this.running) throw new Error('HTTP transport already running');
 
     this.logger.info('Starting HTTP transport', {
       host: this.config.host,
@@ -81,18 +110,11 @@ export class HttpTransport extends EventEmitter implements ITransport {
     });
 
     this.server = createServer(this.app);
-
-    this.wss = new WebSocketServer({
-      server: this.server,
-      path: '/ws',
-    });
-
+    this.wss = new WebSocketServer({ server: this.server, path: '/ws' });
     this.setupWebSocketHandlers();
 
     await new Promise<void>((resolve, reject) => {
-      this.server!.listen(this.config.port, this.config.host, () => {
-        resolve();
-      });
+      this.server!.listen(this.config.port, this.config.host, () => resolve());
       this.server!.on('error', reject);
     });
 
@@ -103,9 +125,7 @@ export class HttpTransport extends EventEmitter implements ITransport {
   }
 
   async stop(): Promise<void> {
-    if (!this.running) {
-      return;
-    }
+    if (!this.running) return;
 
     this.logger.info('Stopping HTTP transport');
     this.running = false;
@@ -114,14 +134,12 @@ export class HttpTransport extends EventEmitter implements ITransport {
       try {
         ws.close(1000, 'Server shutting down');
       } catch {
-        // Ignore errors
+        // Ignore close races.
       }
     }
     this.activeConnections.clear();
 
-    for (const response of this.sseClients.values()) {
-      response.end();
-    }
+    for (const response of this.sseClients.values()) response.end();
     this.sseClients.clear();
 
     if (this.wss) {
@@ -130,9 +148,7 @@ export class HttpTransport extends EventEmitter implements ITransport {
     }
 
     if (this.server) {
-      await new Promise<void>((resolve) => {
-        this.server!.close(() => resolve());
-      });
+      await new Promise<void>((resolve) => this.server!.close(() => resolve()));
       this.server = undefined;
     }
 
@@ -140,11 +156,11 @@ export class HttpTransport extends EventEmitter implements ITransport {
   }
 
   onRequest(handler: RequestHandler): void {
-    this.requestHandler = handler;
+    this.requestHandler = handler as ContextualRequestHandler;
   }
 
   onNotification(handler: NotificationHandler): void {
-    this.notificationHandler = handler;
+    this.notificationHandler = handler as ContextualNotificationHandler;
   }
 
   async getHealthStatus(): Promise<TransportHealthStatus> {
@@ -183,24 +199,17 @@ export class HttpTransport extends EventEmitter implements ITransport {
   }
 
   private setupMiddleware(): void {
-    this.app.use(helmet({
-      contentSecurityPolicy: false,
-    }));
+    this.app.use(helmet({ contentSecurityPolicy: false }));
 
     if (this.config.corsEnabled !== false) {
       const allowedOrigins = this.config.corsOrigins;
-
       if (!allowedOrigins || allowedOrigins.length === 0) {
         this.logger.warn('CORS: No origins configured, restricting to same-origin only');
       }
 
       this.app.use(cors({
         origin: (origin, callback) => {
-          if (!origin) {
-            callback(null, true);
-            return;
-          }
-
+          if (!origin) return callback(null, true);
           if (allowedOrigins && allowedOrigins.length > 0) {
             if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
               callback(null, true);
@@ -214,16 +223,23 @@ export class HttpTransport extends EventEmitter implements ITransport {
         credentials: true,
         maxAge: 86400,
         methods: ['GET', 'POST', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
+        allowedHeaders: [
+          'Content-Type',
+          'Authorization',
+          'X-Request-ID',
+          'MCP-Protocol-Version',
+          'Mcp-Method',
+          'Mcp-Name',
+          'Mcp-Session-Id',
+          'traceparent',
+          'tracestate',
+        ],
+        exposedHeaders: ['Mcp-Session-Id'],
       }));
     }
 
-    this.app.use(express.json({
-      limit: this.config.maxRequestSize || '10mb',
-    }));
+    this.app.use(express.json({ limit: this.config.maxRequestSize || '10mb' }));
 
-    // Bound authenticated and unauthenticated RPC traffic before route-level
-    // authorization or request dispatch can consume significant resources.
     this.app.use(['/rpc', '/mcp'], rateLimit({
       windowMs: this.config.rateLimit?.windowMs ?? 60_000,
       limit: this.config.rateLimit?.limit ?? 120,
@@ -250,14 +266,13 @@ export class HttpTransport extends EventEmitter implements ITransport {
     }
 
     this.app.use((req, res, next) => {
-      const startTime = performance.now();
+      const started = performance.now();
       res.on('finish', () => {
-        const duration = performance.now() - startTime;
         this.logger.debug('HTTP request', {
           method: req.method,
           path: req.path,
           status: res.statusCode,
-          duration: `${duration.toFixed(2)}ms`,
+          duration: `${(performance.now() - started).toFixed(2)}ms`,
         });
       });
       next();
@@ -265,7 +280,7 @@ export class HttpTransport extends EventEmitter implements ITransport {
   }
 
   private setupRoutes(): void {
-    this.app.get('/health', (req, res) => {
+    this.app.get('/health', (_req, res) => {
       res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
@@ -273,14 +288,21 @@ export class HttpTransport extends EventEmitter implements ITransport {
       });
     });
 
-    this.app.post('/rpc', async (req, res) => {
-      await this.handleHttpRequest(req, res);
-    });
+    this.app.post('/rpc', async (req, res) => this.handleHttpRequest(req, res));
 
-    // Legacy MCP clients fall back to the HTTP+SSE transport when
-    // Streamable HTTP negotiation fails. Advertise this same POST endpoint
-    // and route its responses back over the established event stream.
     this.app.get('/mcp', (req, res) => {
+      if (this.singleHeader(req, 'mcp-protocol-version') === MCP_2026_07_28) {
+        res.status(405).json({
+          jsonrpc: '2.0',
+          id: null,
+          error: {
+            code: -32600,
+            message: 'MCP 2026-07-28 uses stateless HTTP POST; legacy SSE GET is not available',
+          },
+        });
+        return;
+      }
+
       if (this.config.auth?.enabled) {
         const authResult = this.validateAuth(req);
         if (!authResult.valid) {
@@ -297,19 +319,14 @@ export class HttpTransport extends EventEmitter implements ITransport {
       res.flushHeaders();
       this.sseClients.set(sessionId, res);
       res.write(`event: endpoint\ndata: /mcp?sessionId=${encodeURIComponent(sessionId)}\n\n`);
-
       res.on('close', () => {
-        if (this.sseClients.get(sessionId) === res) {
-          this.sseClients.delete(sessionId);
-        }
+        if (this.sseClients.get(sessionId) === res) this.sseClients.delete(sessionId);
       });
     });
 
-    this.app.post('/mcp', async (req, res) => {
-      await this.handleHttpRequest(req, res);
-    });
+    this.app.post('/mcp', async (req, res) => this.handleHttpRequest(req, res));
 
-    this.app.get('/info', (req, res) => {
+    this.app.get('/info', (_req, res) => {
       res.json({
         name: 'Claude-Flow MCP Server V3',
         version: '3.0.0',
@@ -317,18 +334,16 @@ export class HttpTransport extends EventEmitter implements ITransport {
         capabilities: {
           jsonrpc: true,
           websocket: true,
+          requestLocalAuthority: true,
         },
       });
     });
 
     this.app.use((req, res) => {
-      res.status(404).json({
-        error: 'Not found',
-        path: req.path,
-      });
+      res.status(404).json({ error: 'Not found', path: req.path });
     });
 
-    this.app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+    this.app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
       this.logger.error('Express error', { error: err });
       this.errors++;
       res.status(500).json({
@@ -342,54 +357,47 @@ export class HttpTransport extends EventEmitter implements ITransport {
   private setupWebSocketHandlers(): void {
     if (!this.wss) return;
 
-    // SECURITY: Handle WebSocket authentication via upgrade request
     this.wss.on('connection', (ws, req) => {
-      // Validate authentication if enabled
+      if (req.headers['mcp-protocol-version'] === MCP_2026_07_28) {
+        ws.close(4002, 'MCP 2026-07-28 requires stateless HTTP POST');
+        return;
+      }
+
+      let principal = anonymousPrincipal();
       if (this.config.auth?.enabled) {
         const url = new URL(req.url || '', `http://${req.headers.host}`);
-        const token = url.searchParams.get('token') || req.headers['authorization']?.replace(/^Bearer\s+/i, '');
-
+        const token = url.searchParams.get('token') ||
+          req.headers['authorization']?.replace(/^Bearer\s+/i, '');
         if (!token) {
           this.logger.warn('WebSocket connection rejected: no authentication token');
           ws.close(4001, 'Authentication required');
           return;
         }
 
-        // SECURITY: Timing-safe token validation
-        let valid = false;
-        if (this.config.auth.tokens?.length) {
-          for (const validToken of this.config.auth.tokens) {
-            if (this.timingSafeCompare(token, validToken)) {
-              valid = true;
-              break;
-            }
-          }
-        }
-
+        const valid = !this.config.auth.tokens?.length ||
+          this.config.auth.tokens.some((candidate) => this.timingSafeCompare(token, candidate));
         if (!valid) {
           this.logger.warn('WebSocket connection rejected: invalid token');
           ws.close(4003, 'Invalid token');
           return;
         }
+        principal = principalFromSecret(token, 'token');
       }
 
+      this.wsPrincipals.set(ws, principal);
       this.activeConnections.add(ws);
       this.logger.info('WebSocket client connected', {
         total: this.activeConnections.size,
         authenticated: !!this.config.auth?.enabled,
       });
 
-      ws.on('message', async (data) => {
-        await this.handleWebSocketMessage(ws, data.toString());
-      });
-
+      ws.on('message', async (data) => this.handleWebSocketMessage(ws, data.toString()));
       ws.on('close', () => {
         this.activeConnections.delete(ws);
         this.logger.info('WebSocket client disconnected', {
           total: this.activeConnections.size,
         });
       });
-
       ws.on('error', (error) => {
         this.logger.error('WebSocket error', { error });
         this.errors++;
@@ -403,10 +411,11 @@ export class HttpTransport extends EventEmitter implements ITransport {
     this.messagesReceived++;
 
     const requiresAuth = this.config.auth?.enabled !== false;
+    let principal = anonymousPrincipal();
 
     if (requiresAuth && this.config.auth) {
       const authResult = this.validateAuth(req);
-      if (!authResult.valid) {
+      if (!authResult.valid || !authResult.principal) {
         this.logger.warn('Authentication failed', {
           ip: req.ip,
           path: req.path,
@@ -419,68 +428,147 @@ export class HttpTransport extends EventEmitter implements ITransport {
         });
         return;
       }
+      principal = authResult.principal;
     } else if (requiresAuth && !this.config.auth) {
       this.logger.warn('No authentication configured - running in development mode');
     }
 
-    const message = req.body;
-
+    const message = req.body as MCPRequest;
     if (message.jsonrpc !== '2.0') {
       res.status(400).json({
         jsonrpc: '2.0',
-        id: message.id || null,
+        id: message.id ?? null,
         error: { code: -32600, message: 'Invalid JSON-RPC version' },
       });
       return;
     }
-
     if (!message.method) {
       res.status(400).json({
         jsonrpc: '2.0',
-        id: message.id || null,
+        id: message.id ?? null,
         error: { code: -32600, message: 'Missing method' },
       });
       return;
     }
 
-    const sseSessionId = typeof req.query.sessionId === 'string' ? req.query.sessionId : undefined;
-    const sseResponse = sseSessionId ? this.sseClients.get(sseSessionId) : undefined;
+    const headerVersion = this.singleHeader(req, 'mcp-protocol-version');
+    const bodyVersion = bodyProtocolVersion(message);
+    const modernRequested = headerVersion === MCP_2026_07_28 || bodyVersion === MCP_2026_07_28;
 
-    if (message.id === undefined) {
-      if (this.notificationHandler) {
-        await this.notificationHandler(message as MCPNotification);
-      }
-      res.status(sseResponse ? 202 : 204).end();
-    } else {
-      if (!this.requestHandler) {
-        res.status(500).json({
+    if (modernRequested) {
+      const envelope = validateModernEnvelope(message, headerVersion);
+      if (!envelope.valid) {
+        this.errors++;
+        res.status(400).json({
           jsonrpc: '2.0',
-          id: message.id,
-          error: { code: -32603, message: 'No request handler' },
+          id: message.id ?? null,
+          error: {
+            code: envelope.code ?? MCP_HEADER_MISMATCH,
+            message: envelope.error || 'Invalid MCP 2026-07-28 envelope',
+            ...(envelope.code === MCP_UNSUPPORTED_PROTOCOL_VERSION
+              ? { data: { supportedVersions: [MCP_2026_07_28] } }
+              : {}),
+          },
         });
         return;
       }
+    } else if (
+      (headerVersion && headerVersion !== '2025-11-25') ||
+      (bodyVersion && bodyVersion !== MCP_2026_07_28)
+    ) {
+      this.errors++;
+      res.status(400).json({
+        jsonrpc: '2.0',
+        id: message.id ?? null,
+        error: {
+          code: MCP_UNSUPPORTED_PROTOCOL_VERSION,
+          message: `Unsupported MCP protocol version: ${headerVersion ?? bodyVersion}`,
+          data: { supportedVersions: ['2025-11-25', MCP_2026_07_28] },
+        },
+      });
+      return;
+    }
 
-      try {
-        const response = await this.requestHandler(message as MCPRequest);
-        if (sseResponse) {
-          sseResponse.write(`event: message\ndata: ${JSON.stringify(response)}\n\n`);
-          res.status(202).end();
-        } else {
-          res.json(response);
-        }
-        this.messagesSent++;
-      } catch (error) {
-        this.errors++;
-        res.status(500).json({
-          jsonrpc: '2.0',
-          id: message.id,
-          error: {
-            code: -32603,
-            message: error instanceof Error ? error.message : 'Internal error',
-          },
-        });
+    const sseSessionId = typeof req.query.sessionId === 'string'
+      ? req.query.sessionId
+      : undefined;
+    const sseResponse = sseSessionId ? this.sseClients.get(sseSessionId) : undefined;
+    const context = this.createHttpContext(req, principal, sseSessionId);
+
+    if (modernRequested && context.legacySessionId) {
+      this.errors++;
+      res.status(400).json({
+        jsonrpc: '2.0',
+        id: message.id ?? null,
+        error: {
+          code: MCP_HEADER_MISMATCH,
+          message: 'Mcp-Session-Id is invalid for MCP 2026-07-28 stateless requests',
+        },
+      });
+      return;
+    }
+
+    const routing = validateRoutingHeaders(message, context, modernRequested);
+    if (!routing.valid) {
+      this.errors++;
+      res.status(400).json({
+        jsonrpc: '2.0',
+        id: message.id ?? null,
+        error: {
+          code: routing.code ?? MCP_HEADER_MISMATCH,
+          message: routing.error || 'Routing header mismatch',
+        },
+      });
+      return;
+    }
+
+    if (message.id === undefined) {
+      if (this.notificationHandler) {
+        await this.notificationHandler(message as MCPNotification, context);
       }
+      res.status(sseResponse ? 202 : 204).end();
+      return;
+    }
+
+    if (!this.requestHandler) {
+      res.status(500).json({
+        jsonrpc: '2.0',
+        id: message.id,
+        error: { code: -32603, message: 'No request handler' },
+      });
+      return;
+    }
+
+    try {
+      const response = await this.requestHandler(message, context);
+      const transportMetadata = getResponseTransportMetadata(response);
+      if (transportMetadata?.legacySessionId && !modernRequested) {
+        res.setHeader('Mcp-Session-Id', transportMetadata.legacySessionId);
+      }
+
+      if (sseResponse && !modernRequested) {
+        sseResponse.write(`event: message\ndata: ${JSON.stringify(response)}\n\n`);
+        res.status(202).end();
+      } else {
+        const status = response.error?.code === -32601
+          ? 404
+          : response.error?.code === MCP_HEADER_MISMATCH ||
+              response.error?.code === MCP_UNSUPPORTED_PROTOCOL_VERSION
+            ? 400
+            : 200;
+        res.status(status).json(response);
+      }
+      this.messagesSent++;
+    } catch (error) {
+      this.errors++;
+      res.status(500).json({
+        jsonrpc: '2.0',
+        id: message.id,
+        error: {
+          code: -32603,
+          message: error instanceof Error ? error.message : 'Internal error',
+        },
+      });
     }
   }
 
@@ -490,43 +578,50 @@ export class HttpTransport extends EventEmitter implements ITransport {
 
     try {
       const message = JSON.parse(data);
-
       if (message.jsonrpc !== '2.0') {
         ws.send(JSON.stringify({
           jsonrpc: '2.0',
-          id: message.id || null,
+          id: message.id ?? null,
           error: { code: -32600, message: 'Invalid JSON-RPC version' },
         }));
         return;
       }
 
+      const context = freezeRequestContext({
+        requestId: randomUUID(),
+        transport: 'websocket',
+        principal: this.wsPrincipals.get(ws) ?? anonymousPrincipal(),
+        legacySessionId: this.wsSessions.get(ws),
+      });
+
       if (message.id === undefined) {
         if (this.notificationHandler) {
-          await this.notificationHandler(message as MCPNotification);
+          await this.notificationHandler(message as MCPNotification, context);
         }
-      } else {
-        if (!this.requestHandler) {
-          ws.send(JSON.stringify({
-            jsonrpc: '2.0',
-            id: message.id,
-            error: { code: -32603, message: 'No request handler' },
-          }));
-          return;
-        }
-
-        const response = await this.requestHandler(message as MCPRequest);
-        ws.send(JSON.stringify(response));
-        this.messagesSent++;
+        return;
       }
+      if (!this.requestHandler) {
+        ws.send(JSON.stringify({
+          jsonrpc: '2.0',
+          id: message.id,
+          error: { code: -32603, message: 'No request handler' },
+        }));
+        return;
+      }
+
+      const response = await this.requestHandler(message as MCPRequest, context);
+      const metadata = getResponseTransportMetadata(response);
+      if (metadata?.legacySessionId) this.wsSessions.set(ws, metadata.legacySessionId);
+      ws.send(JSON.stringify(response));
+      this.messagesSent++;
     } catch (error) {
       this.errors++;
       this.logger.error('WebSocket message error', { error });
-
       try {
         const parsed = JSON.parse(data);
         ws.send(JSON.stringify({
           jsonrpc: '2.0',
-          id: parsed.id || null,
+          id: parsed.id ?? null,
           error: { code: -32700, message: 'Parse error' },
         }));
       } catch {
@@ -539,55 +634,69 @@ export class HttpTransport extends EventEmitter implements ITransport {
     }
   }
 
-  /**
-   * SECURITY: Timing-safe token comparison to prevent timing attacks
-   */
-  private timingSafeCompare(a: string, b: string): boolean {
-    const crypto = require('crypto');
-
-    // Ensure both strings are the same length for timing-safe comparison
-    const bufA = Buffer.from(a, 'utf-8');
-    const bufB = Buffer.from(b, 'utf-8');
-
-    // If lengths differ, still do a comparison to prevent length-based timing
-    if (bufA.length !== bufB.length) {
-      // Compare against itself to maintain constant time
-      crypto.timingSafeEqual(bufA, bufA);
-      return false;
-    }
-
-    return crypto.timingSafeEqual(bufA, bufB);
+  private createHttpContext(
+    req: Request,
+    principal: AuthenticatedPrincipal,
+    sseSessionId?: string
+  ): MCPRequestContext {
+    return freezeRequestContext({
+      requestId: this.singleHeader(req, 'x-request-id') ?? randomUUID(),
+      transport: 'http',
+      principal,
+      protocolVersion: this.singleHeader(req, 'mcp-protocol-version'),
+      legacySessionId: this.singleHeader(req, 'mcp-session-id') ?? sseSessionId,
+      routingMethod: this.singleHeader(req, 'mcp-method'),
+      routingName: this.singleHeader(req, 'mcp-name'),
+      paramHeaders: this.mcpParamHeaders(req),
+      traceparent: this.singleHeader(req, 'traceparent'),
+      tracestate: this.singleHeader(req, 'tracestate'),
+      remoteAddress: req.ip,
+    });
   }
 
-  private validateAuth(req: Request): { valid: boolean; error?: string } {
-    const auth = req.headers.authorization;
-
-    if (!auth) {
-      return { valid: false, error: 'Authorization header required' };
+  private mcpParamHeaders(req: Request): Record<string, string> {
+    const headers: Record<string, string> = {};
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (!key.startsWith('mcp-param-') || typeof value !== 'string') continue;
+      headers[key.slice('mcp-param-'.length).toLowerCase()] = value;
     }
+    return headers;
+  }
+
+  private singleHeader(req: Request, name: string): string | undefined {
+    const value = req.headers[name.toLowerCase()];
+    return typeof value === 'string' ? value : undefined;
+  }
+
+  private timingSafeCompare(a: string, b: string): boolean {
+    const bufA = Buffer.from(a, 'utf-8');
+    const bufB = Buffer.from(b, 'utf-8');
+    if (bufA.length !== bufB.length) {
+      timingSafeEqual(bufA, bufA);
+      return false;
+    }
+    return timingSafeEqual(bufA, bufB);
+  }
+
+  private validateAuth(req: Request): AuthValidationResult {
+    const auth = req.headers.authorization;
+    if (!auth) return { valid: false, error: 'Authorization header required' };
 
     const tokenMatch = auth.match(/^Bearer\s+(.+)$/i);
-    if (!tokenMatch) {
-      return { valid: false, error: 'Invalid authorization format' };
-    }
-
+    if (!tokenMatch) return { valid: false, error: 'Invalid authorization format' };
     const token = tokenMatch[1];
 
-    if (this.config.auth?.tokens?.length) {
-      // SECURITY: Use timing-safe comparison to prevent timing attacks
-      let valid = false;
-      for (const validToken of this.config.auth.tokens) {
-        if (this.timingSafeCompare(token, validToken)) {
-          valid = true;
-          break;
-        }
-      }
-      if (!valid) {
-        return { valid: false, error: 'Invalid token' };
-      }
+    if (
+      this.config.auth?.tokens?.length &&
+      !this.config.auth.tokens.some((candidate) => this.timingSafeCompare(token, candidate))
+    ) {
+      return { valid: false, error: 'Invalid token' };
     }
 
-    return { valid: true };
+    return {
+      valid: true,
+      principal: principalFromSecret(token, 'token'),
+    };
   }
 }
 

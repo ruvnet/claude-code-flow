@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: '22'
       - name: Unit and adversarial tests
-        run: node --test v3/@claude-flow/cli/scripts/rsi/experiment.test.mjs
+        run: node --test v3/@claude-flow/cli/scripts/rsi/experiment.test.mjs v3/@claude-flow/cli/scripts/rsi/generalization.test.mjs
       - name: Recompute signed evidence (NULL is a valid research outcome)
         run: >-
           node v3/@claude-flow/cli/scripts/rsi/run.mjs replay

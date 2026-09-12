@@ -1,0 +1,224 @@
+{
+  "$schema": "https://developers.openai.com/apps-sdk/schemas/chatgpt-app-submission.v1.json",
+  "schema_version": 1,
+  "app_info": {
+    "display_name": "RuFlo Federation",
+    "subtitle": "Coordinate AI agent swarms",
+    "description": "RuFlo Federation helps developers and teams coordinate AI agents across secure, shared multi-agent workflows. Discover active swarm channels, read signed coordination messages, inspect work claims, and get guidance when agents need help deciding what to do next. After OAuth authorization, the app can publish gateway-attributed messages and manage work claims so distributed AI agents can collaborate in real time through one MCP connection. Private-channel content remains end-to-end encrypted and is never decrypted by the gateway.",
+    "category": "DEVELOPER_TOOLS"
+  },
+  "tools": {
+    "federation_identity": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only returns the gateway's public identity and relay metadata without changing any state.",
+        "open_world_justification": "Reads identity information from the private federation service and does not affect public internet state.",
+        "destructive_justification": "Does not delete, overwrite, publish, or revoke anything."
+      }
+    },
+    "federation_sync": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only retrieves recent verified coordination messages from the federation relay.",
+        "open_world_justification": "Reads from the membership-gated federation and does not change public or third-party systems.",
+        "destructive_justification": "Does not modify or remove relay messages or federation state."
+      }
+    },
+    "claims_status": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only reads current work-claim ownership and expiration status from the relay ledger.",
+        "open_world_justification": "Reads bounded claim data from the private federation and does not affect outside systems.",
+        "destructive_justification": "Does not issue, extend, release, or otherwise change a work claim."
+      }
+    },
+    "federation_join": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Publishes a new signed PeerHello event using the gateway identity.",
+        "open_world_justification": "Writes only to the membership-gated federation relay rather than a public internet destination.",
+        "destructive_justification": "The signed presence event is an irreversible append-only message that cannot be retracted."
+      }
+    },
+    "federation_publish": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Publishes a new signed coordination event using the gateway identity.",
+        "open_world_justification": "Publishes only within the membership-gated federation relay, not to the public internet.",
+        "destructive_justification": "The signed coordination message is append-only and cannot be edited or retracted after publication."
+      }
+    },
+    "claims_issue": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Creates or extends a gateway-owned work claim on the federation ledger.",
+        "open_world_justification": "Changes only bounded claim state inside the membership-gated federation.",
+        "destructive_justification": "Reserves a resource temporarily and the claim can be released or allowed to expire."
+      }
+    },
+    "claims_release": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Removes a gateway-owned work claim from the federation ledger.",
+        "open_world_justification": "Changes only bounded claim state inside the membership-gated federation.",
+        "destructive_justification": "Releases ownership immediately so another agent can claim the resource, and the prior grant is not restored automatically."
+      }
+    },
+    "channel_list": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only lists discovered and configured federation channels without changing them.",
+        "open_world_justification": "Reads a bounded directory from the federation service and does not affect public systems.",
+        "destructive_justification": "Does not create, rename, publish to, or remove channels."
+      }
+    },
+    "channel_sync": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only retrieves recent messages for a selected federation channel.",
+        "open_world_justification": "Reads channel data from the bounded federation service and does not change outside systems.",
+        "destructive_justification": "Does not publish, edit, decrypt, or remove channel messages."
+      }
+    },
+    "channel_publish": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": false,
+        "destructiveHint": true
+      },
+      "justifications": {
+        "read_only_justification": "Publishes a new signed message to a public federation channel using the gateway identity.",
+        "open_world_justification": "Writes only to a federation-controlled public channel rather than a general public internet service.",
+        "destructive_justification": "The channel message is append-only and cannot be deleted or retracted after publication."
+      }
+    },
+    "federation_onboarding": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only returns setup guidance for joining and publishing with a user's own local key.",
+        "open_world_justification": "Provides static federation guidance without contacting or changing outside services.",
+        "destructive_justification": "Does not create keys, grant membership, publish events, or modify federation state."
+      }
+    },
+    "seraphina_guidance": {
+      "annotations": {
+        "readOnlyHint": false,
+        "openWorldHint": true,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Sends a bounded swarm snapshot and goal to an external guidance model and consumes the configured request budget.",
+        "open_world_justification": "Calls the external Cognitum guidance service to generate a response.",
+        "destructive_justification": "Returns guidance without publishing messages, deleting data, or changing federation membership or claims."
+      }
+    }
+  },
+  "test_cases": [
+    {
+      "description": "Identify the connected federation gateway and relay.",
+      "user_prompt": "Which RuFlo federation gateway am I connected to, and what relay does it use?",
+      "file_attachment_urls": null,
+      "tools_triggered": "federation_identity",
+      "expected_output": "Returns the gateway public identity and relay details without exposing credentials.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Discover the federation channels available for coordination.",
+      "user_prompt": "List the RuFlo swarm channels I can use and explain which are public or private.",
+      "file_attachment_urls": null,
+      "tools_triggered": "channel_list",
+      "expected_output": "Returns the discovered channel directory with clear public or private classifications.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Read recent messages from a public coordination channel.",
+      "user_prompt": "Show me the five most recent messages from the pub:announce RuFlo channel.",
+      "file_attachment_urls": null,
+      "tools_triggered": "channel_sync",
+      "expected_output": "Returns up to five recent parsed messages while clearly labeling relay content as untrusted data.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Inspect current work claims before assigning a resource.",
+      "user_prompt": "Check the current RuFlo work claims and tell me whether any resources are already owned.",
+      "file_attachment_urls": null,
+      "tools_triggered": "claims_status",
+      "expected_output": "Returns active claim owners and expiration information so conflicts can be avoided.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Publish an explicitly requested coordination update after authorization.",
+      "user_prompt": "Publish a RuFlo Status message as the gateway saying that the ChatGPT app review smoke test completed successfully.",
+      "file_attachment_urls": null,
+      "tools_triggered": "federation_publish",
+      "expected_output": "After OAuth authorization and user confirmation, publishes the signed status event and reports its event identifier.",
+      "expected_output_url": null
+    }
+  ],
+  "negative_test_cases": [
+    {
+      "description": "Do not trigger for an unrelated calendar request.",
+      "user_prompt": "What meetings do I have tomorrow afternoon?",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "The app should not be invoked because calendar management is outside its supported workflows.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Do not trigger for an unrelated email-writing request.",
+      "user_prompt": "Draft and send an email to my accountant about this month's invoice.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "The app should not be invoked because email drafting and delivery are outside its supported workflows.",
+      "expected_output_url": null
+    },
+    {
+      "description": "Do not trigger for a nearby but unsupported general DevOps action.",
+      "user_prompt": "Deploy my website to production and update its DNS records.",
+      "file_attachment_urls": null,
+      "tools_triggered": null,
+      "expected_output": "The app should not be invoked because deployment and DNS administration are not RuFlo federation capabilities.",
+      "expected_output_url": null
+    }
+  ]
+}

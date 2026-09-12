@@ -193,12 +193,16 @@ export function createGateway({ relay, keyFile, port } = {}) {
     // ---- admin-gated writes (use the GATEWAY identity) ----
     mcp.tool('federation_join', 'Publish a signed PeerHello AS THE GATEWAY. Authorised by OAuth swarm:publish or the service-side admin token. Users should normally join with their own key via invite→claim instead.',
       { name: z.string(), platform: z.string().optional(), note: z.string().optional(), ...adminSchema },
-      // Appends a PeerHello event. Additive, and each call is a NEW event, so not idempotent.
-      WRITE('Announce gateway peer'),
+      // Appends a PeerHello event that cannot be retracted. Under Apps SDK
+      // review semantics, an irreversible send is destructive even though it
+      // adds rather than deletes state. Each call is also a NEW event.
+      WRITE('Announce gateway peer', { destructive: true }),
       gate(async ({ name, platform, note }) => text({ ok: true, eventId: await publish(RELAY, sk, 'PeerHello', { from: name, platform, note }) })));
     mcp.tool('federation_publish', 'Publish a signed coordination message AS THE GATEWAY (Status/Task/Result…). Authorised by OAuth swarm:publish or the service-side admin token.',
       { msgType: z.string(), payload: z.record(z.any()), ...adminSchema },
-      WRITE('Publish coordination message'),
+      // A signed relay message is an irreversible external send: it cannot be
+      // edited or retracted after publication.
+      WRITE('Publish coordination message', { destructive: true }),
       gate(async ({ msgType, payload }) => text({ ok: true, eventId: await publish(RELAY, sk, msgType, payload) })));
     mcp.tool('claims_issue', 'Issue a work claim AS THE GATEWAY. Authorised by OAuth swarm:publish or the service-side admin token. One owner per resourceId.',
       { resourceId: z.string(), ttlSeconds: z.number().optional(), ...adminSchema },
@@ -256,7 +260,9 @@ export function createGateway({ relay, keyFile, port } = {}) {
       });
     mcp.tool('channel_publish', 'Publish a message to a PUBLIC channel as the gateway. Authorised by OAuth swarm:publish or the service-side admin token. Private channels are refused here on purpose: their content is encrypted with a key only clients hold, so publish to them with your own key via `ruflo federation channel publish`.',
       { channel: z.string(), msgType: z.string(), payload: z.record(z.any()), ...adminSchema },
-      WRITE('Publish to public channel'),
+      // Public-channel events are append-only and cannot be deleted or
+      // retracted, so publication is destructive for review purposes.
+      WRITE('Publish to public channel', { destructive: true }),
       gate(async ({ channel, msgType, payload }) => {
         // Refuse private BEFORE normalising, so a prv: id gets the real reason rather
         // than a name-validation error from the public-id helper.

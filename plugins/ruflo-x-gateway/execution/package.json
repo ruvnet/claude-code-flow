@@ -7,7 +7,7 @@
     "node": ">=22.18.0"
   },
   "scripts": {
-    "test": "node --test test/*.test.mjs",
+    "test": "node --test --test-concurrency=1 test/*.test.mjs",
     "benchmark": "node src/benchmark.mjs",
     "verify:report": "node src/evidence.mjs",
     "evaluate": "node src/evaluation.mjs",

@@ -52,6 +52,9 @@ reconnect and response fragmentation, a real child worker over local WebSockets,
 independent verification, replay, renewal, cancellation, 100 recovery trials,
 patch traversal and workflow refusal, wrong-task artifacts, failed sandbox
 receipts, conflicting publication branches, MCP SDK calls and API scopes.
+Test files run serially so independent benchmark suites do not starve two-second
+lease verification on small CI hosts. Each runtime test still runs concurrent
+worker processes; deterministic short-lease recovery assertions remain unchanged.
 
 `npm run benchmark:routing` uses 12 signed training executions and 20 disjoint
 synthetic evaluation inputs. The original benchmark and offline evidence replay

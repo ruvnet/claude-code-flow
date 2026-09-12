@@ -1,0 +1,152 @@
+{
+  "schema": "ruflo.migration-check-benchmark/v1",
+  "proposalHash": "0662eec69224f1c4e1ea9e06be03863f72dc409136d2210285a879d09ee87203",
+  "rows": [
+    {
+      "iteration": 1,
+      "elapsedMs": 40.79927699999999,
+      "cpuMicros": {
+        "user": 15853,
+        "system": 32252
+      },
+      "result": {
+        "projectionVerified": true,
+        "proposalHash": "0662eec69224f1c4e1ea9e06be03863f72dc409136d2210285a879d09ee87203",
+        "ledgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+        "nativeFieldCallsReserved": 209784,
+        "sharedEpochsConsumed": 7,
+        "migrationApplied": false,
+        "candidateExecutionEnabled": false,
+        "boundedRsiEvidenceAccepted": false,
+        "blockers": [
+          "OPERATOR_APPROVED_REPAIR_RESOURCE_ENVELOPE",
+          "VERSIONED_DURABLE_EVENT_REDUCER_AND_SOURCE_DISPATCH",
+          "REVIEWED_ISOLATED_CANDIDATE_EXECUTOR"
+        ]
+      }
+    },
+    {
+      "iteration": 2,
+      "elapsedMs": 25.159835999999984,
+      "cpuMicros": {
+        "user": 27760,
+        "system": 3115
+      },
+      "result": {
+        "projectionVerified": true,
+        "proposalHash": "0662eec69224f1c4e1ea9e06be03863f72dc409136d2210285a879d09ee87203",
+        "ledgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+        "nativeFieldCallsReserved": 209784,
+        "sharedEpochsConsumed": 7,
+        "migrationApplied": false,
+        "candidateExecutionEnabled": false,
+        "boundedRsiEvidenceAccepted": false,
+        "blockers": [
+          "OPERATOR_APPROVED_REPAIR_RESOURCE_ENVELOPE",
+          "VERSIONED_DURABLE_EVENT_REDUCER_AND_SOURCE_DISPATCH",
+          "REVIEWED_ISOLATED_CANDIDATE_EXECUTOR"
+        ]
+      }
+    },
+    {
+      "iteration": 3,
+      "elapsedMs": 31.48303100000001,
+      "cpuMicros": {
+        "user": 16459,
+        "system": 18201
+      },
+      "result": {
+        "projectionVerified": true,
+        "proposalHash": "0662eec69224f1c4e1ea9e06be03863f72dc409136d2210285a879d09ee87203",
+        "ledgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+        "nativeFieldCallsReserved": 209784,
+        "sharedEpochsConsumed": 7,
+        "migrationApplied": false,
+        "candidateExecutionEnabled": false,
+        "boundedRsiEvidenceAccepted": false,
+        "blockers": [
+          "OPERATOR_APPROVED_REPAIR_RESOURCE_ENVELOPE",
+          "VERSIONED_DURABLE_EVENT_REDUCER_AND_SOURCE_DISPATCH",
+          "REVIEWED_ISOLATED_CANDIDATE_EXECUTOR"
+        ]
+      }
+    },
+    {
+      "iteration": 4,
+      "elapsedMs": 25.800493999999986,
+      "cpuMicros": {
+        "user": 19631,
+        "system": 7006
+      },
+      "result": {
+        "projectionVerified": true,
+        "proposalHash": "0662eec69224f1c4e1ea9e06be03863f72dc409136d2210285a879d09ee87203",
+        "ledgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+        "nativeFieldCallsReserved": 209784,
+        "sharedEpochsConsumed": 7,
+        "migrationApplied": false,
+        "candidateExecutionEnabled": false,
+        "boundedRsiEvidenceAccepted": false,
+        "blockers": [
+          "OPERATOR_APPROVED_REPAIR_RESOURCE_ENVELOPE",
+          "VERSIONED_DURABLE_EVENT_REDUCER_AND_SOURCE_DISPATCH",
+          "REVIEWED_ISOLATED_CANDIDATE_EXECUTOR"
+        ]
+      }
+    },
+    {
+      "iteration": 5,
+      "elapsedMs": 22.884478,
+      "cpuMicros": {
+        "user": 19873,
+        "system": 7780
+      },
+      "result": {
+        "projectionVerified": true,
+        "proposalHash": "0662eec69224f1c4e1ea9e06be03863f72dc409136d2210285a879d09ee87203",
+        "ledgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+        "nativeFieldCallsReserved": 209784,
+        "sharedEpochsConsumed": 7,
+        "migrationApplied": false,
+        "candidateExecutionEnabled": false,
+        "boundedRsiEvidenceAccepted": false,
+        "blockers": [
+          "OPERATOR_APPROVED_REPAIR_RESOURCE_ENVELOPE",
+          "VERSIONED_DURABLE_EVENT_REDUCER_AND_SOURCE_DISPATCH",
+          "REVIEWED_ISOLATED_CANDIDATE_EXECUTOR"
+        ]
+      }
+    }
+  ],
+  "totalElapsedMs": 146.69889,
+  "totalCpuMicros": {
+    "user": 99862,
+    "system": 68582
+  },
+  "ledgerUnchanged": true,
+  "nodeVersion": "v24.19.0",
+  "platform": "linux",
+  "arch": "x64",
+  "externalProviderSpendUsd": 0,
+  "fullAcquisitionUsd": null,
+  "fullEvaluationUsd": null,
+  "missionEpochsAdded": 0,
+  "missionNativeFieldCallsAdded": 0,
+  "missionCandidateEvaluations": 0,
+  "migrationApplied": false,
+  "candidateExecutionEnabled": false,
+  "boundedRsiEvidenceAccepted": false,
+  "measurementScope": "five read-only proposal verifications and final ledger fingerprint; excludes process startup, prior tests, source acquisition, code generation and CI",
+  "sourceCommit": "bdfd4fe5479eb6efa5c25b67d55ac153967d2506",
+  "sourceTree": "688b098a1707a849ffa6f22b70bbc72d32c55577",
+  "archivedCommitTreesCheckedThroughGitHub": [
+    {
+      "commit": "b0be9e24b8d42ce89eb5d3606628cf6f1b15fa07",
+      "tree": "6a05e5889061aebfbc5adfb228539b9c264df338"
+    },
+    {
+      "commit": "959d70cebcd413cee16b181999b0fb6a962fed1b",
+      "tree": "a59659ebcf4a29e1c616ac9a6a0dad5b619a1de8"
+    }
+  ]
+}

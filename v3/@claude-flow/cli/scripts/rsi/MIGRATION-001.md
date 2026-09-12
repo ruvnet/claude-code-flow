@@ -85,6 +85,23 @@ relaxed, no key generated, and no evidence accepted.
 
 ## Acceptance
 
+Reviewed source was published as `bdfd4fe5479eb6efa5c25b67d55ac153967d2506`
+with tree `688b098a1707a849ffa6f22b70bbc72d32c55577`. The frozen proposal hash
+is `0662eec69224f1c4e1ea9e06be03863f72dc409136d2210285a879d09ee87203`.
+Five verifications measured 40.799, 25.160, 31.483, 25.800 and 22.884 ms,
+146.699 ms total including the final ledger fingerprint. Measured CPU was
+168444 microseconds. External provider spend was $0; full dollar costs remain
+unknown. This is overhead measurement, not an optimization speedup or a mission
+candidate benchmark. All five runs returned projection verified, migration not
+applied, execution disabled and an unchanged ledger. No new epoch or native call
+was charged. Source acquisition, code generation, other tests and CI are excluded.
+
+```bash
+node v3/@claude-flow/cli/scripts/rsi/repair/migration.mjs verify \
+  v3/@claude-flow/cli/scripts/rsi/evidence/migration-proposal.json \
+  0662eec69224f1c4e1ea9e06be03863f72dc409136d2210285a879d09ee87203
+```
+
 ```bash
 node --test v3/@claude-flow/cli/scripts/rsi/repair/migration.test.mjs
 ```

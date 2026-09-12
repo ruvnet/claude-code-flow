@@ -38,7 +38,7 @@
  * (windows-latest, macos-latest, ubuntu-latest).
  */
 
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -86,10 +86,10 @@ const run = (name, cmd, stdin, assertions, options = {}) => {
   const env = {
     ...process.env,
     CLAUDE_PLUGIN_ROOT: PLUGIN_ROOT,
-    RUFLO_HOOK_CLI_OVERRIDE: options.cliOverride ?? cliInvoke,
     RUFLO_HOOK_SKIP_NPX: '1',
     ...options.env,
   };
+  if (!options.useResolver) env.RUFLO_HOOK_CLI_OVERRIDE = options.cliOverride ?? cliInvoke;
   for (const key of options.unsetEnv ?? []) delete env[key];
   if (options.debug !== false) env.RUFLO_HOOK_DEBUG_STDOUT = '1';
   else delete env.RUFLO_HOOK_DEBUG_STDOUT;
@@ -186,6 +186,73 @@ run('Codex PreToolUse (Edit) still invokes telemetry',
   '{"hook_event_name":"PreToolUse","tool_name":"apply_patch","tool_input":{"command":"*** Begin Patch"}}',
   [{ contains: 'hook-telemetry:modify-file' }, { absent: '{"permission":"allow"}' }],
   codexEnv);
+
+// Rule 21: host hook environments are allowed to sanitize PATH, but that must
+// never make the shim download and execute a second Ruflo through npx. The
+// canonical global install is a real resolution source, not merely a PATH
+// convention. Exercise the resolver without the test-only CLI override.
+{
+  const home = mkdtempSync(join(tmpdir(), 'ruflo-hook-global-home-'));
+  const binDir = join(home, '.npm-global', 'bin');
+  mkdirSync(binDir, { recursive: true });
+  const globalRuflo = join(binDir, process.platform === 'win32' ? 'ruflo.cmd' : 'ruflo');
+  if (process.platform === 'win32') {
+    writeFileSync(globalRuflo, `@echo canonical-global-ruflo\r\n@"${process.execPath}" "${HOOK_RECORDER}" %*\r\n`);
+  } else {
+    writeFileSync(globalRuflo, `#!${process.execPath}\nconsole.log('canonical-global-ruflo');\nrequire(${JSON.stringify(HOOK_RECORDER)});\n`);
+    chmodSync(globalRuflo, 0o755);
+  }
+  try {
+    run('sanitized PATH still uses the one canonical global Ruflo',
+      cmdModifyBash,
+      '{"hook_event_name":"PreToolUse","turn_id":"turn_global_ruflo","tool_name":"Bash","tool_input":{"command":"echo hi"}}',
+      [{ contains: 'canonical-global-ruflo' }, { contains: 'hook-telemetry:modify-bash' }],
+      {
+        useResolver: true,
+        env: {
+          HOME: home,
+          USERPROFILE: home,
+          PATH: dirname(process.execPath),
+          PLUGIN_ROOT,
+          PLUGIN_DATA: join(PLUGIN_ROOT, '.test-data'),
+        },
+      });
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+}
+
+{
+  const home = mkdtempSync(join(tmpdir(), 'ruflo-hook-no-global-home-'));
+  const trapBin = join(home, 'trap-bin');
+  mkdirSync(trapBin, { recursive: true });
+  const npxTrap = join(trapBin, process.platform === 'win32' ? 'npx.cmd' : 'npx');
+  if (process.platform === 'win32') {
+    writeFileSync(npxTrap, '@echo forbidden-npx-ruflo\r\n');
+  } else {
+    writeFileSync(npxTrap, '#!/bin/sh\necho forbidden-npx-ruflo\n');
+    chmodSync(npxTrap, 0o755);
+  }
+  try {
+    run('missing global Ruflo never downloads a private npx copy',
+      cmdModifyBash,
+      '{"hook_event_name":"PreToolUse","turn_id":"turn_no_npx","tool_name":"Bash","tool_input":{"command":"echo hi"}}',
+      [{ absent: 'forbidden-npx-ruflo' }],
+      {
+        useResolver: true,
+        env: {
+          HOME: home,
+          USERPROFILE: home,
+          PATH: `${trapBin}${process.platform === 'win32' ? ';' : ':'}${dirname(process.execPath)}`,
+          PLUGIN_ROOT,
+          PLUGIN_DATA: join(PLUGIN_ROOT, '.test-data'),
+          RUFLO_HOOK_SKIP_NPX: '0',
+        },
+      });
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+}
 
 // #2856 — Codex's PLUGIN_ROOT/PLUGIN_DATA env vars may not be present on
 // every install/config path; the `turn_id` field Codex always includes in

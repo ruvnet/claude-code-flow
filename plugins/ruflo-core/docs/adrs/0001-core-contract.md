@@ -3,7 +3,7 @@ id: ADR-0001
 title: ruflo-core plugin contract — pinning, MCP server contract, plugin-catalog discovery, smoke as contract
 status: Accepted
 date: 2026-05-04
-updated: 2026-07-29
+updated: 2026-08-22
 authors:
   - reviewer (Claude Code)
 tags: [plugin, core, mcp, foundation, smoke-test]
@@ -13,9 +13,9 @@ tags: [plugin, core, mcp, foundation, smoke-test]
 
 `ruflo-core` is the **foundation plugin**. Every other plugin (`ruflo-ruvector`, `ruflo-agentdb`, `ruflo-browser`, `ruflo-intelligence`, `ruflo-adr`, `ruflo-aidefence`, `ruflo-autopilot`, plus 25 others) depends on the MCP server it registers via `.mcp.json` and the orchestration patterns it documents.
 
-The current plugin contract (v0.2.6):
+The current plugin contract (v0.2.7):
 
-- `.claude-plugin/plugin.json` — `version: "0.2.6"`, foundation and discovery metadata
+- `.claude-plugin/plugin.json` — `version: "0.2.7"`, foundation and discovery metadata
 - `.mcp.json` — registers `ruflo` MCP server via `npx -y @claude-flow/cli@latest`
 - `agents/` — 4 generalists (`coder`, `researcher`, `reviewer`, `witness-curator`)
 - `skills/` — 5 native skills (`init-project`, `ruflo-doctor`, `ruflo-status`, `discover-plugins`, `witness`)
@@ -56,7 +56,7 @@ Append:
 
 11 checks:
 
-1. plugin.json declares `0.2.6` with the foundation keywords.
+1. plugin.json declares `0.2.7` with the foundation keywords.
 2. `.mcp.json` exists and registers a `ruflo` MCP server.
 3. All 4 agents are present with valid frontmatter.
 4. All 5 skills are present with valid frontmatter.
@@ -71,6 +71,11 @@ Append:
 ### 5. Cross-host hook and command compatibility
 
 - PreToolUse telemetry always runs.
+- Hook telemetry resolves the canonical global Ruflo at
+  `~/.npm-global/bin/ruflo` even when the host sanitizes `PATH`; if no
+  installed CLI exists, telemetry fails open without invoking `npx` or
+  creating a private Ruflo cache. Both the active cross-platform Node shim
+  and the retained POSIX compatibility shim enforce this boundary.
 - Cursor retains its `{"permission":"allow"}` response.
 - Codex plugin hooks are positively detected through Codex-specific
   `PLUGIN_ROOT` / `PLUGIN_DATA` variables and allow with exit 0 plus empty
@@ -113,4 +118,4 @@ bash plugins/ruflo-core/scripts/smoke.sh
 
 ## Implementation status
 
-Plugin source version v0.2.6 is listed by path in `.claude-plugin/marketplace.json`, so the marketplace artifact includes the five native skills and host-aware hook shim. Contract elements implemented: `.mcp.json` registers the `ruflo` server via `npx -y @claude-flow/cli@latest`; plugin-catalog discovery and Codex-native status skills are present; four generalist agents ship; command/skill parity and the remaining inventory are enforced by `scripts/smoke.sh`.
+Plugin source version v0.2.7 is listed by path in `.claude-plugin/marketplace.json`, so the marketplace artifact includes the five native skills and host-aware hook shim. Contract elements implemented: `.mcp.json` registers the `ruflo` server via `npx -y @claude-flow/cli@latest`; hook telemetry uses the canonical global Ruflo and never manufactures a private `npx` copy; plugin-catalog discovery and Codex-native status skills are present; four generalist agents ship; command/skill parity and the remaining inventory are enforced by `scripts/smoke.sh`.

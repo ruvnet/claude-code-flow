@@ -782,17 +782,40 @@ const listCommand: Command = {
       type: 'number',
       default: 20
     },
+    {
+      name: 'offset',
+      description: 'Zero-based entry offset for structural pagination',
+      type: 'number',
+      default: 0
+    },
+    {
+      name: 'page-info',
+      description: 'Return entries plus total/offset/nextOffset metadata in JSON mode',
+      type: 'boolean',
+      default: false
+    },
     DB_PATH_OPTION
   ],
   action: async (ctx: CommandContext): Promise<CommandResult> => {
     const namespace = ctx.flags.namespace as string;
-    const limit = ctx.flags.limit as number;
+    const limit = Number(ctx.flags.limit ?? 20);
+    const offset = Number(ctx.flags.offset ?? 0);
+    const pageInfo = Boolean(ctx.flags.pageInfo ?? ctx.flags['page-info']);
+
+    if (!Number.isSafeInteger(limit) || limit < 1) {
+      output.printError('Limit must be a positive integer');
+      return { success: false, exitCode: 1 };
+    }
+    if (!Number.isSafeInteger(offset) || offset < 0) {
+      output.printError('Offset must be a non-negative integer');
+      return { success: false, exitCode: 1 };
+    }
 
     // Use sql.js directly for consistent data access
     try {
       const { listEntries, resolveDbPath: _rdbList } = await import('../memory/memory-initializer.js');
       const dbPathList = _rdbList(ctx.flags.path as string | undefined);
-      const listResult = await listEntries({ namespace, limit, offset: 0, dbPath: dbPathList });
+      const listResult = await listEntries({ namespace, limit, offset, dbPath: dbPathList });
 
       if (!listResult.success) {
         output.printError(`Failed to list: ${listResult.error}`);
@@ -808,6 +831,25 @@ const listCommand: Command = {
         accessCount: e.accessCount,
         updated: formatRelativeTime(e.updatedAt)
       }));
+
+      if (ctx.flags.format === 'json' && pageInfo) {
+        if (listResult.entries.length === 0 && offset < listResult.total) {
+          output.printError('Memory pagination made no progress while rows remain');
+          return { success: false, exitCode: 1 };
+        }
+        const consumed = offset + listResult.entries.length;
+        const hasMore = consumed < listResult.total;
+        const page = {
+          entries: listResult.entries,
+          total: listResult.total,
+          limit,
+          offset,
+          nextOffset: hasMore ? consumed : null,
+          hasMore,
+        };
+        output.printJson(page);
+        return { success: true, data: page };
+      }
 
       if (ctx.flags.format === 'json') {
         output.printJson(listResult.entries);

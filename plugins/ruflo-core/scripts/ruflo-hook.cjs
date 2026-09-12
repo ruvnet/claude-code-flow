@@ -26,8 +26,9 @@
  *   - session-end  (Stop) — forwarded as-is, same flags as before.
  *
  * Shared behaviour:
- *   1. Prefers a locally installed `ruflo` or `claude-flow` binary.
- *   2. Falls back to `npx --prefer-offline ruflo@latest`.
+ *   1. Prefers the one canonical global Ruflo, then a PATH-installed
+ *      `ruflo` or `claude-flow` binary.
+ *   2. Never downloads a private npx copy from a hook invocation.
  *   3. ALWAYS exits 0 — hook subcommands are best-effort telemetry; a
  *      failure must never surface an error or block a turn.
  *   4. Swallows all stdout/stderr from the invoked CLI.
@@ -61,6 +62,21 @@ function commandExists(cmd) {
     return result.trim().length > 0;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Resolve the one canonical global Ruflo even when a host sanitizes PATH.
+ * Hook execution must not manufacture a second CLI under ~/.npm/_npx.
+ */
+function canonicalGlobalRuflo() {
+  const home = process.env.HOME || process.env.USERPROFILE || os.homedir();
+  const candidate = path.join(home, '.npm-global', 'bin', process.platform === 'win32' ? 'ruflo.cmd' : 'ruflo');
+  try {
+    fs.accessSync(candidate, process.platform === 'win32' ? fs.constants.F_OK : fs.constants.X_OK);
+    return candidate;
+  } catch {
+    return null;
   }
 }
 
@@ -110,7 +126,7 @@ function invokeHook(bin, binArgs, hookSubcommand, hookArgs, stdinData) {
   }
 }
 
-/** Best-effort: try ruflo, then claude-flow, then npx. Never throws. */
+/** Best-effort: try the canonical global, then PATH. Never downloads. */
 function invokeCli(hookSubcommand, hookArgs, stdinData) {
   // Test-only escape hatch: point at a specific local build instead of the
   // commandExists() PATH probe (used by test-hooks.mjs and the plugin-hooks
@@ -123,6 +139,11 @@ function invokeCli(hookSubcommand, hookArgs, stdinData) {
     invokeHook(bin, binArgs, hookSubcommand, hookArgs, stdinData);
     return;
   }
+  const canonical = canonicalGlobalRuflo();
+  if (canonical) {
+    invokeHook(canonical, [], hookSubcommand, hookArgs, stdinData);
+    return;
+  }
   if (commandExists('ruflo')) {
     invokeHook('ruflo', [], hookSubcommand, hookArgs, stdinData);
     return;
@@ -131,15 +152,8 @@ function invokeCli(hookSubcommand, hookArgs, stdinData) {
     invokeHook('claude-flow', [], hookSubcommand, hookArgs, stdinData);
     return;
   }
-  // SKIP npx when RUFLO_HOOK_SKIP_NPX=1 — used by CI smokes that test the
-  // shim's *control flow* without exercising npm install network paths.
-  // Without the skip, npx can take 30+s on a cold runner, exceeding a
-  // smoke's timeout and producing a spurious failure even though the shim
-  // itself works correctly. The bash version doesn't hit this because it
-  // backgrounded the work.
-  if (process.env.RUFLO_HOOK_SKIP_NPX !== '1') {
-    invokeHook('npx', ['--prefer-offline', '--yes', 'ruflo@latest'], hookSubcommand, hookArgs, stdinData);
-  }
+  // Telemetry is best-effort. If the global CLI is absent, no-op instead of
+  // installing or running an untracked second Ruflo from the npx cache.
 }
 
 /** Read all of stdin synchronously. Returns '' on any failure (best effort). */

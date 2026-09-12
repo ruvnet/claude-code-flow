@@ -20,19 +20,19 @@ export class MCPServer {
   private running: boolean = false;
   private toolRegistry: Map<string, MCPTool>;
 
-  constructor(options: MCPServerOptions = {}) {
-    this.tools = options.tools || [];
-    this.port = options.port || 3000;
-    this.host = options.host || 'localhost';
-    this.toolRegistry = new Map();
-  }
-
-  /**
-   * Start the MCP server
-   */
-  async start(): Promise<void> {
-    if (this.running) return;
-
+  try {
+      this.server.connect(this.transport).catch((error) => {
+        console.error("MCP Transport runtime connection error:", error);
+      });
+      
+      if (this.transport) {
+        this.transport.onclose = () => {
+          console.log("MCP Client connection dropped cleanly.");
+        };
+      }
+    } catch (error) {
+      console.error("Critical failure during MCP connection setup:", error);
+    }
     // Build tool registry
     for (const provider of this.tools) {
       if (provider.getTools) {

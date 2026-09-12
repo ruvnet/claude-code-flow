@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "nostr-tools": "^2.7.2"
+  }
+}

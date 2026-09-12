@@ -1,0 +1,81 @@
+{
+  "fixtureTime": 1800000000,
+  "note": "Public test keys only. Verify time relative to fixtureTime; never use as production credentials.",
+  "binding": {
+    "id": "69682a8b-76e2-45e8-9b14-fd75037f4589",
+    "name": "worker.one",
+    "subject": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAgMJWGku5NFUn1bwCmkprBqtIjF25Jv10n/JKcKDviBw=\n-----END PUBLIC KEY-----\n",
+    "issuer": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAhpprXiSEabBjPEAA67fxrp6VbYbxSu48GeGfxv3mJyQ=\n-----END PUBLIC KEY-----\n",
+    "issuedAt": 1800000000000,
+    "expiresAt": 1800003600000,
+    "signature": "XeK8vhW3ApLB0Cg6+JY/aRjXbudosC8Y/e2dFG2vYXwC4jwZ2eVh1bpHQXvpLNFzT3pNH9Vz8+nS57VXf+GICQ=="
+  },
+  "bindingDigest": "b4624524bdde30a2e8caa813af2c9a1287786da236e7afc52b721ae19d3005d0",
+  "httpBody": "{\"operation\":\"fixture\"}",
+  "http": {
+    "kind": 27235,
+    "created_at": 1800000000,
+    "tags": [
+      [
+        "u",
+        "https://example.org/api/fixture"
+      ],
+      [
+        "method",
+        "POST"
+      ],
+      [
+        "payload",
+        "e982976e606bc8eeeb226a4a09e541b4521d58ee74ef8d776e5d778346a2dc5b"
+      ]
+    ],
+    "content": "",
+    "pubkey": "0a519e2ac620ad2c4690237426e43e402602f6f5f6590a5257b4062068c6beb4",
+    "id": "dae5e2dbbe7f24bcc3c73fd056c1a82d8d8ddb8b5fb02b8fddb736eb3887ed3b",
+    "sig": "e1d46b0ea1201cdcc9a6807dec28490e487eb6b8f136031b84266a2369050c26deb97acf059aa839a01943537accbbe7587ac60566dc84665ae389d986508011"
+  },
+  "message": {
+    "kind": 1,
+    "created_at": 1800000000,
+    "tags": [
+      [
+        "t",
+        "ruflo-swarm"
+      ],
+      [
+        "k",
+        "Status"
+      ],
+      [
+        "rfp",
+        "1"
+      ]
+    ],
+    "content": "{\"protocol\":\"rfp\",\"version\":1,\"type\":\"Status\",\"audience\":\"urn:example:federation:lab\",\"recipient\":\"0a519e2ac620ad2c4690237426e43e402602f6f5f6590a5257b4062068c6beb4\",\"operationId\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"expiresAt\":1800000300,\"payload\":{\"state\":\"ready\"}}",
+    "pubkey": "0a519e2ac620ad2c4690237426e43e402602f6f5f6590a5257b4062068c6beb4",
+    "id": "a6e818d730793ffb941c2a2c715333175f246040137d55158fc41b667fe68620",
+    "sig": "6f951f986883093b15e9fd875b9750d4e11c8f75efbd8708e31b04b30f873b75526c8652d24b4ed8f5fff2a9f441637a19d75e78f33af4f06242863607dadfa8"
+  },
+  "identity": {
+    "kind": 1,
+    "created_at": 1800000000,
+    "tags": [
+      [
+        "t",
+        "ruflo-swarm"
+      ],
+      [
+        "k",
+        "IdentityBinding"
+      ],
+      [
+        "rfp",
+        "1"
+      ]
+    ],
+    "content": "{\"protocol\":\"rfp\",\"version\":1,\"type\":\"IdentityBinding\",\"audience\":\"urn:example:federation:lab\",\"recipient\":\"0a519e2ac620ad2c4690237426e43e402602f6f5f6590a5257b4062068c6beb4\",\"operationId\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"expiresAt\":1800000300,\"payload\":{\"binding\":{\"id\":\"69682a8b-76e2-45e8-9b14-fd75037f4589\",\"name\":\"worker.one\",\"subject\":\"-----BEGIN PUBLIC KEY-----\\nMCowBQYDK2VwAyEAgMJWGku5NFUn1bwCmkprBqtIjF25Jv10n/JKcKDviBw=\\n-----END PUBLIC KEY-----\\n\",\"issuer\":\"-----BEGIN PUBLIC KEY-----\\nMCowBQYDK2VwAyEAhpprXiSEabBjPEAA67fxrp6VbYbxSu48GeGfxv3mJyQ=\\n-----END PUBLIC KEY-----\\n\",\"issuedAt\":1800000000000,\"expiresAt\":1800003600000,\"signature\":\"XeK8vhW3ApLB0Cg6+JY/aRjXbudosC8Y/e2dFG2vYXwC4jwZ2eVh1bpHQXvpLNFzT3pNH9Vz8+nS57VXf+GICQ==\"},\"nostrPubkey\":\"0a519e2ac620ad2c4690237426e43e402602f6f5f6590a5257b4062068c6beb4\",\"audience\":\"urn:example:federation:lab\",\"notBefore\":1800000000,\"expiresAt\":1800000300,\"subjectProof\":\"ELI/AzTfRX9TJKiNWP/4ijkY1Xh1fXGNHQSjTdwZpMyVeFcJrSTlIcntVqSeQYmN262m6L0yoD0a9+LjzXd6AQ==\"}}",
+    "pubkey": "0a519e2ac620ad2c4690237426e43e402602f6f5f6590a5257b4062068c6beb4",
+    "id": "8672378258f1953105715414fa47fdfafee2fdba0a92733cfe9dc2f8fb1064a9",
+    "sig": "369405cdded0252794863aac958505c7bed5bb9b9afa93253173cef9efd1cabebd2645287ceba58749dd8f883802959e52a167bd5b05231808139e4f1de81d06"
+  }
+}

@@ -124,3 +124,51 @@ multiple generations. Production integration requires a separately reviewed
 ADR-322 promotion gate; do not wire this learner into the daemon.
 
 See [ADR-RSI-001](../../../../docs/adr/ADR-RSI-001-bounded-optimizer-experiment.md).
+
+## MetaHarness and Autogenous cross checks
+
+`crosscheck.mjs` first replays the original RSI evidence, then executes the actual
+`@metaharness/flywheel@0.1.11` library and the Autogenous TypeScript mesh at commit
+`7bf327a9754ce798364dbee8b2825af42a421fd4`. The pinned versions are intentional;
+the script rejects a different package version or dirty/different Autogenous HEAD.
+Package version checking is not a cryptographic npm package integrity check.
+
+Recorded in [`evidence/crosscheck.json`](evidence/crosscheck.json):
+
+| Component | Executed result | What it establishes |
+|---|---|---|
+| MetaHarness | 0 improvements; all 8 replay checks pass | Its default gate rejects the recorded adverse optimizer result |
+| Autogenous mesh | 4 promotions; separation 0.6875 -> 1.25 | Bounded parameter evolution on its native fixed fixture |
+| Autogenous witness | Signed chain verifies; tamper rejected | Integrity of this generated trajectory |
+| Autogenous four-part gate | Unauthorized and irreversible attempts rejected | Gate conjunction behavior, not production authorization |
+| Autogenous Rust envelope | Not executed: Cargo unavailable | No native Rust verifier claim |
+
+The MetaHarness adapter projects recorded fresh-episode gains to `primary`, the
+fraction of zero-gain episodes to `noopRate`, and total arm evaluations per
+successful episode to `costPerWin`. It performs one candidate evaluation, not a
+new search over the observed holdout. These are synthetic proxy metrics, not
+agent completion or monetary cost. Its rejection reasons are `primary_regressed`,
+`noop_rate_not_improved`, and `cost_per_win_worsened`.
+
+Autogenous runs its existing seed-42, 30-generation, population-4 fixture twice
+and confirms equal final champions. The 81.8% separation improvement is on the
+same fixed fitness fixture used for selection, not unseen tasks. No independent
+optimizer baseline or improvement-efficiency test exists in that fixture. Its
+RVF-style JSON witness must not be called native RVF execution when
+`ledger.rvfAvailable` is false. Neither cross check changes the RSI verdict.
+
+To reproduce, install the pinned MetaHarness library in a separate scratch
+prefix, check out the pinned Autogenous revision, and install its locked
+`packages/radio-moe` dependencies with `npm ci --ignore-scripts`. Run:
+
+```bash
+node --import /ABS/autogenous/packages/radio-moe/node_modules/tsx/dist/loader.mjs \
+  v3/@claude-flow/cli/scripts/rsi/crosscheck.mjs \
+  /ABS/toolchain/node_modules/@metaharness/flywheel \
+  /ABS/autogenous /tmp/new-rsi-crosscheck.json
+```
+
+The optional cross check is not included in dependency-free CI. It accepts only
+operator-selected local package paths; those packages execute as trusted code,
+not as sandboxed candidates. No keys or tokens are read, and no experts or network
+transports are launched. Per-run signatures vary; numeric outcomes are deterministic.

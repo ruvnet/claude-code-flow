@@ -18,7 +18,12 @@ export function reduceClaims(events, now = Math.floor(Date.now() / 1000)) {
   // add an entry. Both problems disappear when nothing is inherited.
   const byRes = Object.create(null);
   for (const e of [...events].sort((a, b) => a.created_at - b.created_at)) {
-    const r = e.resourceId; if (!r) continue;
+    // `resourceId` arrives from spread JSON, so it is not necessarily a string:
+    // an array ["repo/x"] keys as 'repo/x' and squats that resource, and any
+    // object collapses to '[object Object]'. Coercion is the vulnerability, so
+    // refuse rather than coerce.
+    const r = e.resourceId;
+    if (typeof r !== 'string' || !r) continue;
     const cur = byRes[r];
     if (cur && expiresAt(cur) <= e.created_at) delete byRes[r];
     if (e.type === 'ClaimIssued') {
@@ -30,9 +35,12 @@ export function reduceClaims(events, now = Math.floor(Date.now() / 1000)) {
     if (expiresAt(c) <= now) delete byRes[r];
     else { c.expiresAt = Number.isFinite(expiresAt(c)) ? new Date(expiresAt(c) * 1000).toISOString() : null; delete c.issuedAt; }
   }
-  // Spread back to an ordinary object so the returned shape is unchanged for
-  // callers and tests. Object spread defines OWN properties, so a `__proto__`
-  // entry survives as data here rather than being re-interpreted as a prototype
-  // assignment — the fix holds through serialisation.
-  return { ...byRes };
+  // Returned with the null prototype intact. Spreading back to an ordinary
+  // object restores exactly the hazard this fixes on the READ side: `board.toString`
+  // becomes a truthy function, so a consumer asking "is this free?" with the same
+  // `!board[r]` idiom used above is told an unowned resource is owned; and
+  // `Object.assign({}, board)` or an `Object.entries` copy silently drops a
+  // `__proto__` claim. Callers serialise this (JSON.stringify and structuredClone
+  // both preserve the entries), so nothing needs the prototype.
+  return byRes;
 }

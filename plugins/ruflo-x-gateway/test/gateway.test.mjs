@@ -15,7 +15,7 @@ test('claims: first ClaimIssued wins; later claim ignored', () => {
   assert.equal(l.r1.owner, 'A');
 });
 test('claims: release by owner frees; release by non-owner ignored', () => {
-  assert.deepEqual(reduceClaims([ev('ClaimIssued', 'A', 'r1', 1), ev('ClaimReleased', 'A', 'r1', 2)]), {});
+  assert.deepEqual(Object.keys(reduceClaims([ev('ClaimIssued', 'A', 'r1', 1), ev('ClaimReleased', 'A', 'r1', 2)])), []);
   assert.equal(reduceClaims([ev('ClaimIssued', 'A', 'r1', 1), ev('ClaimReleased', 'B', 'r1', 2)]).r1.owner, 'A');
 });
 test('claims: ttl expiry frees the resource and lets a later claim win', () => {
@@ -25,11 +25,11 @@ test('claims: ttl expiry frees the resource and lets a later claim win', () => {
   // A's lease still live when B claims -> A keeps it.
   assert.equal(reduceClaims([ev('ClaimIssued', 'A', 'r1', 10, { ttlSeconds: 600 }), ev('ClaimIssued', 'B', 'r1', 100)], 150).r1.owner, 'A');
   // Disconnected worker: lease expired relative to `now`, nobody released -> resource is free.
-  assert.deepEqual(reduceClaims([ev('ClaimIssued', 'A', 'r1', 10, { ttlSeconds: 60 })], 200), {});
+  assert.deepEqual(Object.keys(reduceClaims([ev('ClaimIssued', 'A', 'r1', 10, { ttlSeconds: 60 })], 200)), []);
   // No ttl -> never expires.
   assert.equal(reduceClaims([ev('ClaimIssued', 'A', 'r1', 10)], 10_000_000).r1.owner, 'A');
   // A release of an already-expired claim is a no-op, not an error.
-  assert.deepEqual(reduceClaims([ev('ClaimIssued', 'A', 'r1', 10, { ttlSeconds: 60 }), ev('ClaimReleased', 'A', 'r1', 500)], 600), {});
+  assert.deepEqual(Object.keys(reduceClaims([ev('ClaimIssued', 'A', 'r1', 10, { ttlSeconds: 60 }), ev('ClaimReleased', 'A', 'r1', 500)], 600)), []);
 });
 test('claims: handoff only by current owner', () => {
   assert.equal(reduceClaims([ev('ClaimIssued', 'A', 'r1', 1), ev('ClaimHandoff', 'A', 'r1', 2, { toNode: 'C' })]).r1.owner, 'C');
@@ -931,4 +931,31 @@ test('a poisoned claim survives serialisation, which is what reaches consumers',
   const wire = JSON.parse(JSON.stringify(l));
   assert.deepEqual(Object.keys(wire), ['__proto__']);
   assert.equal(Object.getOwnPropertyDescriptor(wire, '__proto__').value.owner, 'A');
+});
+
+test('a non-string resourceId is refused rather than coerced into someone else\'s resource', () => {
+  // resourceId arrives from spread JSON and is not guaranteed to be a string.
+  const victim = reduceClaims([ev('ClaimIssued', 'VICTIM', 'repo/website', 10, { ttlSeconds: 600 })], 20);
+  assert.equal(victim['repo/website'].owner, 'VICTIM');
+  for (const bad of [['repo/website'], { toString: () => 'repo/website' }, 42, null, undefined, {}]) {
+    const l = reduceClaims([ev('ClaimIssued', 'VICTIM', 'repo/website', 10, { ttlSeconds: 600 }),
+                            ev('ClaimIssued', 'ATTACKER', bad, 11, { ttlSeconds: 600 })], 20);
+    assert.equal(l['repo/website'].owner, 'VICTIM', 'a coerced id must not squat a real resource');
+    assert.equal(l['[object Object]'], undefined, 'nor collapse into a shared bucket');
+  }
+});
+
+test('the board does not answer for resources nobody claimed', () => {
+  // The read-side mirror of the prototype bug: `!board[r]` is how ownership is
+  // tested, so an inherited member would report an unowned resource as owned.
+  const board = reduceClaims([ev('ClaimIssued', 'A', 'repo/x', 10, { ttlSeconds: 600 })], 20);
+  for (const unclaimed of ['toString', 'constructor', 'valueOf', 'hasOwnProperty', '__proto__']) {
+    assert.equal(board[unclaimed], undefined, `${unclaimed} was never claimed and must read as free`);
+  }
+});
+
+test('ordinary copy idioms do not lose a claim', () => {
+  const board = reduceClaims([ev('ClaimIssued', 'A', '__proto__', 10, { ttlSeconds: 600 })], 20);
+  assert.deepEqual(Object.keys({ ...board }), ['__proto__']);
+  assert.deepEqual(Object.keys(JSON.parse(JSON.stringify(board))), ['__proto__']);
 });

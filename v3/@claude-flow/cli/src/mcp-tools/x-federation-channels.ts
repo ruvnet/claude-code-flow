@@ -186,12 +186,19 @@ export const xFederationChannelTools: MCPTool[] = [
         kinds: [1], '#t': ['ruflo-swarm'], '#k': ['ChannelGrant'], '#p': [pubkey],
         since: Math.floor(Date.now() / 1000) - (i.sinceSeconds ?? 7 * 86400), limit: 200,
       }));
-      const store = readStore(); const accepted: string[] = []; const failed: string[] = [];
+      const store = readStore(); const accepted: string[] = []; const failed: string[] = []; let malformed = 0;
       for (const e of evs) {
         const ev = e as { pubkey: string; content: string };
         let body: { channel?: string; sealed?: string };
         try { body = JSON.parse(ev.content) as typeof body; } catch { continue; }
+        // `body.channel` is a string an arbitrary relay member chose. It used to
+        // reach the caller verbatim through `unopenable[]` on the failure paths
+        // below — unvalidated third-party text landing in a model's context next
+        // to this machine's key-store path. A grant whose id is not a channel id
+        // cannot be a real grant, so refuse it here and report a COUNT rather
+        // than the attacker's string.
         if (!body.channel || !body.sealed) continue;
+        if (!CHANNEL_ID_RE.test(body.channel)) { malformed += 1; continue; }
         try {
           const conv = t.nip44.v2.utils.getConversationKey(sk, ev.pubkey);
           const key = t.nip44.v2.decrypt(body.sealed, conv);
@@ -201,7 +208,9 @@ export const xFederationChannelTools: MCPTool[] = [
         } catch { failed.push(body.channel); }
       }
       if (accepted.length) writeStore(store);
-      return { pubkey, accepted: [...new Set(accepted)], unopenable: [...new Set(failed)], keyStoredAt: STORE_FILE() };
+      // Every id returned here has passed CHANNEL_ID_RE, so nothing a publisher
+      // wrote reaches the caller as free text; malformed grants are a count.
+      return { pubkey, accepted: [...new Set(accepted)], unopenable: [...new Set(failed)], malformedGrants: malformed, keyStoredAt: STORE_FILE() };
     },
   },
   {

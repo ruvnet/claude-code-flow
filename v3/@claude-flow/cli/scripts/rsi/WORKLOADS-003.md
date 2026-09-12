@@ -5,6 +5,10 @@ content-addressed Git tree inventories. This closes ambiguity about which paths
 and object identities belong to each source revision; it does not make the
 workloads executable and is not RSI evidence.
 
+Reviewed source: `cdac5dfb86ca67a43bd4d9444a54263d27d0af0e`, tree
+`b8bd2b399e6eaa85e5832364382fca846c2a2620`. Raw benchmark outcomes are in
+`evidence/public-tree-inventories.json`.
+
 `repair/public-tree-inventories.json` binds the existing workload freeze and
 partial blob-capsule manifest. Three deterministic `git ls-tree -rz` streams are
 gzip-compressed with timestamps disabled and stored as base64. The offline
@@ -29,6 +33,11 @@ seven epochs, 209,784 reserved native field calls and ledger head
 Repair evaluations, repair process starts, repair wall time, new native calls and
 external-provider spend are zero. Total acquisition and evaluation dollar costs
 remain unknown.
+
+Five isolated inventory-test runs took 5890.395 ms total and five engineering
+validation process starts. All 124 focused tests and seven historical epoch
+replays passed. MetaHarness and Autogenous were not rerun because no candidate
+outcome or descendant improvement was measured.
 
 ## Acceptance
 

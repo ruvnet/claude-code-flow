@@ -1,0 +1,59 @@
+{
+  "schema": "ruflo.public-repair-tree-inventory-evidence/v1",
+  "recordedAt": "2026-09-12T23:39:00Z",
+  "sourceCommit": "cdac5dfb86ca67a43bd4d9444a54263d27d0af0e",
+  "sourceTree": "b8bd2b399e6eaa85e5832364382fca846c2a2620",
+  "treeInventoryManifestHash": "37bc69ff40d6a0d6780b09f28b4ff5f6982a87414a37d0e41d9ee4621513c4a8",
+  "decision": "ACCEPT_SOURCE_INVENTORY_INCREMENT_ONLY",
+  "outcome": {
+    "repositories": 3,
+    "baseTreesVerified": 3,
+    "fixTreesReconstructed": 3,
+    "inventoryEntries": 12354,
+    "rawBytes": 1286134,
+    "compressedBytes": 421836,
+    "completeSourceTreePayloads": false,
+    "offlineExecutable": false,
+    "candidateExecutionEnabled": false,
+    "boundedRsiEvidenceAccepted": false
+  },
+  "verification": {
+    "focusedTestsPassed": 124,
+    "focusedTestsFailed": 0,
+    "historicalEpochsReplayed": 7,
+    "ledgerAncestryVerified": true,
+    "runs": [
+      {"run": 1, "status": 0, "elapsedMs": 1258.653, "stdoutBytes": 1241, "stderrBytes": 0},
+      {"run": 2, "status": 0, "elapsedMs": 1146.568, "stdoutBytes": 1242, "stderrBytes": 0},
+      {"run": 3, "status": 0, "elapsedMs": 1196.779, "stdoutBytes": 1242, "stderrBytes": 0},
+      {"run": 4, "status": 0, "elapsedMs": 1161.169, "stdoutBytes": 1243, "stderrBytes": 0},
+      {"run": 5, "status": 0, "elapsedMs": 1127.226, "stdoutBytes": 1243, "stderrBytes": 0}
+    ],
+    "isolatedTestWallMs": 5890.395,
+    "engineeringValidationProcessStarts": 5,
+    "metaHarnessRun": false,
+    "autogenousRun": false,
+    "omissionReason": "No candidate outcome or descendant improvement was measured; rerunning outcome checkers would add no measured value."
+  },
+  "accounting": {
+    "legacyLedgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "legacyNativeFieldCallsReserved": 209784,
+    "legacyEpochsConsumed": 7,
+    "newNativeFieldCalls": 0,
+    "repairCandidateEvaluations": 0,
+    "repairProcessStarts": 0,
+    "repairWallMs": 0,
+    "externalProviderSpendUsd": 0,
+    "totalAcquisitionUsd": null,
+    "totalEvaluationUsd": null
+  },
+  "largestUncertainty": "Whether inherited descendants improve their ability to produce further improvements on unseen repository tasks.",
+  "remainingBlockers": [
+    "COMPLETE_SOURCE_TREE_BLOB_PAYLOADS",
+    "OFFLINE_DEPENDENCY_CLOSURES",
+    "PINNED_TOOLCHAINS",
+    "EVALUATOR_AUTHORED_HIDDEN_DEVELOPMENT_TESTS",
+    "REVIEWED_ISOLATED_CANDIDATE_EXECUTOR",
+    "OPERATOR_APPROVED_REPAIR_RESOURCE_ENVELOPE"
+  ]
+}

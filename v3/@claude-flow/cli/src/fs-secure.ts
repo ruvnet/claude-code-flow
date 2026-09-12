@@ -193,7 +193,9 @@ export function readFileMaybeEncrypted(
   const raw = readFileSync(path);
   let plain: Buffer;
   if (isEncryptedBlob(raw)) {
-    plain = decryptBuffer(raw, getKey());
+    // 'decrypt': the blob on disk is RFE1-encrypted but the enable flag may
+    // be unset (e.g. store restored from another machine) — see #3212.
+    plain = decryptBuffer(raw, getKey('decrypt'));
   } else {
     plain = raw;
   }

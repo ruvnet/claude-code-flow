@@ -27,6 +27,11 @@ local execution was below one second, not a latency guarantee.
 
 ## Run and verify
 
+The [continuing research loop](LOOP.md) adds durable reservations, native RuFlo
+retrieval experiments, plateau detection and an independent confirmation contract.
+Its first 36 candidate evaluations found no improvement because the development
+baseline already scored MRR 1.0. That pilot validates mechanics, not RSI efficacy.
+
 The prospective [generalization experiment](GENERALIZATION.md) retains this
 learner unchanged and tests four training-excluded families at three checkpoints.
 Public source registration preceded its first official run. **0/36 gates passed**

@@ -34,3 +34,20 @@ jobs:
           node v3/@claude-flow/cli/scripts/rsi/generalization.mjs replay
           v3/@claude-flow/cli/scripts/rsi/evidence/generalization.json
           v3/@claude-flow/cli/scripts/rsi/evidence/generalization-public.pem
+  research-loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Durable loop, native retrieval and adversarial proof tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/loop/loop.test.mjs
+      - name: Replay the anchored native development ledger
+        run: >-
+          node v3/@claude-flow/cli/scripts/rsi/loop/run.mjs replay
+          v3/@claude-flow/cli/scripts/rsi/evidence/loop-development
+          c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088

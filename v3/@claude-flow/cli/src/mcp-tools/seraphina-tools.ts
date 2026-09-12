@@ -9,6 +9,7 @@
  * assignments). Proposals are advisory unless an admin explicitly publishes them.
  */
 import type { MCPTool } from './types.js';
+import { relayPayload } from './x-federation-tools.js';
 
 // ADR-125 precedence: explicit tool args (metaLlmUrl / gatewayUrl) take precedence over the
 // SERAPHINA_METALLM_URL / RUFLO_X_GATEWAY_URL env vars, which precede the defaults.
@@ -27,14 +28,18 @@ async function gatewayRead(uri: string, gatewayUrl?: string): Promise<unknown> {
     body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method: 'resources/read', params: { uri } }), signal: AbortSignal.timeout(25_000) });
   const text = await res.text(); const line = text.split('\n').find((l) => l.startsWith('data:'));
   const p = JSON.parse(line ? line.slice(5) : text) as { result?: { contents?: Array<{ text?: string }> } };
-  return JSON.parse(p.result?.contents?.[0]?.text ?? '{}');
+  // roster and claims are relay-sourced and therefore fenced (#3300). These values
+  // are indexed directly below, so take the payload, not the envelope.
+  return relayPayload(p.result?.contents?.[0]?.text ?? '{}');
 }
 async function gatewaySync(sinceSeconds: number, limit: number, gatewayUrl?: string): Promise<unknown> {
   const res = await fetch(`${GATEWAY(gatewayUrl)}/mcp`, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
     body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method: 'tools/call', params: { name: 'federation_sync', arguments: { sinceSeconds, limit } } }), signal: AbortSignal.timeout(25_000) });
   const text = await res.text(); const line = text.split('\n').find((l) => l.startsWith('data:'));
   const p = JSON.parse(line ? line.slice(5) : text) as { result?: { content?: Array<{ text?: string }> } };
-  return JSON.parse(p.result?.content?.[0]?.text ?? '{}');
+  // federation_sync is relay-sourced and therefore fenced (#3300); `.messages` is
+  // read directly below, so an envelope here would silently mean "empty swarm".
+  return relayPayload(p.result?.content?.[0]?.text ?? '{}');
 }
 
 export async function askSeraphina(goal: string, opts: { tier?: string; sinceSeconds?: number; limit?: number; gatewayUrl?: string; metaLlmUrl?: string } = {}): Promise<Record<string, unknown>> {

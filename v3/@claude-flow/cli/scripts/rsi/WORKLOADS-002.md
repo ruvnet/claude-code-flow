@@ -6,6 +6,9 @@ artifact-integrity engineering, not a repair result or evidence of RSI.
 
 Capsule manifest hash:
 `f581dc26bee0d8ff03460c2734e29a236ce14596af65b652f48eb3b62bb77d2c`.
+Reviewed source is `2c59b2e80bb22551d1e451f5ffc03c34126c841c`, tree
+`9de764e43d9a850b056ede685c2e91971f6dc268`. Raw verification measurements
+are preserved in `evidence/public-capsule-check.json`.
 It remains bound to workload freeze
 `4f6cb0b90be2b8de5c438a637164bdc483ec2cf83bdd982e9121dc7a2a20307e`
 and its reviewed source commit

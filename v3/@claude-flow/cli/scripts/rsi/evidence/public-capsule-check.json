@@ -1,0 +1,86 @@
+{
+  "schema": "ruflo.public-repair-source-capsule-evidence/v1",
+  "sourceCommit": "2c59b2e80bb22551d1e451f5ffc03c34126c841c",
+  "sourceTree": "9de764e43d9a850b056ede685c2e91971f6dc268",
+  "sourceTreeReadbackVerified": true,
+  "capsuleManifestHash": "f581dc26bee0d8ff03460c2734e29a236ce14596af65b652f48eb3b62bb77d2c",
+  "workloadManifestHash": "4f6cb0b90be2b8de5c438a637164bdc483ec2cf83bdd982e9121dc7a2a20307e",
+  "mirroring": {
+    "workloads": 3,
+    "repositories": 3,
+    "blobFiles": 23,
+    "decodedBytes": 289533,
+    "encodedBytesInGitTree": 391171,
+    "changedSourceAndTestsCovered": true,
+    "licensesCovered": true,
+    "packageManifestsCovered": true,
+    "dependencyLocksCovered": false,
+    "completeSourceTrees": false,
+    "completeDependencyClosures": false,
+    "offlineExecutable": false
+  },
+  "verification": {
+    "newAdversarialTests": 15,
+    "isolatedRuns": [
+      {
+        "iteration": 1,
+        "wallMs": 242.174
+      },
+      {
+        "iteration": 2,
+        "wallMs": 255.109
+      },
+      {
+        "iteration": 3,
+        "wallMs": 266.665
+      },
+      {
+        "iteration": 4,
+        "wallMs": 245.861
+      },
+      {
+        "iteration": 5,
+        "wallMs": 247.344
+      }
+    ],
+    "isolatedRunsTotalWallMs": 1257.153,
+    "isolatedDriverProcessStarts": 5,
+    "isolatedNestedCliProcessStarts": 5,
+    "focusedTestsTotal": 109,
+    "focusedTestsPassed": 109,
+    "focusedSuiteReportedDurationMs": 43089.109,
+    "historicalEpochsReplayed": 7,
+    "legacyOriginalAnchorVerified": true,
+    "legacyHeadVerified": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "legacyNativeFieldCallsReserved": 209784
+  },
+  "costs": {
+    "externalProviderSpendUsd": 0,
+    "totalAcquisitionUsd": null,
+    "totalEvaluationUsd": null,
+    "measurementScope": "Five isolated runs execute the 15 capsule tests and one nested read-only CLI inspection each. The focused-suite duration is Node's reported duration. Research, code generation, prior Git acquisition, review, GitHub API operations and CI are excluded."
+  },
+  "missionResourceDelta": {
+    "epochs": 0,
+    "nativeFieldCalls": 0,
+    "repairCandidateEvaluations": 0,
+    "repairProcessStarts": 0,
+    "repairWallMs": 0
+  },
+  "fixesExposed": true,
+  "sealedEvaluation": false,
+  "clusterIndependenceReviewed": false,
+  "candidateAdmissible": false,
+  "candidateExecutionEnabled": false,
+  "boundedRsiEvidenceAccepted": false,
+  "blockers": [
+    "COMPLETE_CONTENT_ADDRESSED_SOURCE_TREES",
+    "DEPENDENCY_LOCK_PAYLOADS",
+    "OFFLINE_DEPENDENCY_CLOSURES",
+    "PINNED_TOOLCHAINS",
+    "EVALUATOR_AUTHORED_HIDDEN_DEVELOPMENT_TESTS",
+    "REVIEWED_ISOLATED_CANDIDATE_EXECUTOR",
+    "OPERATOR_APPROVED_REPAIR_RESOURCE_ENVELOPE"
+  ],
+  "decision": "Accept verified partial source capsules as an artifact-integrity increment. Do not execute candidates or treat exposed known fixes as sealed evidence."
+}

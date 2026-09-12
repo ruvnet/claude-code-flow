@@ -105,6 +105,18 @@ describe('resolveAutoMemoryDir', () => {
     expect(result).not.toContain('RX_ERP');
   });
 
+  it('should normalize a colon to a dash, as a Windows drive letter needs (issue #3303)', () => {
+    // Claude Code replaces the colon too: a git root of D:\projects\elearning\v3_26
+    // maps to D--projects-elearning-v3-26. A colon is not legal inside a Windows path
+    // segment, so leaving it there made ensureMemoryDir() throw ENOENT and doSync()
+    // swallow it as "Sync failed (non-critical)" — the sync never ran on Windows.
+    //
+    // Driven with an absolute path that no repository sits above, so findGitRoot
+    // returns null on every platform and the key comes from the input alone.
+    const result = resolveAutoMemoryDir('/3303-not-a-repo/drive:d/v3_26');
+    expect(path.basename(path.dirname(result))).toBe('-3303-not-a-repo-drive-d-v3-26');
+  });
+
   it('should produce consistent paths for same input', () => {
     const a = resolveAutoMemoryDir('/workspaces/my-project');
     const b = resolveAutoMemoryDir('/workspaces/my-project');

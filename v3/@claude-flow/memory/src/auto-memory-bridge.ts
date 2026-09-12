@@ -797,11 +797,15 @@ export function resolveAutoMemoryDir(workingDir: string): string {
   const gitRoot = findGitRoot(workingDir);
   const basePath = gitRoot || workingDir;
 
-  // Claude Code normalizes to forward slashes then replaces both `/` and `_`
+  // Claude Code normalizes to forward slashes then replaces `/`, `_` and `:`
   // with dashes (e.g. /workspaces/RX_ERP -> -workspaces-RX-ERP). The leading
-  // dash IS preserved.
+  // dash IS preserved. The colon matters on Windows: a drive letter survived as
+  // `D:-projects-...`, which is not a legal path segment there, so
+  // ensureMemoryDir() failed with ENOENT and doSync() swallowed it as
+  // "Sync failed (non-critical)" — the sync had never run on Windows. Claude
+  // Code writes `D--projects-...`, both characters replaced (#3303).
   const normalized = basePath.split(path.sep).join('/');
-  const projectKey = normalized.replace(/[\/_]/g, '-');
+  const projectKey = normalized.replace(/[\/_:]/g, '-');
 
   return path.join(
     process.env.HOME || process.env.USERPROFILE || '~',

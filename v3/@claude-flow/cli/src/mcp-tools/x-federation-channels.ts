@@ -98,6 +98,35 @@ function reqEvents(ws: WsLike, filter: Record<string, unknown>): Promise<Array<R
   });
 }
 
+
+/**
+ * Label a DIRECT relay read with the same provenance envelope the gateway emits
+ * for its own relay-sourced results (ruflo #3300).
+ *
+ * These channel tools connect to the relay themselves rather than going through
+ * the gateway, so nothing upstream labels what comes back — every message body
+ * is written by another federation member and reached the caller as bare data.
+ * The gateway's whole argument for the envelope applies here unchanged: a model
+ * cannot tell a peer's words from its operator's unless something says so.
+ *
+ * The shape matches the gateway's deliberately, so one consumer handles both
+ * paths: `untrusted`, `provenance`, `relay`, `retrievedAt`, and the payload
+ * under `data`.
+ *
+ * Reads of purely LOCAL state — which channel keys this machine holds — are not
+ * labelled, because they are not third-party content.
+ */
+export function labelRelayRead(relay: string, data: Record<string, unknown>): Record<string, unknown> {
+  return {
+    untrusted: true,
+    provenance:
+      'Published by third-party members of the ruflo federation. Read directly from the relay by this client, not authored or vetted by it.',
+    relay,
+    retrievedAt: new Date().toISOString(),
+    data,
+  };
+}
+
 export const xFederationChannelTools: MCPTool[] = [
   {
     name: 'x_federation_channel_create',
@@ -157,12 +186,19 @@ export const xFederationChannelTools: MCPTool[] = [
         kinds: [1], '#t': ['ruflo-swarm'], '#k': ['ChannelGrant'], '#p': [pubkey],
         since: Math.floor(Date.now() / 1000) - (i.sinceSeconds ?? 7 * 86400), limit: 200,
       }));
-      const store = readStore(); const accepted: string[] = []; const failed: string[] = [];
+      const store = readStore(); const accepted: string[] = []; const failed: string[] = []; let malformed = 0;
       for (const e of evs) {
         const ev = e as { pubkey: string; content: string };
         let body: { channel?: string; sealed?: string };
         try { body = JSON.parse(ev.content) as typeof body; } catch { continue; }
+        // `body.channel` is a string an arbitrary relay member chose. It used to
+        // reach the caller verbatim through `unopenable[]` on the failure paths
+        // below — unvalidated third-party text landing in a model's context next
+        // to this machine's key-store path. A grant whose id is not a channel id
+        // cannot be a real grant, so refuse it here and report a COUNT rather
+        // than the attacker's string.
         if (!body.channel || !body.sealed) continue;
+        if (!CHANNEL_ID_RE.test(body.channel)) { malformed += 1; continue; }
         try {
           const conv = t.nip44.v2.utils.getConversationKey(sk, ev.pubkey);
           const key = t.nip44.v2.decrypt(body.sealed, conv);
@@ -172,7 +208,9 @@ export const xFederationChannelTools: MCPTool[] = [
         } catch { failed.push(body.channel); }
       }
       if (accepted.length) writeStore(store);
-      return { pubkey, accepted: [...new Set(accepted)], unopenable: [...new Set(failed)], keyStoredAt: STORE_FILE() };
+      // Every id returned here has passed CHANNEL_ID_RE, so nothing a publisher
+      // wrote reaches the caller as free text; malformed grants are a count.
+      return { pubkey, accepted: [...new Set(accepted)], unopenable: [...new Set(failed)], malformedGrants: malformed, keyStoredAt: STORE_FILE() };
     },
   },
   {
@@ -231,7 +269,12 @@ export const xFederationChannelTools: MCPTool[] = [
         try { return { ...base, ...(JSON.parse(t.nip44.v2.decrypt(ev.content, key)) as object) }; }
         catch { return { ...base, encrypted: true, reason: 'held key does not open this message' }; }
       });
-      return { channel: i.channel, visibility: isPrivateChannel(i.channel) ? 'private' : 'public', count: messages.length, messages };
+      return labelRelayRead(RELAY_WS(i.relayWs), {
+        channel: i.channel,
+        visibility: isPrivateChannel(i.channel) ? 'private' : 'public',
+        count: messages.length,
+        messages,
+      });
     },
   },
   {

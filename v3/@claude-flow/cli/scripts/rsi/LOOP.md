@@ -68,6 +68,14 @@ Git trees listed in `evidence/loop-sources.json`, verifies their original ledger
 prefixes, then verifies the current-source suffix and requires exact epoch coverage.
 The existing ledger is never initialized again.
 
+Result: epoch 4 stopped this hypothesis at the unchanged plateau gate. Baseline
+training MRR was 0.388156 and selection MRR was 0.383092. The adaptive proposer
+retained the root with zero gain. Static reached selection MRR 0.458503, gaining
+0.075411 under the same 8,040-call probe budget. Frozen, shuffled and previous
+also had zero gain; their uniform credits produced the same candidates as adaptive.
+This is useful negative evidence about proposal coverage, not evidence against
+all adaptive optimization. See [LOOP-002.md](LOOP-002.md) for costs and next hypothesis.
+
 Use Node 24 and a Git checkout containing the pinned corpus commit. No install,
 provider credential, daemon, network or model call is required for the native pilot.
 
@@ -76,14 +84,14 @@ provider credential, daemon, network or model call is required for the native pi
 node v3/@claude-flow/cli/scripts/rsi/loop/run.mjs status \
   v3/@claude-flow/cli/scripts/rsi/evidence/loop-development
 
-# Up to eight bounded epochs. Stops on plateau or the lifetime resource ceiling.
+# At most three epochs for a reviewed hypothesis. Stops on plateau or the lifetime ceiling.
 node v3/@claude-flow/cli/scripts/rsi/loop/run.mjs run \
-  v3/@claude-flow/cli/scripts/rsi/evidence/loop-development 8
+  v3/@claude-flow/cli/scripts/rsi/evidence/loop-development 3
 
 # Validate the anchored chain and recompute native scores, candidates and credit.
-node v3/@claude-flow/cli/scripts/rsi/loop/run.mjs replay \
+node v3/@claude-flow/cli/scripts/rsi/loop/replay-history.mjs \
   v3/@claude-flow/cli/scripts/rsi/evidence/loop-development \
-  c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088
+  98fbc3753edc28a14882e0f090177b69dd9c2b13c01506ea0ba5cd4a5e0719ec
 
 node --test v3/@claude-flow/cli/scripts/rsi/loop/loop.test.mjs
 ```

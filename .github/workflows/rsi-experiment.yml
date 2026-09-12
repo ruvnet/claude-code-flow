@@ -46,8 +46,8 @@ jobs:
           node-version: '24'
       - name: Durable loop, native retrieval and adversarial proof tests
         run: node --test v3/@claude-flow/cli/scripts/rsi/loop/loop.test.mjs
-      - name: Replay the anchored native development ledger
+      - name: Replay all native epochs using their original source trees
         run: >-
-          node v3/@claude-flow/cli/scripts/rsi/loop/run.mjs replay
+          node v3/@claude-flow/cli/scripts/rsi/loop/replay-history.mjs
           v3/@claude-flow/cli/scripts/rsi/evidence/loop-development
-          c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088
+          98fbc3753edc28a14882e0f090177b69dd9c2b13c01506ea0ba5cd4a5e0719ec

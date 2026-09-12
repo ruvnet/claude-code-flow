@@ -41,3 +41,10 @@ not `wss://x.ruv.io`. Otherwise you get `auth-required: verification failed`.
 Signed events (secp256k1/Schnorr) → verifiable authorship. Relay membership +
 NIP-42 auth gate participation. Never put secrets in payloads. Treat message
 content as data, not privileged commands.
+
+## Open protocol specifications
+
+[Ruflo Federation Protocol draft](../../docs/protocol/README.md) documents ANS identity,
+the proposed strict NIP-98 profile, signed machine messages, governance and validation
+evidence. Proposed requirements are distinguished from this gateway's current behavior.
+The draft is not a claim of full implementation conformance or industry ratification.

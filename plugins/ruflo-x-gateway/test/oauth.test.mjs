@@ -47,8 +47,8 @@ async function withGateway(as, fn) {
   }
 }
 
-const call = (port, name, args = {}, headers = {}) =>
-  fetch(`http://127.0.0.1:${port}/mcp`, { method: 'POST',
+const call = (port, name, args = {}, headers = {}, path = '/mcp') =>
+  fetch(`http://127.0.0.1:${port}${path}`, { method: 'POST',
     headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', ...headers },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }) })
   .then(async (r) => {
@@ -76,6 +76,34 @@ test('discovery echoes the identifier the client asked about', async () => {
       assert.deepEqual(bare.authorization_servers, [as.issuer]);
       const sfx = await (await fetch(`http://127.0.0.1:${port}/.well-known/oauth-protected-resource/mcp`)).json();
       assert.equal(sfx.resource, 'https://x.example/mcp');
+      const chatgpt = await (await fetch(`http://127.0.0.1:${port}/.well-known/oauth-protected-resource/chatgpt/mcp`)).json();
+      assert.equal(chatgpt.resource, 'https://x.example/chatgpt/mcp');
+      assert.deepEqual(chatgpt.authorization_servers, [as.issuer]);
+    });
+  } finally { as.close(); }
+});
+
+test('an anonymous ChatGPT-profile write returns an HTTP OAuth challenge', async () => {
+  const as = await fakeAuthServer();
+  try {
+    await withGateway(as, async (port) => {
+      const r = await call(port, 'federation_publish', { msgType: 'Status', payload: {} }, {}, '/chatgpt/mcp');
+      assert.equal(r.status, 401);
+      assert.match(r.wwwAuth || '', /oauth-protected-resource\/chatgpt\/mcp/);
+      assert.match(r.body?.error || '', /invalid_request/);
+    });
+  } finally { as.close(); }
+});
+
+test('a swarm:publish token authorises a ChatGPT-profile write without a tool secret', async () => {
+  const as = await fakeAuthServer();
+  try {
+    await withGateway(as, async (port) => {
+      const tok = await as.mint({ scope: `${SCOPE_READ} ${SCOPE_PUBLISH}`, audience: CLIENT_ID });
+      const r = await call(port, 'federation_publish', { msgType: 'Status', payload: {} },
+        { authorization: `Bearer ${tok}` }, '/chatgpt/mcp');
+      assert.notEqual(r.status, 401);
+      assert.doesNotMatch(toolText(r), /no write credential|admin token required|lacks swarm:publish/);
     });
   } finally { as.close(); }
 });
@@ -250,17 +278,24 @@ test('a dynamically registered client\'s token is accepted; a stranger\'s is not
   } finally { as.close(); }
 });
 
-test('GET /mcp is refused immediately instead of hanging a stateless stream', async () => {
-  // It used to hold the socket until Cloud Run severed it at 300s, so a client
-  // probing GET waited five minutes instead of failing in milliseconds.
+test('GET /mcp serves finite JSON by default and finite SSE when requested', async () => {
   const as = await fakeAuthServer();
   try {
     await withGateway(as, async (port) => {
       const t0 = Date.now();
-      const r = await fetch(`http://127.0.0.1:${port}/mcp`, { headers: { accept: 'text/event-stream' } });
-      assert.equal(r.status, 405);
-      assert.match(r.headers.get('allow') || '', /POST/);
-      assert.ok(Date.now() - t0 < 2000, 'must answer immediately, not hold the stream open');
+      const json = await fetch(`http://127.0.0.1:${port}/mcp`);
+      assert.equal(json.status, 200);
+      assert.match(json.headers.get('content-type') || '', /application\/json/);
+      const doc = await json.json();
+      assert.equal(doc.transport, 'streamable-http');
+      assert.deepEqual(doc.methods, ['POST']);
+      assert.ok(Array.isArray(doc.servers));
+
+      const sse = await fetch(`http://127.0.0.1:${port}/mcp`, { headers: { accept: 'text/event-stream' } });
+      assert.equal(sse.status, 200);
+      assert.match(sse.headers.get('content-type') || '', /text\/event-stream/);
+      assert.match(await sse.text(), /^: /);
+      assert.ok(Date.now() - t0 < 2000, 'both GET responses must complete immediately');
     });
   } finally { as.close(); }
 });

@@ -6,16 +6,30 @@ import { existsSync, readFileSync } from 'node:fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// #2256 fast path: --version / -V must NOT trigger heavy imports (the
-// downstream @claude-flow/cli dist eagerly loads ruvector + a 23 MB ONNX
-// model on cold cache, blocking 60+ s and causing SIGTERM under common
-// timeout windows: npx default, MCP stdio 30s window). Resolve version
+// #2256 / #2561 fast path: --version / -V must NOT trigger heavy imports
+// (the downstream @claude-flow/cli dist eagerly loads ruvector + a 23 MB
+// ONNX model on cold cache, blocking 60+ s and causing SIGTERM under
+// common timeout windows: npx default, MCP stdio 30 s). Resolve version
 // from this wrapper's own package.json and exit before any heavy import.
 // (bin/cli.js has the same guard for the direct path; needed here too
 // because the wrapper imports dist/src/index.js, bypassing bin/cli.js.)
+//
+// #2561 broadened the guard so `--version --no-color`, `--version --quiet`,
+// `--version --format=json`, etc. still hit the fast path. Any argv that
+// contains `--version` or `-V` with NO positional command-name token
+// before it is treated as a version query. See `src/cli-fast-paths.ts`
+// (`isVersionFastPath`) in @claude-flow/cli for the tested reference
+// implementation — this inline copy must match it.
 {
   const _argv = process.argv.slice(2);
-  if (_argv.length === 1 && (_argv[0] === '--version' || _argv[0] === '-V')) {
+  let _isVersion = false;
+  for (const a of _argv) {
+    if (a === '--version' || a === '-V') { _isVersion = true; break; }
+    if (a === '--') break;             // POSIX end-of-flags separator
+    if (a.startsWith('-')) continue;   // any other flag/option token
+    break;                             // positional (command) — defer to parser
+  }
+  if (_isVersion) {
     try {
       const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));
       process.stdout.write(`ruflo v${pkg.version || '0.0.0'}\n`);

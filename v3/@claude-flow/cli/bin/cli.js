@@ -117,14 +117,32 @@ console.log = (...args) => {
   _origLog.apply(console, args);
 };
 
-// #2256 fast path: --version / -V / --help / -h must NOT trigger heavy
-// imports (agentic-flow, ruvector ONNX, etc.) — those eagerly download a
-// 23 MB ONNX model on cold cache, blocking 60+ s and causing SIGTERM
-// under common timeout windows (npx default, MCP stdio 30 s). Resolve
-// version directly from package.json and exit before any heavy import.
+// #2256 / #2561 fast path: --version / -V must NOT trigger heavy imports
+// (agentic-flow, ruvector ONNX, etc.) — those eagerly download a 23 MB
+// ONNX model on cold cache, blocking 60+ s and causing SIGTERM under
+// common timeout windows (npx default, MCP stdio 30 s). Resolve version
+// directly from package.json and exit before any heavy import.
+//
+// #2561 broadened the guard so callers passing `--version` alongside
+// benign presentation flags (`--no-color`, `--quiet`, `--format=json`)
+// still hit the fast path. Prior single-arg check missed those and fell
+// through to the full CLI import, timing out the verification harness.
+//
+// Match rule: any argv containing `--version` or `-V` with NO positional
+// command-name token before it is treated as a version query. See
+// `src/cli-fast-paths.ts` (`isVersionFastPath`) for the tested reference
+// implementation — this inline copy must match it. Kept inline because
+// the whole point is to avoid importing anything from the dist bundle.
 {
   const _argv = process.argv.slice(2);
-  if (_argv.length === 1 && (_argv[0] === '--version' || _argv[0] === '-V')) {
+  let _isVersion = false;
+  for (const a of _argv) {
+    if (a === '--version' || a === '-V') { _isVersion = true; break; }
+    if (a === '--') break;             // POSIX end-of-flags separator
+    if (a.startsWith('-')) continue;   // any other flag/option token
+    break;                             // positional (command) — defer to parser
+  }
+  if (_isVersion) {
     try {
       const __dirname = dirname(fileURLToPath(import.meta.url));
       const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));

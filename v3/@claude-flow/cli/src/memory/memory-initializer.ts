@@ -2077,13 +2077,17 @@ export async function checkMemoryInitialization(dbPath?: string): Promise<{
     return { initialized: false };
   }
 
+  // #3249: declared outside the try so the handle can be released on the
+  // failure path as well as the success path.
+  let db: any;
+
   try {
     // Try to load with sql.js
     const initSqlJs = (await import('sql.js')).default;
     const SQL = await initSqlJs();
 
     const fileBuffer = fs.readFileSync(path_);
-    const db = new SQL.Database(fileBuffer);
+    db = new SQL.Database(fileBuffer);
 
     // Check for metadata table
     const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table'");
@@ -2102,8 +2106,6 @@ export async function checkMemoryInitialization(dbPath?: string): Promise<{
       // Metadata table might not exist
     }
 
-    db.close();
-
     return {
       initialized: true,
       version,
@@ -2118,6 +2120,19 @@ export async function checkMemoryInitialization(dbPath?: string): Promise<{
   } catch {
     // Could not read database
     return { initialized: false };
+  } finally {
+    // #3249: release the handle on every path. An RFE1-encrypted image is not
+    // parseable as SQLite, so the schema query above throws and the catch
+    // returns — which used to skip the inline db.close() entirely, leaving the
+    // sql.js Database and its MEMFS copy open for the life of the process.
+    // Every memory MCP tool call runs this check, so a long session accumulates
+    // one unclosed handle per call. Measured retention is a few hundred KiB per
+    // leaked handle (it does not scale with image size).
+    try {
+      db?.close();
+    } catch {
+      // Already closed, or never successfully constructed.
+    }
   }
 }
 

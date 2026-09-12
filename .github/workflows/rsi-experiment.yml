@@ -1,0 +1,31 @@
+name: bounded-rsi-experiment
+on:
+  pull_request:
+    paths:
+      - 'v3/@claude-flow/cli/scripts/rsi/**'
+      - 'v3/docs/adr/ADR-RSI-001-bounded-optimizer-experiment.md'
+      - '.github/workflows/rsi-experiment.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'v3/@claude-flow/cli/scripts/rsi/**'
+      - '.github/workflows/rsi-experiment.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unit and adversarial tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/experiment.test.mjs
+      - name: Recompute signed evidence (NULL is a valid research outcome)
+        run: >-
+          node v3/@claude-flow/cli/scripts/rsi/run.mjs replay
+          --bundle v3/@claude-flow/cli/scripts/rsi/evidence/default.json
+          --public-key v3/@claude-flow/cli/scripts/rsi/evidence/public.pem

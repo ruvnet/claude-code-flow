@@ -30,17 +30,52 @@ async function gatewayRpc(method: string, params: Record<string, unknown>, gatew
   if (payload.error) throw new Error(`x.ruv.io: ${payload.error.message ?? 'rpc error'}`);
   return payload.result;
 }
+/**
+ * Relay-sourced gateway responses are not bare JSON. Since #3300 the gateway
+ * wraps anything published by other federation members in a provenance envelope
+ * (plugins/ruflo-x-gateway/src/untrusted.mjs): several lines of gateway-authored
+ * prose, then the JSON body between a matched
+ * `<<<UNTRUSTED_RELAY_DATA <uuid>>>>` / `<<<END_UNTRUSTED_RELAY_DATA <uuid>>>>`
+ * pair. `JSON.parse` on the whole string fails on the first prose word, which is
+ * the `Unexpected token 'T', "The block "...` seen from every federation read.
+ *
+ * The token is a per-response UUID precisely so a publisher — who writes their
+ * message before the response exists — cannot close the block early. The
+ * backreference below is what enforces that: a forged END marker carrying any
+ * other token does not terminate the region, so hostile content cannot make
+ * later text read as gateway narration.
+ *
+ * We deliberately return the WHOLE envelope (`untrusted`, `provenance`, `relay`,
+ * `retrievedAt`, `data`) rather than lifting `data` out of it. The point of the
+ * envelope is that a caller can tell whose words these are; quietly unwrapping to
+ * the payload would restore valid JSON by discarding the labelling that made it
+ * safe to read. Unfenced responses (the registry resource, gateway-authored
+ * errors) parse unchanged.
+ */
+const UNTRUSTED_FENCE =
+  /<<<UNTRUSTED_RELAY_DATA ([0-9a-fA-F-]{36})>>>\n([\s\S]*?)\n<<<END_UNTRUSTED_RELAY_DATA \1>>>/;
+
+export function parseGatewayText(text: string): Record<string, unknown> {
+  const fenced = UNTRUSTED_FENCE.exec(text);
+  if (fenced) return JSON.parse(fenced[2]) as Record<string, unknown>;
+  // An opening marker with no matching close is a truncated or tampered response.
+  // Fail loudly: parsing the remainder would silently drop relay content.
+  if (text.includes('<<<UNTRUSTED_RELAY_DATA ')) {
+    throw new Error('x.ruv.io: untrusted-data envelope is unterminated (truncated or tampered response)');
+  }
+  return JSON.parse(text) as Record<string, unknown>;
+}
+
 async function gatewayTool(name: string, args: Record<string, unknown>): Promise<unknown> {
   const { gatewayUrl, ...rest } = args;
   const r = (await gatewayRpc('tools/call', { name, arguments: rest }, gatewayUrl)) as { content?: Array<{ text?: string }>; isError?: boolean };
-  const text = r.content?.[0]?.text ?? '{}';
-  const parsed = JSON.parse(text) as Record<string, unknown>;
+  const parsed = parseGatewayText(r.content?.[0]?.text ?? '{}');
   if (r.isError || parsed.error) throw new Error(String(parsed.error ?? 'gateway tool error'));
   return parsed;
 }
 async function gatewayResource(uri: string, gatewayUrl?: unknown): Promise<unknown> {
   const r = (await gatewayRpc('resources/read', { uri }, gatewayUrl)) as { contents?: Array<{ text?: string }> };
-  return JSON.parse(r.contents?.[0]?.text ?? '{}');
+  return parseGatewayText(r.contents?.[0]?.text ?? '{}');
 }
 // Credential: intentionally env-only (a secret must never be a CLI flag — it would land in
 // shell history / process lists). Registered in scripts/audit-env-var-precedence.mjs.

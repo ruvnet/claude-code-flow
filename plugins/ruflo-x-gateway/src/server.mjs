@@ -1,12 +1,17 @@
 // x.ruv.io gateway — MCP server for ruflo swarm federation + claims over an
 // open (membership-gated, signed) Nostr relay.
 //   GET  /health, GET /            → probes / info
-//   POST /mcp                      → MCP (Streamable HTTP, stateless)
+//   POST /mcp                      → MCP (Streamable HTTP, stateless) — FULL surface
+//   POST /chatgpt/mcp              → MCP, public-review profile: no membership
+//                                     administration, and no tool accepts a secret
+//   GET  /privacy /terms /support  → public pages required by the OpenAI app review
+//   GET  /.well-known/openai-apps-challenge → domain-control proof, from env only
 //   WS   / , /relay                → transparent proxy to the Nostr relay
 // Security model: READ tools/resources are open. Any tool that WRITES using the
 // gateway's own identity (join/publish/claims/mint/admit) requires `adminToken`
 // (constant-time checked). Users publish with THEIR OWN keys via invite→claim.
 import { createServer } from 'node:http';
+import { readFileSync } from 'node:fs';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
@@ -18,6 +23,26 @@ import { mintInvite, admitMember } from './relay-admin.mjs';
 import { attachWsProxy } from './ws-proxy.mjs';
 import { onboardingGuide } from './onboarding.mjs';
 import { askSeraphina } from './seraphina.mjs';
+import { privacyPage, termsPage, supportPage } from './public-pages.mjs';
+
+// Static public pages the OpenAI app review requires. Rendered once at module
+// load — they have no per-request state.
+const SUPPORT_LINKS = {
+  repoUrl: 'https://github.com/ruvnet/ruflo',
+  issuesUrl: 'https://github.com/ruvnet/ruflo/issues',
+  contactEmail: 'ruv@ruv.net',
+};
+const PUBLIC_PAGES = {
+  '/privacy': () => privacyPage(),
+  '/terms': () => termsPage(),
+  '/support': () => supportPage(SUPPORT_LINKS),
+};
+
+// The version had THREE hardcoded copies — two here, one asserted in the test —
+// and they had already drifted (source said 0.7.1, the test still asserted
+// 0.7.0, so the suite shipped red). package.json is the one real source of
+// truth; read it rather than keeping a fourth copy in sync by hand.
+export const VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 
 export function createGateway({ relay, keyFile, port } = {}) {
   const RELAY = relay || process.env.RUFLO_RELAY_URL || 'wss://relay.ruv.io';
@@ -29,6 +54,33 @@ export function createGateway({ relay, keyFile, port } = {}) {
   const denied = () => ({ isError: true, content: [{ type: 'text', text: JSON.stringify({ error: 'admin token required or invalid' }) }] });
   const gated = (fn) => async (args) => (checkAdmin(args.adminToken) ? fn(args) : denied());
   const adminArg = { adminToken: z.string().describe('Gateway admin token (RUFLO_ADMIN_TOKEN). Required for any write made with the gateway identity.') };
+
+  // ---- the public-review profile (/chatgpt/mcp) ----
+  //
+  // The OpenAI app review forbids a tool that ACCEPTS a secret as an argument —
+  // no passwords, API keys, tokens, private keys or invite codes in any
+  // inputSchema. The legacy /mcp surface violates that by design: five tools
+  // declare an `adminToken` string property, because that is how service-side
+  // callers have always driven them.
+  //
+  // The fix is not to delete the credential, it is to move it OFF the tool
+  // surface and into the transport, where credentials belong. On /chatgpt/mcp
+  // the same writes read their token from an Authorization header instead of a
+  // model-visible argument. A tool a model can see can be talked into being
+  // called; a header the model never renders cannot. Enforcement is identical —
+  // the same constant-time `checkAdmin` — so this narrows what is EXPOSED
+  // without widening what is ALLOWED, and an uncredentialed caller still gets
+  // the same refusal.
+  //
+  // The token is only ever read from the request and compared. It is never
+  // echoed into a tool result, a description, or a log line.
+  const headerAdminToken = (req) => {
+    const raw = req?.headers?.authorization || '';
+    const bearer = /^Bearer\s+(.+)$/i.exec(String(raw));
+    if (bearer) return bearer[1].trim();
+    const direct = req?.headers?.['x-ruflo-admin-token'];
+    return typeof direct === 'string' && direct ? direct.trim() : undefined;
+  };
 
   // ---- MCP ToolAnnotations (spec 2025-03-26) ----
   // An ABSENT hint is not neutral. The spec's defaults for a missing annotation
@@ -46,8 +98,15 @@ export function createGateway({ relay, keyFile, port } = {}) {
   const WRITE = (title, { destructive = false, idempotent = false, openWorld = false } = {}) =>
     ({ title, readOnlyHint: false, destructiveHint: destructive, idempotentHint: idempotent, openWorldHint: openWorld });
 
-  function buildMcp(req) {
-    const mcp = new McpServer({ name: 'ruflo-x-gateway', version: '0.7.1' });
+  // `review` selects the public-review profile served at /chatgpt/mcp. Legacy
+  // /mcp passes nothing and is byte-for-byte the surface it has always been.
+  function buildMcp(req, { review = false } = {}) {
+    const mcp = new McpServer({ name: review ? 'ruflo-x-gateway-public' : 'ruflo-x-gateway', version: VERSION });
+    // On the review profile the credential is a header, so it leaves the schema.
+    const adminSchema = review ? {} : adminArg;
+    const gate = review
+      ? (fn) => async (args) => (checkAdmin(headerAdminToken(req)) ? fn(args) : denied())
+      : gated;
     // ---- open reads ----
     mcp.tool('federation_identity', 'Gateway Nostr pubkey + relay. Open read.', {}, READ('Gateway identity'), async () => text({ pubkey, relay: RELAY, httpBase: HTTP_BASE }));
     mcp.tool('federation_sync', 'Fetch recent verified swarm coordination messages (#t=ruflo-swarm). Open read; optional type filter.',
@@ -59,38 +118,49 @@ export function createGateway({ relay, keyFile, port } = {}) {
       async () => { const ev = await fetchRecent(RELAY, sk, { sinceSeconds: 86400, limit: 500 }); return text(reduceClaims(ev.filter((e) => String(e.type).startsWith('Claim')))); });
     // ---- admin-gated writes (use the GATEWAY identity) ----
     mcp.tool('federation_join', 'Publish a signed PeerHello AS THE GATEWAY. Admin-gated. Users should join with their own key via invite→claim instead.',
-      { name: z.string(), platform: z.string().optional(), note: z.string().optional(), ...adminArg },
+      { name: z.string(), platform: z.string().optional(), note: z.string().optional(), ...adminSchema },
       // Appends a PeerHello event. Additive, and each call is a NEW event, so not idempotent.
       WRITE('Announce gateway peer'),
-      gated(async ({ name, platform, note }) => text({ ok: true, eventId: await publish(RELAY, sk, 'PeerHello', { from: name, platform, note }) })));
+      gate(async ({ name, platform, note }) => text({ ok: true, eventId: await publish(RELAY, sk, 'PeerHello', { from: name, platform, note }) })));
     mcp.tool('federation_publish', 'Publish a signed coordination message AS THE GATEWAY (Status/Task/Result…). Admin-gated.',
-      { msgType: z.string(), payload: z.record(z.any()), ...adminArg },
+      { msgType: z.string(), payload: z.record(z.any()), ...adminSchema },
       WRITE('Publish coordination message'),
-      gated(async ({ msgType, payload }) => text({ ok: true, eventId: await publish(RELAY, sk, msgType, payload) })));
+      gate(async ({ msgType, payload }) => text({ ok: true, eventId: await publish(RELAY, sk, msgType, payload) })));
     mcp.tool('claims_issue', 'Issue a work claim AS THE GATEWAY. Admin-gated. One owner per resourceId.',
-      { resourceId: z.string(), ttlSeconds: z.number().optional(), ...adminArg },
+      { resourceId: z.string(), ttlSeconds: z.number().optional(), ...adminSchema },
       // Not idempotent: re-issuing the same claim extends its TTL, which is a real
       // additional effect even though the owner does not change.
       WRITE('Issue work claim'),
-      gated(async ({ resourceId, ttlSeconds }) => text({ ok: true, eventId: await publish(RELAY, sk, 'ClaimIssued', { from: pubkey, resourceId, ttlSeconds }), resourceId })));
+      gate(async ({ resourceId, ttlSeconds }) => text({ ok: true, eventId: await publish(RELAY, sk, 'ClaimIssued', { from: pubkey, resourceId, ttlSeconds }), resourceId })));
     mcp.tool('claims_release', 'Release a gateway-held work claim. Admin-gated.',
-      { resourceId: z.string(), ...adminArg },
+      { resourceId: z.string(), ...adminSchema },
       // The one genuinely destructive tool here: it REMOVES an ownership grant
       // rather than adding one, and another agent can take the resource the
       // moment it lands. Releasing twice changes nothing, so it is idempotent.
       WRITE('Release work claim', { destructive: true, idempotent: true }),
-      gated(async ({ resourceId }) => text({ ok: true, eventId: await publish(RELAY, sk, 'ClaimReleased', { from: pubkey, resourceId }), resourceId })));
-    mcp.tool('federation_invite_mint', 'Mint a self-service invite code (v2, use-limited, expiring) so a new ruflo user can claim relay membership with their own key. Admin-gated; the gateway must hold relay admin role.',
-      { ttlSecs: z.number().optional(), maxUses: z.number().optional(), ...adminArg },
-      // Each call mints a DIFFERENT code, so repeating it is not a no-op.
-      WRITE('Mint relay invite'),
-      gated(async ({ ttlSecs, maxUses }) => text(await mintInvite(HTTP_BASE, sk, { ttlSecs, maxUses }))));
-    mcp.tool('federation_admit', 'Admit a pubkey as a relay member directly (NIP-43 kind 9030). Admin-gated.',
-      { pubkey: z.string(), role: z.enum(['member', 'admin']).optional(), ...adminArg },
-      // Additive grant, and admitting the same pubkey at the same role twice
-      // leaves the roster identical — idempotent.
-      WRITE('Admit relay member', { idempotent: true }),
-      gated(async ({ pubkey: pk, role }) => text(await admitMember(RELAY, sk, pk, role))));
+      gate(async ({ resourceId }) => text({ ok: true, eventId: await publish(RELAY, sk, 'ClaimReleased', { from: pubkey, resourceId }), resourceId })));
+    // ---- relay MEMBERSHIP administration — legacy endpoint only ----
+    //
+    // These two decide who may exist on the relay at all, which is an operator
+    // decision and not something a public assistant should be able to reach for.
+    // `federation_invite_mint` additionally RETURNS an invite code — a bearer
+    // credential — in its tool output, which the review rules treat the same as
+    // accepting one. Moving its argument to a header would not help: the secret
+    // is the RESULT. So the tool is withheld from the review surface entirely
+    // rather than reshaped, which is the honest fix.
+    if (!review) {
+      mcp.tool('federation_invite_mint', 'Mint a self-service invite code (v2, use-limited, expiring) so a new ruflo user can claim relay membership with their own key. Admin-gated; the gateway must hold relay admin role.',
+        { ttlSecs: z.number().optional(), maxUses: z.number().optional(), ...adminSchema },
+        // Each call mints a DIFFERENT code, so repeating it is not a no-op.
+        WRITE('Mint relay invite'),
+        gate(async ({ ttlSecs, maxUses }) => text(await mintInvite(HTTP_BASE, sk, { ttlSecs, maxUses }))));
+      mcp.tool('federation_admit', 'Admit a pubkey as a relay member directly (NIP-43 kind 9030). Admin-gated.',
+        { pubkey: z.string(), role: z.enum(['member', 'admin']).optional(), ...adminSchema },
+        // Additive grant, and admitting the same pubkey at the same role twice
+        // leaves the roster identical — idempotent.
+        WRITE('Admit relay member', { idempotent: true }),
+        gate(async ({ pubkey: pk, role }) => text(await admitMember(RELAY, sk, pk, role))));
+    }
     // ---- ADR-386 channels ----
     mcp.tool('channel_list', 'List swarm channels seen recently, with visibility, message count and publisher count. Open read. Public channel ids carry their name (pub:<name>); private ids are opaque (prv:<hex>) and reveal nothing about the topic. Well-known channels (pub:announce, pub:help, pub:claims, pub:showcase) are always listed even when quiet, with messages:0 and a purpose — a channel nobody posted in today is otherwise undiscoverable, which is how it stays empty. Use when you want to find where coordination is happening before reading a stream. Reading the flat firehose with federation_sync instead is wrong once channels are in use, because it mixes unrelated work and cannot show you private traffic exists at all.',
       { sinceSeconds: z.number().optional(), limit: z.number().optional() },
@@ -105,9 +175,9 @@ export function createGateway({ relay, keyFile, port } = {}) {
         return text({ channel, visibility: isPrivateChannel(channel) ? 'private' : 'public', count: messages.length, messages });
       });
     mcp.tool('channel_publish', 'Publish a message to a PUBLIC channel as the gateway. Admin-gated. Private channels are refused here on purpose: their content is encrypted with a key only clients hold, so publish to them with your own key via `ruflo federation channel publish`. Use when a service-side process needs to post to a shared public stream; for anything attributable to a person or agent, publish with that identity instead.',
-      { channel: z.string(), msgType: z.string(), payload: z.record(z.any()), ...adminArg },
+      { channel: z.string(), msgType: z.string(), payload: z.record(z.any()), ...adminSchema },
       WRITE('Publish to public channel'),
-      gated(async ({ channel, msgType, payload }) => {
+      gate(async ({ channel, msgType, payload }) => {
         // Refuse private BEFORE normalising, so a prv: id gets the real reason rather
         // than a name-validation error from the public-id helper.
         if (isPrivateChannel(channel)) throw new Error('private channels cannot be published by the gateway — it holds no channel key (ADR-386); publish with your own key via `ruflo federation channel publish`');
@@ -122,7 +192,14 @@ export function createGateway({ relay, keyFile, port } = {}) {
       async () => text(onboardingGuide({ relay: RELAY, httpBase: HTTP_BASE, gatewayPubkey: pubkey, defaultChannels: DEFAULT_CHANNELS })));
     // ---- Seraphina: swarm queen guidance (admin-gated: it spends meta-llm budget) ----
     mcp.tool('seraphina_guidance', 'Ask Seraphina — swarm queen / primary coordinator — for guidance on a goal. Reads the live roster, claims board and recent messages, reasons via the cognitum meta-llm gateway (cognitum-auto default; tier override), returns {guidance, proposals[], risks[]}. Admin-gated because it spends meta-llm budget. Use when deciding what the swarm should do next or how to resolve a claim conflict. Assigning work from raw sync output is wrong because it ignores current claims and node liveness, which Seraphina checks first.',
-      { goal: z.string(), tier: z.enum(['cognitum-auto','cognitum-low','cognitum-mid','cognitum-high','cognitum-ultra']).optional(), adminToken: z.string().optional().describe('Optional. Lifts the shared budget cap and allows the high/ultra tiers. Never put this in a browser — it also authorises gateway-identity writes.'), sinceSeconds: z.number().optional(), limit: z.number().optional() },
+      // The OPTIONAL adminToken is still a secret-bearing field, so it leaves the
+      // schema on the review profile exactly like the required ones. Nothing is
+      // lost: the tool's whole point is that it answers anonymously under a
+      // shared budget, and the header path below still lifts the cap for an
+      // operator who has the credential.
+      { goal: z.string(), tier: z.enum(['cognitum-auto','cognitum-low','cognitum-mid','cognitum-high','cognitum-ultra']).optional(),
+        ...(review ? {} : { adminToken: z.string().optional().describe('Optional. Lifts the shared budget cap and allows the high/ultra tiers. Never put this in a browser — it also authorises gateway-identity writes.') }),
+        sinceSeconds: z.number().optional(), limit: z.number().optional() },
       // The one debatable classification on this server, so the reasoning is here.
       // It publishes nothing and holds no authority, which argues for readOnly —
       // but it DOES modify state: every call decrements a shared daily budget and
@@ -133,6 +210,8 @@ export function createGateway({ relay, keyFile, port } = {}) {
       // other tool here, which only ever reads or writes our own relay.
       WRITE('Ask Seraphina for guidance', { openWorld: true }),
       (async ({ goal, tier, sinceSeconds, limit, adminToken }) => {
+        // Review profile: the credential arrives as a header, never an argument.
+        if (review) adminToken = headerAdminToken(req);
         // Seraphina reads and advises; it writes nothing and carries no authority,
         // so it is bounded by budget rather than by a bearer secret a browser
         // cannot hold. Every WRITE tool above stays admin-gated.
@@ -174,11 +253,33 @@ export function createGateway({ relay, keyFile, port } = {}) {
     const url = new URL(req.url, `http://${req.headers.host || 'x'}`);
     if (url.pathname === '/health') return res.writeHead(200).end('ok');
     if (url.pathname === '/' && req.method === 'GET') { res.writeHead(200, { 'content-type': 'application/json' });
-      return res.end(JSON.stringify({ service: 'ruflo-x-gateway', version: '0.7.1', mcp: '/mcp', ws: ['/', '/relay'], relay: RELAY, canonicalRelay: RELAY, legacyRelay: LEGACY_RELAY, authNote: 'When connecting via wss://x.ruv.io, sign the NIP-42 AUTH `relay` tag with canonicalRelay (the relay verifies it strictly).', gatewayPubkey: pubkey, resources: ['ruv://federation/registry', 'ruv://federation/onboarding', 'ruv://swarm/roster', 'ruv://claims/board', 'ruv://swarm/channels'] })); }
-    if (url.pathname === '/mcp') {
+      return res.end(JSON.stringify({ service: 'ruflo-x-gateway', version: VERSION, mcp: '/mcp', publicMcp: '/chatgpt/mcp',
+        pages: { privacy: '/privacy', terms: '/terms', support: '/support' }, ws: ['/', '/relay'], relay: RELAY, canonicalRelay: RELAY, legacyRelay: LEGACY_RELAY, authNote: 'When connecting via wss://x.ruv.io, sign the NIP-42 AUTH `relay` tag with canonicalRelay (the relay verifies it strictly).', gatewayPubkey: pubkey, resources: ['ruv://federation/registry', 'ruv://federation/onboarding', 'ruv://swarm/roster', 'ruv://claims/board', 'ruv://swarm/channels'] })); }
+    // ---- OpenAI app-review surface ----
+    // /.well-known/openai-apps-challenge proves domain control. The value lives
+    // ONLY in the environment (secret manager in production): it is never
+    // hardcoded, never logged, and never echoed anywhere else in this service.
+    // When it is unset the route 404s rather than serving an empty 200, because
+    // an empty 200 reads to a verifier as "the challenge is the empty string"
+    // and fails in a way that is hard to diagnose.
+    if (url.pathname === '/.well-known/openai-apps-challenge') {
+      if (req.method !== 'GET') return res.writeHead(405).end();
+      const challenge = process.env.OPENAI_APPS_CHALLENGE;
+      if (!challenge) return res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' }).end('not found');
+      // Exact value, nothing else. No markup, no surrounding whitespace.
+      return res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' }).end(challenge);
+    }
+    if (req.method === 'GET' && PUBLIC_PAGES[url.pathname]) {
+      return res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }).end(PUBLIC_PAGES[url.pathname]());
+    }
+    // Legacy /mcp keeps the full surface, including the admin-argument tools that
+    // service-side callers depend on. /chatgpt/mcp is the isolated public-review
+    // profile: no membership administration, and no secret-bearing input field.
+    if (url.pathname === '/mcp' || url.pathname === '/chatgpt/mcp') {
+      const review = url.pathname === '/chatgpt/mcp';
       if (rateLimited(req)) return res.writeHead(429, { 'content-type': 'application/json' }).end('{"error":"rate limited"}');
       let body; try { body = await readBody(req); } catch { return res.writeHead(413, { 'content-type': 'application/json' }).end('{"error":"payload too large"}'); }
-      const mcp = buildMcp(req); const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+      const mcp = buildMcp(req, { review }); const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
       res.on('close', () => { transport.close(); mcp.close(); });
       await mcp.connect(transport);
       let parsed; try { parsed = body ? JSON.parse(body) : undefined; } catch { return res.writeHead(400, { 'content-type': 'application/json' }).end('{"error":"invalid json"}'); }

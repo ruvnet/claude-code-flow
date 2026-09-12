@@ -4,7 +4,8 @@ import { WebSocketServer } from 'ws';
 import { reduceClaims } from '../src/claims.mjs';
 import { checkAdmin, rateLimited, readBody, MAX_BODY } from '../src/security.mjs';
 import { connectAuthed } from '../src/nostr-federation.mjs';
-import { createGateway } from '../src/server.mjs';
+import { readFileSync } from 'node:fs';
+import { createGateway, VERSION } from '../src/server.mjs';
 import { generateSecretKey, getPublicKey, verifyEvent } from 'nostr-tools/pure';
 
 const ev = (type, pubkey, resourceId, t, extra = {}) => ({ type, pubkey, resourceId, created_at: t, ...extra });
@@ -242,7 +243,16 @@ test('channels: the registry resource publishes the directory', async () => {
   const { DEFAULT_CHANNELS } = await import('../src/channels.mjs');
   for (const d of DEFAULT_CHANNELS) assert.ok(body.includes(d.channel), `${d.channel} missing from the registry`);
   const info = await (await fetch(base + '/')).json();
-  assert.equal(info.version, '0.7.0');
+  // Assert against package.json, not a second hardcoded copy. The literal that
+  // used to be here said 0.7.0 while the server said 0.7.1, so this test was
+  // red on main — which is exactly how a hand-synced constant fails.
+  const { version: pkgVersion } = JSON.parse(
+    readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+  );
+  // Guard against the comparison passing vacuously if both sides went undefined.
+  assert.match(pkgVersion, /^\d+\.\d+\.\d+/, 'package.json must carry a real version');
+  assert.equal(info.version, pkgVersion);
+  assert.equal(info.version, VERSION, 'the server must report the version it exports');
   gw.server.close();
 });
 
@@ -467,4 +477,222 @@ test('annotations: destructiveHint is reserved for tools that remove state', asy
     ['claims_release'],
     'only claims_release removes state; every other write here appends',
   );
+});
+
+// ─── /chatgpt/mcp — the isolated public-review profile ───
+//
+// An OpenAI app review forbids a tool that accepts a secret as an argument, and
+// the legacy surface violates that ON PURPOSE: five tools take an `adminToken`
+// string because that is how service-side callers have always driven them. The
+// review endpoint is a second profile over the same handlers, not a rewrite of
+// the first — so the property that matters most here is that /mcp did not move.
+
+/** Property names that would make a reviewer fail the app. */
+const SECRET_FIELD_RE = /token|secret|password|passwd|api[-_]?key|priv(ate)?[-_]?key|credential|invite|passphrase/i;
+
+async function startGateway(env = {}) {
+  const prev = {};
+  for (const [k, v] of Object.entries(env)) {
+    prev[k] = process.env[k];
+    if (v === undefined) delete process.env[k]; else process.env[k] = v;
+  }
+  const gw = createGateway({ relay: 'ws://127.0.0.1:1', keyFile: '/tmp/x-gw-rev-' + Date.now() + '-' + Math.random().toString(36).slice(2) + '.key', port: 0 });
+  const port = await gw.listen(0);
+  return {
+    base: `http://127.0.0.1:${port}`,
+    close() {
+      gw.server.close();
+      for (const [k, v] of Object.entries(prev)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+    },
+  };
+}
+
+const rpcAt = (base, path, msg) => fetch(base + path, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+  body: JSON.stringify(msg),
+}).then((r) => r.text());
+
+const toolsAt = async (base, path) => {
+  const raw = await rpcAt(base, path, { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} });
+  return JSON.parse(raw.slice(raw.indexOf('{'))).result.tools;
+};
+
+test('review endpoint: legacy /mcp keeps its full surface, secret arguments included', async () => {
+  // The isolation has two halves and this is the one that is easy to break by
+  // accident. /mcp is the compatibility surface; if adding the review profile
+  // quietly narrowed it, service-side callers break with no warning.
+  process.env.RUFLO_ADMIN_TOKEN = 'test-admin-token';
+  const gw = await startGateway();
+  const legacy = await toolsAt(gw.base, '/mcp');
+  const names = legacy.map((t) => t.name).sort();
+  assert.equal(legacy.length, 14, 'legacy /mcp must still advertise all 14 tools');
+  assert.ok(names.includes('federation_invite_mint'), 'membership admin must remain on /mcp');
+  assert.ok(names.includes('federation_admit'), 'membership admin must remain on /mcp');
+  // The adminToken ARGUMENT is legacy behaviour and must survive intact.
+  const gatedByArg = legacy
+    .filter((t) => (t.inputSchema.required ?? []).includes('adminToken'))
+    .map((t) => t.name).sort();
+  assert.deepEqual(gatedByArg,
+    ['channel_publish', 'claims_issue', 'claims_release', 'federation_admit', 'federation_invite_mint', 'federation_join', 'federation_publish'].sort(),
+    'legacy /mcp must still take adminToken as a tool argument');
+  gw.close();
+});
+
+test('review endpoint: advertises 12 tools, dropping only membership administration', async () => {
+  process.env.RUFLO_ADMIN_TOKEN = 'test-admin-token';
+  const gw = await startGateway();
+  const [legacy, review] = [await toolsAt(gw.base, '/mcp'), await toolsAt(gw.base, '/chatgpt/mcp')];
+  assert.equal(review.length, 12);
+  const legacyNames = new Set(legacy.map((t) => t.name));
+  const reviewNames = new Set(review.map((t) => t.name));
+  const withheld = [...legacyNames].filter((n) => !reviewNames.has(n)).sort();
+  // Exactly the two that decide who may exist on the relay. `federation_invite_mint`
+  // also RETURNS an invite code, so no amount of argument reshaping would make it
+  // acceptable — it has to be withheld.
+  assert.deepEqual(withheld, ['federation_admit', 'federation_invite_mint']);
+  // Nothing was invented for the review surface that is not a real tool.
+  assert.deepEqual([...reviewNames].filter((n) => !legacyNames.has(n)), []);
+  gw.close();
+});
+
+test('review endpoint: no tool accepts a secret in any input field', async () => {
+  process.env.RUFLO_ADMIN_TOKEN = 'test-admin-token';
+  const gw = await startGateway();
+  const review = await toolsAt(gw.base, '/chatgpt/mcp');
+  const offenders = [];
+  for (const t of review) {
+    for (const prop of Object.keys(t.inputSchema.properties ?? {})) {
+      if (SECRET_FIELD_RE.test(prop)) offenders.push(`${t.name}.${prop}`);
+    }
+  }
+  assert.deepEqual(offenders, [], 'a review tool declares a secret-bearing input field');
+  // Belt and braces: the literal string must not appear anywhere in the payload,
+  // including inside a description that tells a user to paste one.
+  assert.doesNotMatch(JSON.stringify(review), /adminToken/);
+
+  // The negative control — the same scan MUST flag the legacy surface, or the
+  // scan proves nothing about the review one.
+  const legacy = await toolsAt(gw.base, '/mcp');
+  const legacyOffenders = legacy.flatMap((t) =>
+    Object.keys(t.inputSchema.properties ?? {}).filter((p) => SECRET_FIELD_RE.test(p)).map((p) => `${t.name}.${p}`));
+  assert.ok(legacyOffenders.length > 0, 'the secret-field scan is not actually detecting anything');
+  gw.close();
+});
+
+test('review endpoint: every tool declares the three required hints', async () => {
+  process.env.RUFLO_ADMIN_TOKEN = 'test-admin-token';
+  const gw = await startGateway();
+  for (const t of await toolsAt(gw.base, '/chatgpt/mcp')) {
+    assert.ok(t.annotations, `${t.name} has no annotations`);
+    for (const hint of ['readOnlyHint', 'destructiveHint', 'idempotentHint', 'openWorldHint']) {
+      assert.equal(typeof t.annotations[hint], 'boolean', `${t.name}.${hint} must be explicit`);
+    }
+  }
+  gw.close();
+});
+
+test('review endpoint: dropping the argument did NOT drop the gate', async () => {
+  // The whole change is "move the credential to a header". If that had turned a
+  // gated write into an open one, this is where it shows up. Removing a field
+  // from a schema must narrow what is exposed, never widen what is allowed.
+  process.env.RUFLO_ADMIN_TOKEN = 'test-admin-token';
+  const gw = await startGateway();
+  const call = (headers) => fetch(gw.base + '/chatgpt/mcp', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream', ...headers },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'federation_join', arguments: { name: 'probe' } } }),
+  }).then((r) => r.text());
+
+  assert.match(await call({}), /admin token required or invalid/, 'no credential must be refused');
+  assert.match(await call({ authorization: 'Bearer wrong-token' }), /admin token required or invalid/, 'a wrong credential must be refused');
+  assert.match(await call({ 'x-ruflo-admin-token': 'wrong-token' }), /admin token required or invalid/, 'a wrong header credential must be refused');
+  // With the RIGHT credential the gate opens: the call gets past `checkAdmin` and
+  // fails further in, trying to reach the (unreachable) test relay. The point is
+  // that it is no longer the credential refusal.
+  assert.doesNotMatch(await call({ authorization: 'Bearer test-admin-token' }), /admin token required or invalid/);
+  gw.close();
+});
+
+test('review endpoint: seraphina still answers anonymously, and takes no token argument', async () => {
+  process.env.RUFLO_ADMIN_TOKEN = 'test-admin-token';
+  const gw = await startGateway();
+  const sera = (await toolsAt(gw.base, '/chatgpt/mcp')).find((t) => t.name === 'seraphina_guidance');
+  assert.ok(sera);
+  assert.equal(Object.keys(sera.inputSchema.properties ?? {}).includes('adminToken'), false,
+    'the OPTIONAL adminToken is still a secret field and must be gone');
+  assert.ok(Object.keys(sera.inputSchema.properties ?? {}).includes('goal'), 'the tool must still be usable');
+  gw.close();
+});
+
+// ─── public pages + domain-control challenge ───
+
+test('public pages: privacy, terms and support serve real HTML', async () => {
+  const gw = await startGateway();
+  for (const path of ['/privacy', '/terms', '/support']) {
+    const r = await fetch(gw.base + path);
+    assert.equal(r.status, 200, `${path} must be 200`);
+    assert.match(r.headers.get('content-type') || '', /text\/html/, `${path} must be HTML`);
+    const html = await r.text();
+    assert.ok(html.length > 1500, `${path} is too short to be substantive`);
+    assert.match(html, /<!doctype html>/i);
+    // A reviewer reads these. Placeholder text fails the review.
+    assert.doesNotMatch(html, /lorem ipsum|TODO|TBD|placeholder|example\.com/i, `${path} contains placeholder text`);
+  }
+  gw.close();
+});
+
+test('public pages: privacy covers the five disclosures a reviewer checks for', async () => {
+  const gw = await startGateway();
+  const html = await (await fetch(gw.base + '/privacy')).text();
+  for (const [label, re] of [
+    ['data categories', /what we process|categor/i],
+    ['purposes', /why we process|purpose/i],
+    ['recipients', /who receives|recipient/i],
+    ['retention', /retention|how long/i],
+    ['user controls', /your controls/i],
+  ]) {
+    assert.match(html, re, `privacy notice does not cover ${label}`);
+  }
+  // The disclosure that actually matters for this service: publication is public
+  // and cannot be reliably undone. A notice that implied otherwise would be false.
+  assert.match(html, /cannot .{0,40}un-?publish|effectively permanent|treat publication as/i,
+    'privacy notice must say plainly that publication cannot be undone');
+  gw.close();
+});
+
+test('challenge: serves exactly the env value, and 404s when unset', async () => {
+  // The value is a domain-control proof. It comes from the environment, is never
+  // hardcoded, and this test supplies its own throwaway value rather than
+  // embedding a real one in a fixture.
+  const probe = 'test-challenge-' + Math.random().toString(36).slice(2);
+  const gw = await startGateway({ OPENAI_APPS_CHALLENGE: probe });
+  const r = await fetch(gw.base + '/.well-known/openai-apps-challenge');
+  assert.equal(r.status, 200);
+  assert.match(r.headers.get('content-type') || '', /text\/plain/);
+  const body = await r.text();
+  // Byte-exact: no markup, no padding, no trailing whitespace.
+  assert.equal(body, probe, 'the body must be the challenge value and nothing else');
+  assert.equal(body.trim(), body, 'the body must carry no surrounding whitespace');
+  gw.close();
+
+  // Unset must 404, NOT serve an empty 200 — a verifier reads an empty 200 as
+  // "the challenge is the empty string" and fails in a way nobody can diagnose.
+  const off = await startGateway({ OPENAI_APPS_CHALLENGE: undefined });
+  const miss = await fetch(off.base + '/.well-known/openai-apps-challenge');
+  assert.equal(miss.status, 404);
+  assert.doesNotMatch(await miss.text(), /^\s*$/, 'a 404 should still say something');
+  off.close();
+});
+
+test('challenge: the value never leaks into any other response', async () => {
+  const probe = 'test-challenge-' + Math.random().toString(36).slice(2);
+  const gw = await startGateway({ OPENAI_APPS_CHALLENGE: probe });
+  for (const path of ['/', '/privacy', '/terms', '/support', '/health']) {
+    const body = await (await fetch(gw.base + path)).text();
+    assert.doesNotMatch(body, new RegExp(probe), `${path} echoed the challenge value`);
+  }
+  const tools = JSON.stringify(await toolsAt(gw.base, '/chatgpt/mcp'));
+  assert.doesNotMatch(tools, new RegExp(probe), 'the tool list echoed the challenge value');
+  gw.close();
 });

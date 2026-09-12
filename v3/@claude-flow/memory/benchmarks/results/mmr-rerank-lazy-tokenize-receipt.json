@@ -1,0 +1,18 @@
+{
+  "benchmark": "mmr-rerank.bench.ts",
+  "date": "2026-09-10",
+  "dreamCycleFinding": "mmrRerank eagerly re-tokenized every remaining candidate on every outer-loop pass; PR #3169 made the well-formed-embedding branch the common case, so almost all of that tokenization was discarded work. Candidate makes tokenization lazy and cached per-candidate.",
+  "corpus": { "n": 30, "limit": 20, "lambda": 0.7, "allEmbedded": true, "embeddingDim": 8 },
+  "runner": "vitest bench (v4.1.8), node, vitest.bench.config.ts",
+  "results": {
+    "baseline": { "label": "eager tokenize every outer pass (frozen pre-candidate algorithm)", "hz": 1482.53, "meanMs": 0.6745, "p99Ms": 1.0426, "samples": 742, "rme": "±1.43%" },
+    "candidate": { "label": "lazy cached tokenize (applyMMR, current source)", "hz": 8711.84, "meanMs": 0.1148, "p99Ms": 0.1940, "samples": 4356, "rme": "±0.49%" }
+  },
+  "speedup": "5.88x (candidate hz / baseline hz)",
+  "tokenizeCallCount": {
+    "baseline": 400,
+    "candidate": 0,
+    "note": "measured via vi.spyOn in src/mmr-rerank-perf.test.ts, stash-isolated (fails against real pre-candidate source, passes against candidate)"
+  },
+  "reproduce": "cd v3/@claude-flow/memory && npx vitest bench --config vitest.bench.config.ts benchmarks/mmr-rerank.bench.ts"
+}

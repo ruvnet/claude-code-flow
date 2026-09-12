@@ -1,0 +1,180 @@
+# ============================================================================
+#  AI Trading Bot -- main configuration
+#
+#  Credentials do NOT belong here. Put them in environment variables
+#  (MT5_LOGIN / MT5_PASSWORD / MT5_SERVER) or in a gitignored credentials.yaml.
+# ============================================================================
+
+mt5:
+  # login / password / server come from the environment.
+  #
+  # terminal_path pins WHICH terminal the bot attaches to. Leave it null only
+  # if exactly one MT5 terminal ever runs on this machine -- with several
+  # installed, mt5.initialize() attaches to whichever the OS hands it, and the
+  # bot can silently end up trading a different account than you expect.
+  # Run `python -m tradingbot doctor` to see every terminal it can find.
+  terminal_path: "C:\\Program Files\\MetaTrader 5 IC Markets Global\\terminal64.exe"
+  timeout_ms: 60000
+  magic: 770101                # tags our orders; we never touch anything else
+  deviation_points: 20
+
+execution:
+  mode: paper                  # backtest | paper | live
+  allow_live: false            # second key. mode=live alone is not enough.
+  poll_seconds: 15
+  bars_lookback: 1500
+  close_on_shutdown: false
+
+# ----------------------------------------------------------------------------
+#  Instruments. Symbol names must match your broker exactly -- IC Markets
+#  Global often suffixes them, e.g. "EURUSD" vs "EURUSD.a". Run
+#  `python -m tradingbot symbols` to list what your terminal actually offers.
+# ----------------------------------------------------------------------------
+symbols:
+  - name: EURUSD
+    timeframe: M15
+    weight: 1.0
+    max_spread_points: 20
+    sessions: [london, newyork]
+  - name: GBPUSD
+    timeframe: M15
+    weight: 0.9
+    max_spread_points: 25
+    sessions: [london, newyork]
+  - name: USDJPY
+    timeframe: M15
+    weight: 0.9
+    max_spread_points: 25
+    sessions: [tokyo, london, newyork]
+  - name: AUDUSD
+    timeframe: M15
+    weight: 0.7
+    max_spread_points: 25
+    sessions: [tokyo, london]
+  - name: XAUUSD
+    timeframe: M15
+    weight: 0.6
+    max_spread_points: 60
+    sessions: [london, newyork]
+
+# ----------------------------------------------------------------------------
+#  Risk. These are HARD CEILINGS. The goal controller can lower them; nothing
+#  in the system is allowed to raise them. Read risk/manager.py before editing.
+# ----------------------------------------------------------------------------
+risk:
+  max_risk_per_trade_pct: 0.005      # 0.5% of equity -- absolute ceiling
+  base_risk_per_trade_pct: 0.0025    # 0.25% -- normal size
+  max_portfolio_risk_pct: 0.02       # 2% total open risk
+  max_positions: 5
+  max_positions_per_symbol: 1
+  max_correlated_positions: 3
+  correlation_threshold: 0.7
+
+  daily_loss_limit_pct: 0.03         # -3% on the day  -> stop until tomorrow
+  weekly_loss_limit_pct: 0.06        # -6% on the week -> stop until Monday
+  max_drawdown_pct: 0.15             # -15% peak-to-trough -> hard halt
+
+  min_stop_atr_mult: 1.0
+  default_stop_atr_mult: 1.8
+  default_target_atr_mult: 2.7       # 1.5R -- edge does not need a 50% win rate
+  trailing_atr_mult: 2.0
+  breakeven_at_r: 1.0
+
+  min_free_margin_pct: 0.35
+  max_lot: 5.0
+  max_slippage_points: 25
+
+# ----------------------------------------------------------------------------
+#  The $1000/week goal.
+#
+#  This target is only meaningful relative to your balance. The controller
+#  computes the weekly return it implies and classifies it:
+#
+#     <= 0.5%/wk   COMFORTABLE   ($200k+ balance)
+#     <= 1.0%/wk   AGGRESSIVE    ($100k+ balance)
+#     <= 2.0%/wk   UNLIKELY      ($50k+  balance)
+#      > 2.0%/wk   INFEASIBLE    (below $50k -- the bot will say so and trade
+#                                 at its safe maximum rather than gamble)
+# ----------------------------------------------------------------------------
+goal:
+  weekly_profit_target: 1000.0
+  currency: USD
+  comfortable_weekly_return: 0.005
+  aggressive_weekly_return: 0.010
+  infeasible_weekly_return: 0.020
+  taper_after_target: true           # bank the week, stop pressing
+  taper_factor: 0.4
+  stop_after_target: false
+
+# ----------------------------------------------------------------------------
+#  Learning. Every closed trade feeds the bandit and the meta-model.
+# ----------------------------------------------------------------------------
+learning:
+  enabled: true
+  bandit_decay: 0.995
+  bandit_min_trades: 20
+  bandit_exploration: 0.15
+  meta_model_enabled: true
+  meta_model_min_samples: 200
+  meta_model_retrain_every: 25
+  meta_model_gate_threshold: 0.5
+  regime_lookback: 200
+
+# ----------------------------------------------------------------------------
+#  Research: ingesting strategies from the outside world.
+#  Nothing promoted without clearing the whole gauntlet.
+# ----------------------------------------------------------------------------
+research:
+  enabled: true
+  sources_dir: research_sources
+  min_backtest_trades: 100
+  min_profit_factor: 1.25
+  min_sharpe: 0.8
+  max_backtest_drawdown_pct: 0.20
+  min_walkforward_windows: 4
+  min_walkforward_pass_rate: 0.6
+  paper_trade_days: 30
+  min_paper_trades: 30
+  auto_promote: false                # require a human ack before live capital
+
+ops:
+  log_level: INFO
+  log_dir: var/logs
+  db_path: var/journal.db
+  state_path: var/state.json
+  heartbeat_seconds: 60
+  alert_webhook: null
+
+# ----------------------------------------------------------------------------
+#  Built-in strategy parameters.
+# ----------------------------------------------------------------------------
+strategies:
+  ema_cross:
+    enabled: true
+    fast: 12
+    slow: 34
+    trend_filter: 200
+    min_slope_atr: 0.05
+  rsi_meanrev:
+    enabled: true
+    period: 14
+    oversold: 28
+    overbought: 72
+    trend_filter: 200
+    require_range_regime: true
+  donchian_breakout:
+    enabled: true
+    channel: 40
+    exit_channel: 20
+    min_atr_pct: 0.0004
+  macd_trend:
+    enabled: true
+    fast: 12
+    slow: 26
+    signal: 9
+    trend_filter: 200
+  bollinger_fade:
+    enabled: true
+    period: 20
+    std: 2.2
+    require_range_regime: true

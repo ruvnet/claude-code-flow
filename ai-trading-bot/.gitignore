@@ -1,0 +1,9 @@
+var/
+strategies/
+*.db
+*.log
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+credentials.yaml

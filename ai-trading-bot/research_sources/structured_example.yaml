@@ -1,0 +1,13 @@
+name: donchian_adx_filtered
+description: >
+  Channel breakout gated on trend strength. Supplied as an explicit spec rather
+  than prose so nothing has to be inferred.
+source: manual/structured
+author: operator
+long_entry: "high >= highest(high, 40) and adx > 22"
+short_entry: "low <= lowest(low, 40) and adx > 22"
+stop_atr_mult: 2.0
+target_atr_mult: 3.4
+confidence: 0.5
+preferred_regimes: [trend_up, trend_down, high_vol]
+status: quarantined

@@ -367,6 +367,142 @@ This project is configured with Claude Flow V3 (Anti-Drift Defaults):
 - **HNSW Indexing**: Enabled (measured ~1.9x at N=20k, ~3.2x–4.7x at N=5k vs brute force; ANN wins above the crossover)
 - **Neural Learning**: Enabled (SONA)
 
+## Development Commands
+
+Local dev/build/test commands as defined in the repo's `package.json` files. Use these instead of inventing equivalents.
+
+### Root (`package.json`)
+
+```bash
+# Install (CI uses --legacy-peer-deps)
+npm ci --legacy-peer-deps          # Reproducible install used by CI
+npm install --legacy-peer-deps     # Local install
+
+# Dev / build
+npm run dev                        # tsx watch src/index.ts
+npm run build                      # tsc
+npm run build:ts                   # cd v3/@claude-flow/cli && npm run build || true
+
+# Test
+npm test                           # vitest
+npm run test:ui                    # vitest --ui
+npm run test:security              # vitest run v3/__tests__/security/
+
+# Lint (delegates to v3 cli)
+npm run lint                       # cd v3/@claude-flow/cli && npm run lint || true
+
+# Security
+npm run security:audit             # npm audit --audit-level high
+npm run security:fix               # npm audit fix
+npm run security:test              # alias for test:security
+
+# V3 aggregates
+npm run v3:domains                 # build:domains
+npm run v3:swarm                   # start:swarm
+npm run v3:security                # security:audit && security:test
+```
+
+### V3 monorepo (`v3/package.json`, pnpm)
+
+The `v3/` workspace is a pnpm monorepo. Install with `pnpm install --frozen-lockfile` (matches CI in `.github/workflows/v3-ci.yml`).
+
+```bash
+cd v3
+
+# Install / build / typecheck (recursive across workspace packages)
+pnpm install --frozen-lockfile
+pnpm build                         # pnpm -r build
+pnpm typecheck                     # pnpm -r typecheck
+pnpm clean                         # rm -rf node_modules @claude-flow/*/node_modules claude-flow/node_modules
+
+# Test
+pnpm test                          # vitest run
+pnpm test:unit                     # vitest run __tests__/unit
+pnpm test:integration              # vitest run __tests__/integration
+pnpm test:integration:watch        # vitest watch __tests__/integration
+pnpm test:integration:memory       # memory-integration.test.ts
+pnpm test:integration:swarm        # swarm-integration.test.ts
+pnpm test:integration:mcp          # mcp-integration.test.ts
+pnpm test:integration:plugin       # plugin-integration.test.ts
+pnpm test:integration:workflow     # workflow-integration.test.ts
+pnpm test:coverage                 # vitest run --coverage
+pnpm test:coverage:integration     # __tests__/integration with coverage
+
+# Per-package test filters
+pnpm test:security                 # pnpm --filter @claude-flow/security test
+pnpm test:memory                   # pnpm --filter @claude-flow/memory test
+pnpm test:swarm                    # pnpm --filter @claude-flow/swarm test
+
+# Benchmarks
+pnpm bench                         # pnpm --filter @claude-flow/performance bench
+pnpm bench:attention               # pnpm --filter @claude-flow/performance bench:attention
+
+# Versioning / publish
+pnpm version:patch                 # pnpm -r exec npm version patch
+pnpm version:minor                 # pnpm -r exec npm version minor
+pnpm version:major                 # pnpm -r exec npm version major
+pnpm publish:dry                   # pnpm --filter claude-flow publish --dry-run --tag v3alpha --no-git-checks
+pnpm publish:v3alpha               # pnpm --filter claude-flow publish --tag v3alpha --no-git-checks
+
+# Bun alternates (optional)
+pnpm bun:install                   # bun install
+pnpm bun:build                     # bun run --filter '*' build
+pnpm bun:test                      # bun test
+pnpm bun:dev                       # bun run --watch src/index.ts
+pnpm bun:publish:dry               # cd claude-flow && bun publish --dry-run --tag v3alpha
+pnpm bun:publish:v3alpha           # cd claude-flow && bun publish --tag v3alpha
+```
+
+### V3 CLI package (`v3/@claude-flow/cli/package.json`)
+
+```bash
+cd v3/@claude-flow/cli
+npm run build                      # tsc
+npm test                           # vitest run
+npm run test:plugin-store          # npx tsx src/plugins/tests/standalone-test.ts
+npm run test:pattern-store         # npx tsx src/transfer/store/tests/standalone-test.ts
+npm run release                    # npm version prerelease --preid=alpha && npm run publish:all
+npm run publish:all                # ./scripts/publish.sh
+```
+
+### `ruflo/` umbrella alias (`ruflo/package.json`)
+
+The `ruflo` package is a thin wrapper users run via `npx ruflo@alpha`. Its scripts run the bundled MCP bridge and Docker compose stack.
+
+```bash
+cd ruflo
+
+# Bridge (Node MCP server)
+npm run dev                        # node src/mcp-bridge/index.js
+npm run dev:bridge                 # node --watch src/mcp-bridge/index.js
+npm run dev:test                   # node src/mcp-bridge/test-harness.js
+npm start                          # node src/mcp-bridge/index.js
+npm run install:bridge             # cd src/mcp-bridge && npm install
+
+# Docker compose
+npm run docker:up                  # docker compose up -d
+npm run docker:down                # docker compose down
+npm run docker:build               # docker compose build
+npm run docker:logs                # docker compose logs -f
+
+# Generators / packaging
+npm run generate:config            # node src/scripts/generate-config.js
+npm run generate:welcome           # node src/scripts/generate-welcome.js
+npm run deploy                     # bash src/scripts/deploy.sh
+npm run package:rvf                # bash src/scripts/package-rvf.sh
+```
+
+### Repo helper scripts (`scripts/`)
+
+```bash
+bash scripts/install.sh                       # Local install / setup
+bash scripts/cleanup-v3.sh                    # Reset v3 build artifacts
+bash scripts/verify-appliance.sh              # Appliance smoke verification
+node scripts/inventory-capabilities.mjs       # Generate capability inventory
+node scripts/regenerate-witness.mjs           # Rebuild witness file
+node scripts/sign-witness-from-inventory.mjs  # Sign witness from inventory
+```
+
 ## V3 CLI Commands (26 Commands, 140+ Subcommands)
 
 ### Core Commands

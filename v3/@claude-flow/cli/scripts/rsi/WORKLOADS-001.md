@@ -6,6 +6,9 @@ RSI evidence.
 
 The manifest hash is
 `4f6cb0b90be2b8de5c438a637164bdc483ec2cf83bdd982e9121dc7a2a20307e`.
+Reviewed source is `03840179a052934a6de0a094106e6495f07ec6f3`, tree
+`b4960f3fe7861b8779eb523b5063d2861043a728`. Raw acquisition and verification
+costs are preserved in `evidence/public-workload-freeze-check.json`.
 `repair/public-workloads.json` binds each exact base commit, fix commit, Git tree,
 changed-file blob, diff hash, test declaration, dependency metadata and license.
 The fixes and upstream tests are public and known. The sample was frozen before
@@ -37,11 +40,12 @@ all frozen. Evaluator-authored hidden development tests do not exist. Therefore
 the validator returns `candidateAdmissible: false` and the executor deliberately
 throws `PUBLIC_WORKLOAD_EXECUTION_DISABLED`.
 
-No candidate, test or benchmark process was launched by this increment. It added
-zero native field calls, repair evaluations, process starts, repair wall time and
-external provider spend. Total acquisition and evaluation dollar costs remain
-unknown. The original mission remains at seven epochs and 209784 reserved native
-field calls.
+No candidate or workload test process was launched by this increment. Engineering
+verification ran separately and is fully excluded from the proposed repair
+resource envelope. It added zero native field calls, repair evaluations, repair
+process starts, repair wall time and external provider spend. Total acquisition
+and evaluation dollar costs remain unknown. The original mission remains at seven
+epochs and 209784 reserved native field calls.
 
 ## Next admissible increment
 

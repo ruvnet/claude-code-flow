@@ -1,0 +1,86 @@
+{
+  "schema": "ruflo.public-repair-workload-freeze-check/v1",
+  "sourceCommit": "03840179a052934a6de0a094106e6495f07ec6f3",
+  "sourceTree": "b4960f3fe7861b8779eb523b5063d2861043a728",
+  "sourceTreeReadbackVerified": true,
+  "manifestHash": "4f6cb0b90be2b8de5c438a637164bdc483ec2cf83bdd982e9121dc7a2a20307e",
+  "selectionFrozenBeforeMethodComparison": true,
+  "workloadCount": 3,
+  "repositoryCount": 3,
+  "provisionalClusterCount": 3,
+  "fixesExposed": true,
+  "sealedEvaluation": false,
+  "clusterIndependenceReviewed": false,
+  "lineages": [
+    {
+      "repository": "ruvnet/RuVector",
+      "baseCommit": "99ea97607acd3498e3b48aeaa708ecb5df5d8f25",
+      "fixCommit": "df644e2a4050901fe8b75db9d2c512255b854f78",
+      "diffSha256": "0217071881467bf6773fcbfcc3139f4c35812a89ac1dd5fb793c22bb90ef0d93"
+    },
+    {
+      "repository": "sindresorhus/p-limit",
+      "baseCommit": "df476048d023ff868cd45b35ee47f5fb0ca2b25a",
+      "fixCommit": "f3e7f9ba364a9357bd912d136367d06c46660917",
+      "diffSha256": "265905aeb1727496ea8c41a8cf60e9826c8724d778a409b5d8233e23a562f818"
+    },
+    {
+      "repository": "pallets/click",
+      "baseCommit": "420c8fb44eeadb537cae69d2fee3796e808558dd",
+      "fixCommit": "f58ca3e81424a35626c8a475eb59ab95589008ce",
+      "diffSha256": "62142e2a4dabb213968b998be77b1ea00865381d4ef66c82818322bee480b8b8"
+    }
+  ],
+  "acquisition": {
+    "publicGitFetches": 3,
+    "summedGitFetchWallMs": 58621.238,
+    "completeSourceArchivesPersisted": false,
+    "offlineDependencyClosuresPersisted": false,
+    "exactToolchainsPersisted": false,
+    "hiddenDevelopmentTestsFrozen": false,
+    "externalProviderSpendUsd": 0,
+    "totalAcquisitionUsd": null
+  },
+  "verification": {
+    "newAdversarialTests": 15,
+    "isolatedRuns": [
+      {"iteration": 1, "wallMs": 224.893},
+      {"iteration": 2, "wallMs": 221.788},
+      {"iteration": 3, "wallMs": 198.556},
+      {"iteration": 4, "wallMs": 203.364},
+      {"iteration": 5, "wallMs": 210.204}
+    ],
+    "isolatedRunsTotalWallMs": 1058.805,
+    "isolatedDriverProcessStarts": 5,
+    "isolatedNestedCliProcessStarts": 5,
+    "focusedTestsTotal": 94,
+    "focusedTestsPassed": 94,
+    "focusedSuiteReportedDurationMs": 44102.141,
+    "historicalEpochsReplayed": 7,
+    "legacyOriginalAnchorVerified": true,
+    "legacyHeadVerified": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "legacyNativeFieldCallsReserved": 209784,
+    "totalEvaluationUsd": null
+  },
+  "missionResourceDelta": {
+    "epochs": 0,
+    "nativeFieldCalls": 0,
+    "repairCandidateEvaluations": 0,
+    "repairProcessStarts": 0,
+    "repairWallMs": 0,
+    "externalProviderSpendUsd": 0
+  },
+  "candidateAdmissible": false,
+  "candidateExecutionEnabled": false,
+  "boundedRsiEvidenceAccepted": false,
+  "blockers": [
+    "CONTENT_ADDRESSED_SOURCE_ARCHIVES",
+    "OFFLINE_DEPENDENCY_CLOSURES",
+    "PINNED_TOOLCHAINS",
+    "EVALUATOR_AUTHORED_HIDDEN_DEVELOPMENT_TESTS",
+    "REVIEWED_ISOLATED_CANDIDATE_EXECUTOR",
+    "OPERATOR_APPROVED_REPAIR_RESOURCE_ENVELOPE"
+  ],
+  "measurementScope": "Git fetch timings are summed across three concurrently acquired public repositories. Five isolated validator-test runs include one nested read-only CLI inspection each. The full-suite duration is Node's reported duration. Research, code generation, review, GitHub API operations and CI are excluded.",
+  "decision": "Accept the exact exposed lineage freeze as a reviewable workload-acquisition increment. Do not execute candidates or use these known fixes as sealed confirmation evidence."
+}

@@ -187,7 +187,7 @@ npx ruflo@latest init wizard
 npm install -g ruflo@latest
 ```
 
-> 💡 **Windows users:** the `curl ... | bash` form needs a POSIX shell (Git-Bash, WSL, MSYS). The `npx ruflo@latest init wizard` line works natively in PowerShell and cmd. If you hit an `'bash' is not recognized` error, use the `npx` line instead — both end up running the same init flow.
+> 💡 **Windows users:** the `curl ... | bash` form needs a POSIX shell (Git-Bash, WSL, MSYS). The `npx ruflo@latest init wizard` line works natively in PowerShell and cmd. If you hit an `'bash' is not recognized` error, use the `npx` line instead — both end up running the same init flow. See the [Windows Installation Guide](docs/windows-installation.md) for prerequisites, config file locations, and troubleshooting.
 
 ### MCP Server
 

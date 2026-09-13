@@ -129,106 +129,70 @@ async function getSystemStatus(): Promise<{
     searchSpeed: string;
   };
 }> {
+  // Each service is queried independently so one failure doesn't hide others
+  const defaultSwarm = { id: null as string | null, topology: 'none', agents: { total: 0, active: 0, idle: 0 }, health: 'stopped', uptime: 0 };
+  const defaultMcp = { running: false, port: null as number | null, transport: 'stdio' };
+  const defaultMemory = { entries: 0, size: '0 B', backend: 'none', performance: { searchTime: 0, cacheHitRate: 0 } };
+  const defaultTasks = { total: 0, pending: 0, running: 0, completed: 0, failed: 0 };
+
+  let anyServiceRunning = false;
+
+  // Get swarm status
+  let swarm = defaultSwarm;
   try {
-    // Get swarm status
-    const swarmStatus = await callMCPTool<{
+    const s = await callMCPTool<{
       swarmId: string;
       topology: string;
       agents: { total: number; active: number; idle: number; terminated: number };
       health: string;
       uptime: number;
     }>('swarm_status', { includeMetrics: true });
+    swarm = { id: s.swarmId, topology: s.topology, agents: { total: s.agents.total, active: s.agents.active, idle: s.agents.idle }, health: s.health, uptime: s.uptime };
+    anyServiceRunning = true;
+  } catch { /* swarm not running */ }
 
-    // Get MCP status
-    let mcpStatus = { running: false, port: null as number | null, transport: 'stdio' };
-    try {
-      const mcp = await callMCPTool<{
-        running: boolean;
-        port: number;
-        transport: string;
-      }>('mcp_status', {});
-      mcpStatus = mcp;
-    } catch {
-      // MCP not running
-    }
+  // Get MCP status
+  let mcp = defaultMcp;
+  try {
+    const m = await callMCPTool<{ running: boolean; port: number; transport: string }>('mcp_status', {});
+    mcp = m;
+    if (m.running) anyServiceRunning = true;
+  } catch { /* MCP not running */ }
 
-    // Get memory status
-    const memoryStatus = await callMCPTool<{
+  // Get memory status
+  let memory = defaultMemory;
+  try {
+    const mem = await callMCPTool<{
       entries: number;
       size: number;
       backend: string;
       performance: { avgSearchTime: number; cacheHitRate: number };
     }>('memory_stats', {});
+    memory = { entries: mem.entries, size: formatBytes(mem.size), backend: mem.backend, performance: { searchTime: mem.performance.avgSearchTime, cacheHitRate: mem.performance.cacheHitRate } };
+    anyServiceRunning = true;
+  } catch { /* memory not available */ }
 
-    // Get task status
-    const taskStatus = await callMCPTool<{
-      total: number;
-      pending: number;
-      running: number;
-      completed: number;
-      failed: number;
-    }>('task_summary', {});
+  // Get task status
+  let tasks = defaultTasks;
+  try {
+    tasks = await callMCPTool<{ total: number; pending: number; running: number; completed: number; failed: number }>('task_summary', {});
+    anyServiceRunning = true;
+  } catch { /* task store not available */ }
 
-    return {
-      initialized: true,
-      running: true,
-      swarm: {
-        id: swarmStatus.swarmId,
-        topology: swarmStatus.topology,
-        agents: {
-          total: swarmStatus.agents.total,
-          active: swarmStatus.agents.active,
-          idle: swarmStatus.agents.idle
-        },
-        health: swarmStatus.health,
-        uptime: swarmStatus.uptime
-      },
-      mcp: mcpStatus,
-      memory: {
-        entries: memoryStatus.entries,
-        size: formatBytes(memoryStatus.size),
-        backend: memoryStatus.backend,
-        performance: {
-          searchTime: memoryStatus.performance.avgSearchTime,
-          cacheHitRate: memoryStatus.performance.cacheHitRate
-        }
-      },
-      tasks: taskStatus,
-      performance: {
-        cpuUsage: getProcessCpuUsage(),
-        memoryUsage: getProcessMemoryUsage(),
-        flashAttention: 'not measured',
-        searchSpeed: 'not measured'
-      }
-    };
-  } catch (error) {
-    // System not running
-    return {
-      initialized: true,
-      running: false,
-      swarm: {
-        id: null,
-        topology: 'none',
-        agents: { total: 0, active: 0, idle: 0 },
-        health: 'stopped',
-        uptime: 0
-      },
-      mcp: { running: false, port: null, transport: 'stdio' },
-      memory: {
-        entries: 0,
-        size: '0 B',
-        backend: 'none',
-        performance: { searchTime: 0, cacheHitRate: 0 }
-      },
-      tasks: { total: 0, pending: 0, running: 0, completed: 0, failed: 0 },
-      performance: {
-        cpuUsage: 0,
-        memoryUsage: 0,
-        flashAttention: 'N/A',
-        searchSpeed: 'N/A'
-      }
-    };
-  }
+  return {
+    initialized: true,
+    running: anyServiceRunning,
+    swarm,
+    mcp,
+    memory,
+    tasks,
+    performance: {
+      cpuUsage: getProcessCpuUsage(),
+      memoryUsage: getProcessMemoryUsage(),
+      flashAttention: 'not measured',
+      searchSpeed: 'not measured'
+    }
+  };
 }
 
 // Display status in text format

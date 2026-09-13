@@ -25,6 +25,12 @@ The candidate reservation entry point always rejects because both a reviewed
 resource authorization and a compatible isolation receipt are absent. Caller
 supplied approval flags have no effect.
 
+The `probe NEW_ABSOLUTE_RECEIPT` command creates an exclusive, fsynced receipt
+and refuses overwrite. It binds the policy and executor bytes, kernel platform,
+release and architecture, Bubblewrap version and binary hash, raw capability
+result and bounded cost. An interrupted or negative receipt is never deleted or
+converted into authorization.
+
 The launch builder accepts canonical, non symlink directories and one basename
 entry. It passes an argument vector directly with shell mode false. Candidate and
 output directories must be separate. The runtime root is allowlisted rather than
@@ -60,5 +66,5 @@ This executor contract cannot answer that question or establish RSI.
 node --test v3/@claude-flow/cli/scripts/rsi/repair/executor.test.mjs
 ```
 
-Expected: seven passes, the current capability receipt reports incompatible,
+Expected: eight passes, the current capability receipt reports incompatible,
 and candidate execution plus RSI acceptance remain false.

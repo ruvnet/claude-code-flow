@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync, symlinkSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { validateExecutorPolicy, buildIsolationLaunch, inspectExecutor, probeIsolation, reserveCandidateExecution, fixedProbeSource } from './executor.mjs';
+import { validateExecutorPolicy, buildIsolationLaunch, inspectExecutor, probeIsolation, recordIsolationProbe, reserveCandidateExecution, fixedProbeSource } from './executor.mjs';
 
 const policy = () => JSON.parse(readFileSync(new URL('./executor-policy.json', import.meta.url)));
 function temporary(fn) {
@@ -66,3 +66,14 @@ test('local capability probe preserves raw result and cannot enable candidates',
 test('probe results and caller claims cannot create resource authority', () => {
   assert.throws(() => reserveCandidateExecution({ compatible: true, approved: true }), /CANDIDATE_EXECUTION_DISABLED/);
 });
+test('durable probe receipt is exclusive, source bound and retains negative results', () => temporary(({ root }) => {
+  const path = join(root, 'receipt.json'), receipt = recordIsolationProbe(path);
+  assert.equal(receipt.policyHash, validateExecutorPolicy(policy()).policyHash);
+  assert.match(receipt.executorSourceSha256, /^[a-f0-9]{64}$/);
+  assert.equal(receipt.costs.engineeringProcessStarts, 2);
+  assert.equal(receipt.costs.candidateEvaluations, 0);
+  assert.equal(receipt.candidateExecutionEnabled, false);
+  assert.deepEqual(JSON.parse(readFileSync(path)), receipt);
+  assert.throws(() => recordIsolationProbe(path), /new absolute path/);
+  assert.deepEqual(JSON.parse(readFileSync(path)), receipt);
+}));

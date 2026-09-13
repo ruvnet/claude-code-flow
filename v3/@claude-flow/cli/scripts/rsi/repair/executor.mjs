@@ -2,10 +2,11 @@
 /** Fail-closed candidate isolation contract. Only its fixed capability probe executes. */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync, readFileSync, realpathSync } from 'node:fs';
+import { closeSync, existsSync, fsyncSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { arch, platform, release, tmpdir } from 'node:os';
 import { inspectMission, LEDGER } from './admission.mjs';
 import { sha256 } from './public-workloads.mjs';
 
@@ -100,6 +101,32 @@ export function probeIsolation(policy, candidateDirectory, outputDirectory) {
     candidateExecutionEnabled: false };
 }
 
+export function recordIsolationProbe(receiptPath, policyPath = join(ROOT, 'executor-policy.json')) {
+  assert(isAbsolute(receiptPath) && !existsSync(receiptPath), 'probe receipt must be a new absolute path');
+  const policy = JSON.parse(readFileSync(policyPath, 'utf8'));
+  validateExecutorPolicy(policy);
+  const temp = mkdtempSync(join(tmpdir(), 'ruflo-isolation-probe-'));
+  const candidate = join(temp, 'candidate'), output = join(temp, 'output');
+  mkdirSync(candidate); mkdirSync(output); writeFileSync(join(candidate, 'probe.mjs'), PROBE_SOURCE, { flag: 'wx' });
+  const started = performance.now();
+  try {
+    const version = spawnSync(policy.engine.binary, ['--version'], { encoding: 'utf8', timeout: 1000, maxBuffer: 4096, shell: false });
+    const capability = probeIsolation(policy, candidate, output);
+    const receipt = { schema: 'ruflo.repair-isolation-capability-receipt/v1',
+      policyHash: sha256(policy), executorSourceSha256: fileHash(fileURLToPath(import.meta.url)),
+      host: { platform: platform(), release: release(), arch: arch() },
+      engine: { path: policy.engine.binary, sha256: fileHash(policy.engine.binary),
+        versionStatus: version.status, versionStdout: version.stdout, versionStderr: version.stderr },
+      capability, costs: { engineeringProcessStarts: 2, wallMs: performance.now() - started,
+        candidateEvaluations: 0, externalProviderSpendUsd: 0, totalAcquisitionUsd: null, totalEvaluationUsd: null },
+      resourceAuthorizationPresent: false, candidateExecutionEnabled: false, boundedRsiEvidenceAccepted: false };
+    const fd = openSync(receiptPath, 'wx', 0o600);
+    try { writeFileSync(fd, JSON.stringify(receipt, null, 2) + '\n'); fsyncSync(fd); } finally { closeSync(fd); }
+    const dfd = openSync(dirname(receiptPath), 'r'); try { fsyncSync(dfd); } finally { closeSync(dfd); }
+    return receipt;
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+}
+
 export function inspectExecutor(policyPath = join(ROOT, 'executor-policy.json')) {
   const policy = JSON.parse(readFileSync(policyPath, 'utf8'));
   const policyCheck = validateExecutorPolicy(policy);
@@ -119,8 +146,9 @@ export function fixedProbeSource() { return PROBE_SOURCE; }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    const [command, extra] = process.argv.slice(2);
-    if (command !== 'inspect' || extra) throw Error('usage: executor.mjs inspect');
-    console.log(JSON.stringify(inspectExecutor(), null, 2));
+    const [command, path, extra] = process.argv.slice(2);
+    if (command === 'inspect' && !path) console.log(JSON.stringify(inspectExecutor(), null, 2));
+    else if (command === 'probe' && path && !extra) console.log(JSON.stringify(recordIsolationProbe(resolve(path)), null, 2));
+    else throw Error('usage: executor.mjs inspect | probe NEW_ABSOLUTE_RECEIPT');
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 }

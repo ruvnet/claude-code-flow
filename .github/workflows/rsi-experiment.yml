@@ -67,6 +67,8 @@ jobs:
           node-version: '24.19.0'
       - name: Offline p-limit historical runtime witness and admission tests
         run: node --test v3/@claude-flow/cli/scripts/rsi/repair/p-limit-offline.test.mjs
+      - name: Fail-closed isolated candidate executor contract tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/repair/executor.test.mjs
       - name: Replay all native epochs using their original source trees
         run: >-
           node v3/@claude-flow/cli/scripts/rsi/loop/replay-history.mjs

@@ -100,6 +100,13 @@ tests, hidden tests, arbitrary candidate isolation and resource approval remain
 missing. The host denied Bubblewrap network namespace setup; do not treat the
 fixed witness's Node permissions as an arbitrary candidate sandbox.
 
+[EXECUTOR-001.md](EXECUTOR-001.md) freezes and implements the fail closed
+Bubblewrap launch contract, fixed capability probe, canonical source and output
+admission, resource limits and all four controls. The current host fails the
+namespace probe, and resource authorization remains absent, so candidate
+reservation and execution still reject. Continue on a compatible reviewed runner
+without adding a relaxed fallback or changing the existing resource proposal.
+
 [MIGRATION-001.md](MIGRATION-001.md) records the implemented versioned projection
 and reservation algebra, adversarial tests and a concrete resource authorization
 proposal. Live application, durable version dispatch and candidate execution

@@ -1,0 +1,58 @@
+{
+  "schema": "ruflo.repair-isolated-executor-policy/v1",
+  "purpose": "Fail-closed operating-system isolation contract for future public development repair candidates. This reviewed policy cannot grant resource authorization or run candidates in the current mission.",
+  "engine": {
+    "name": "bubblewrap",
+    "minimumVersion": "0.9.0",
+    "binary": "/usr/bin/bwrap",
+    "requiredArguments": ["--unshare-all", "--die-with-parent", "--new-session", "--cap-drop", "ALL", "--clearenv"],
+    "networkMode": "NEW_EMPTY_NETWORK_NAMESPACE",
+    "rootMode": "ALLOWLISTED_READ_ONLY_BINDS",
+    "candidateSourceMode": "READ_ONLY",
+    "outputMode": "DEDICATED_WRITABLE_BIND",
+    "shellEnabled": false
+  },
+  "limits": {
+    "wallMsPerProcess": 5000,
+    "addressSpaceBytes": 536870912,
+    "cpuSeconds": 5,
+    "openFiles": 64,
+    "processes": 16,
+    "outputBytes": 65536
+  },
+  "environment": {"LANG": "C", "TZ": "UTC", "HOME": "/nonexistent"},
+  "mounts": {
+    "runtimeParents": ["/opt", "/opt/codex", "/opt/codex/runtimes", "/opt/codex/runtimes/codex-primary-runtime", "/opt/codex/runtimes/codex-primary-runtime/dependencies"],
+    "runtime": ["/usr", "/opt/codex/runtimes/codex-primary-runtime/dependencies/node"],
+    "proc": "/proc",
+    "dev": "/dev",
+    "tmpfs": "/tmp",
+    "candidate": "/workspace",
+    "output": "/output"
+  },
+  "probe": {
+    "requiresUserNamespace": true,
+    "requiresPidNamespace": true,
+    "requiresNetworkNamespace": true,
+    "requiresMountNamespace": true,
+    "requiresNoNonLoopbackInterfaces": true,
+    "requiresReadOnlyCandidateSource": true,
+    "requiresWritableDedicatedOutput": true
+  },
+  "controls": ["frozen", "static", "shuffled", "previous"],
+  "resourceProposal": {
+    "candidateEvaluations": 36,
+    "isolatedProcessStarts": 216,
+    "summedProcessWallMs": 1080000,
+    "approved": false,
+    "approvalReceiptHash": null
+  },
+  "legacyMission": {
+    "head": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "nativeFieldCallsReserved": 209784,
+    "epochsConsumed": 7,
+    "originalAnchor": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088"
+  },
+  "candidateExecutionEnabled": false,
+  "boundedRsiEvidenceAccepted": false
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "ruflo.repair-engineering-validation-reservation/v1",
+  "sourceCommit": "4d40f1f6ff23974042a1a406d10025482ba74b0b",
+  "sourceTree": "55c217707d7da879a9b9cf4fe367ddb088631cb5",
+  "startedAt": "2026-09-13T05:47:34.487Z",
+  "scope": "PINNED_STATIC_DT_NEEDED_CLOSURE_TEST_AND_READ_ONLY_HOST_INSPECTION",
+  "reservedParentProcessStarts": 2,
+  "reservedParentWallMs": 10000,
+  "candidateEvaluations": 0,
+  "isolatedProcessStarts": 0,
+  "nativeFieldCalls": 0,
+  "externalProviderSpendUsd": 0,
+  "retainOnInterruption": true,
+  "resourceAuthorizationPresent": false,
+  "candidateExecutionEnabled": false,
+  "boundedRsiEvidenceAccepted": false
+}

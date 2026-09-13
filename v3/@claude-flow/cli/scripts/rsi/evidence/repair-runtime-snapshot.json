@@ -1,0 +1,77 @@
+{
+  "schema": "ruflo.repair-runtime-snapshot-evidence/v1",
+  "mission": "rsi-ruflo-loop-20260912",
+  "decision": "ENGINEERING_INCREMENT_ACCEPTED_CANDIDATE_EXECUTION_DISABLED",
+  "reviewedSource": {
+    "commit": "ddb441b2c6e642c0ced99e6cfda30ebfac7e156c",
+    "tree": "156bb32459f69d01feb8decc1f7dddf1eedb6a48",
+    "runtimeLayoutHash": "ccf90161f686638f6409a6f187631e5848713ed2f5174df47466018c5c5ae8f8"
+  },
+  "rejectedPredecessor": {
+    "commit": "2c8cb50b8b0cb9f4b00cd579dedcbab9d88950c8",
+    "tree": "f0c08ba2eb2f66d7aaf94ebee1f51f548d109419",
+    "retainedFindings": [
+      "CALLER_FORGEABLE_RECURSIVE_CLEANUP_OWNERSHIP",
+      "NESTED_AND_EMPTY_DIRECTORY_INVENTORY_NOT_VALIDATED"
+    ]
+  },
+  "integrationFailure": {
+    "sourceCommit": "bf57ae830ac0b22ff23369dd558321e217f334db",
+    "workflowRun": 34744138142,
+    "failedStep": "Fail-closed isolated candidate executor contract tests",
+    "cause": "LOCAL_SNAPSHOT_MOUNT_ASSERTION_FIX_OMITTED_FROM_PUBLISHED_TREE",
+    "retained": true
+  },
+  "snapshot": {
+    "hash": "f4e1a04ccab31069b6eccf241207e2f6c45efae9e83bcb5ebd3b293f9ff16529",
+    "entries": 13,
+    "regularFileBytes": 132248416,
+    "exactInventoryVerified": true,
+    "ordinaryWriteProtectionVerified": true,
+    "privilegedParentImmutabilityClaimed": false,
+    "wholeHostUsrBindRemoved": true
+  },
+  "validation": {
+    "workflowRun": 34744268968,
+    "workflowConclusion": "success",
+    "focusedTestsPassing": 203,
+    "historicalEpochReplaysPassing": 7,
+    "unitRuns": 4,
+    "testsPerRun": 7,
+    "passingTests": 28,
+    "unitWallMs": [187, 158, 171, 207],
+    "hostSnapshotRuns": 2,
+    "hostSnapshotWallMs": [1017, 1002],
+    "summedMeasuredWallMs": 2742,
+    "nodeValidationProcessStarts": 6,
+    "bubblewrapStarts": 0,
+    "candidateEvaluations": 0,
+    "nativeFieldCalls": 0,
+    "externalProviderSpendUsd": 0,
+    "totalAcquisitionUsd": null,
+    "totalEvaluationUsd": null,
+    "outerEngineeringUsd": null,
+    "shellWrapperCiAndPrepublicationEngineeringCostsIncluded": false
+  },
+  "legacyMission": {
+    "head": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "nativeFieldCallsReserved": 209784,
+    "epochsConsumed": 7,
+    "originalAnchor": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088",
+    "changed": false
+  },
+  "remainingBlockers": [
+    "PINNED_BUBBLEWRAP_IDENTITY_ABSENT",
+    "COMPATIBLE_OS_ISOLATION_RUNNER_ABSENT",
+    "RUNTIME_STARTUP_AND_DATA_DRIVEN_LOADS_UNVERIFIED",
+    "REPAIR_RESOURCE_AUTHORIZATION_ABSENT"
+  ],
+  "resourceProposal": {
+    "candidateEvaluations": 36,
+    "isolatedProcessStarts": 216,
+    "summedProcessWallMs": 1080000,
+    "approved": false
+  },
+  "candidateExecutionEnabled": false,
+  "boundedRsiEvidenceAccepted": false
+}

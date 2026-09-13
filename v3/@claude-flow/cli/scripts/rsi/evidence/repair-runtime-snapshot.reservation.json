@@ -1,0 +1,20 @@
+{
+  "schema": "ruflo.repair-runtime-snapshot-engineering-reservation/v1",
+  "mission": "rsi-ruflo-loop-20260912",
+  "sourceCommit": "2c8cb50b8b0cb9f4b00cd579dedcbab9d88950c8",
+  "sourceTree": "f0c08ba2eb2f66d7aaf94ebee1f51f548d109419",
+  "runtimeLayoutHash": "ccf90161f686638f6409a6f187631e5848713ed2f5174df47466018c5c5ae8f8",
+  "startedAt": "2026-09-13T06:58:09Z",
+  "reservedParentProcesses": 4,
+  "reservedWallMs": 60000,
+  "reservedSnapshotFileBytes": 132248416,
+  "scope": "THREE_UNIT_TEST_RUNS_AND_ONE_READ_ONLY_HOST_SNAPSHOT_STAGE_VERIFY_DISCARD",
+  "bubblewrapStarts": 0,
+  "candidateEvaluations": 0,
+  "nativeFieldCalls": 0,
+  "externalProviderSpendUsd": 0,
+  "retainOnInterruption": true,
+  "missionBudgetChanged": false,
+  "candidateExecutionEnabled": false,
+  "boundedRsiEvidenceAccepted": false
+}

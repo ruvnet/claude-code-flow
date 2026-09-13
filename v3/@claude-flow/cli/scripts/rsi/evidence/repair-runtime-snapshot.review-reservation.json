@@ -1,0 +1,15 @@
+{
+  "schema": "ruflo.repair-runtime-snapshot-review-reservation/v1",
+  "sourceCommit": "2c8cb50b8b0cb9f4b00cd579dedcbab9d88950c8",
+  "sourceTree": "f0c08ba2eb2f66d7aaf94ebee1f51f548d109419",
+  "reviewResult": "REJECTED_PENDING_CORRECTION",
+  "retainedFindings": [
+    "CALLER_FORGEABLE_RECURSIVE_CLEANUP_OWNERSHIP",
+    "NESTED_AND_EMPTY_DIRECTORY_INVENTORY_NOT_VALIDATED"
+  ],
+  "candidateEvaluations": 0,
+  "isolatedProcessStarts": 0,
+  "nativeFieldCalls": 0,
+  "candidateExecutionEnabled": false,
+  "boundedRsiEvidenceAccepted": false
+}

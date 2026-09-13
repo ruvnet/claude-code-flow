@@ -10,6 +10,7 @@ import { arch, platform, release, tmpdir } from 'node:os';
 import { inspectMission, LEDGER } from './admission.mjs';
 import { sha256 } from './public-workloads.mjs';
 import { inspectRuntimeLayout, runtimeSymlinkArguments, RUNTIME_LAYOUT_HASH } from './runtime-layout.mjs';
+import { discardRuntimeSnapshot, snapshotMounts, stageRuntimeSnapshot } from './runtime-snapshot.mjs';
 
 const ROOT = dirname(new URL(import.meta.url).pathname);
 const EXPECTED_POLICY_HASH = '84c079ec4d58d17bb63966bfe17924ed715c919cb46a7b6209d9836945608b9b';
@@ -56,7 +57,7 @@ function confinedDirectory(path, label) {
   return canonical;
 }
 
-function buildLaunch(policy, candidateDirectory, outputDirectory, entry, runtimeLayout, checkRuntimeMounts) {
+function buildLaunch(policy, candidateDirectory, outputDirectory, entry, runtimeLayout, runtimeSnapshot) {
   const check = validateExecutorPolicy(policy);
   assert.equal(runtimeLayout.runtimeLayoutHash, RUNTIME_LAYOUT_HASH, 'reviewed runtime layout required');
   assert.equal(runtimeLayout.runtimeLayoutVerified, true, 'verified runtime layout required');
@@ -65,17 +66,22 @@ function buildLaunch(policy, candidateDirectory, outputDirectory, entry, runtime
   const output = confinedDirectory(outputDirectory, 'output');
   const outside = (base, path) => { const rel = relative(base, path); return rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel); };
   assert(outside(candidate, output) && outside(output, candidate), 'candidate and output must be separate');
+  const snapshotRoot = confinedDirectory(runtimeSnapshot.root, 'runtime snapshot');
+  assert(outside(candidate, snapshotRoot) && outside(snapshotRoot, candidate) &&
+    outside(output, snapshotRoot) && outside(snapshotRoot, output), 'runtime snapshot must be separate');
+  assert.equal(runtimeSnapshot.runtimeLayoutHash, runtimeLayout.runtimeLayoutHash, 'snapshot runtime layout mismatch');
   assert(/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(entry), 'fixed candidate entry filename');
   const source = join(candidate, entry);
   assert(existsSync(source) && lstatSync(source).isFile() && !lstatSync(source).isSymbolicLink() && realpathSync(source) === source, 'candidate entry file');
   const args = [...policy.engine.requiredArguments];
   for (const path of policy.mounts.runtimeParents) args.push('--dir', path);
-  for (const mount of policy.mounts.runtime) {
-    if (checkRuntimeMounts) {
-      assert(existsSync(mount) && realpathSync(mount) === mount, 'canonical runtime mount required');
-    }
-    args.push('--ro-bind', mount, mount);
-  }
+  const mounts = runtimeSnapshot.snapshotHash === 'test-only' && process.env.NODE_TEST_CONTEXT
+    ? [{ source: join(runtimeSnapshot.root, 'usr'), target: '/usr' },
+      { source: join(runtimeSnapshot.root, 'opt/codex/runtimes/codex-primary-runtime/dependencies/node'),
+        target: '/opt/codex/runtimes/codex-primary-runtime/dependencies/node' }]
+    : snapshotMounts(runtimeSnapshot);
+  assert.deepEqual(mounts.map(item => item.target), policy.mounts.runtime, 'snapshot mount targets');
+  for (const mount of mounts) args.push('--ro-bind', mount.source, mount.target);
   args.push(...runtimeSymlinkArguments(runtimeLayout));
   args.push('--proc', policy.mounts.proc, '--dev', policy.mounts.dev, '--tmpfs', policy.mounts.tmpfs,
     '--ro-bind', candidate, policy.mounts.candidate, '--bind', output, policy.mounts.output,
@@ -87,24 +93,29 @@ function buildLaunch(policy, candidateDirectory, outputDirectory, entry, runtime
     '/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node',
     '--permission', '--allow-fs-read=/workspace', '--allow-fs-write=/output', `/workspace/${entry}`);
   return { schema: 'ruflo.repair-isolation-launch/v2', policyHash: check.policyHash,
-    runtimeLayoutHash: runtimeLayout.runtimeLayoutHash, runtimeIdentities: runtimeLayout.identities,
+    runtimeLayoutHash: runtimeLayout.runtimeLayoutHash, runtimeSnapshotHash: runtimeSnapshot.snapshotHash,
+    runtimeIdentities: runtimeLayout.identities,
     command: policy.engine.binary, args, timeoutMs: policy.limits.wallMsPerProcess,
     maxBuffer: policy.limits.outputBytes, shell: false, candidateSha256: fileHash(source),
     networkNamespaceRequired: true, candidateSourceReadOnly: true, candidateExecutionEnabled: false };
 }
 
 export function buildIsolationLaunch(policy, candidateDirectory, outputDirectory, entry = 'candidate.mjs') {
-  return buildLaunch(policy, candidateDirectory, outputDirectory, entry, inspectRuntimeLayout(), true);
+  throw Error('DIRECT_LAUNCH_DISABLED: use the durably reserved fixed probe, which owns snapshot lifetime');
 }
 
 export function buildIsolationLaunchForTest(policy, candidateDirectory, outputDirectory, entry = 'candidate.mjs') {
   assert(process.env.NODE_TEST_CONTEXT, 'test-only launch builder');
+  const snapshotRoot = join(dirname(candidateDirectory), 'test-runtime-snapshot');
+  mkdirSync(join(snapshotRoot, 'usr'), { recursive: true });
+  mkdirSync(join(snapshotRoot, 'opt/codex/runtimes/codex-primary-runtime/dependencies/node'), { recursive: true });
   return buildLaunch(policy, candidateDirectory, outputDirectory, entry, {
     schema: 'ruflo.repair-runtime-layout-observation/v2', runtimeLayoutHash: RUNTIME_LAYOUT_HASH,
     runtimeLayoutVerified: true, candidateExecutionEnabled: false,
     identities: { node: {}, prlimit: {}, interpreter: {} },
     syntheticSymlinks: [{ target: 'usr/lib', link: '/lib' }, { target: 'usr/lib64', link: '/lib64' }],
-  }, false);
+  }, { root: realpathSync(snapshotRoot), snapshotHash: 'test-only', runtimeLayoutHash: RUNTIME_LAYOUT_HASH,
+    readOnlyStaged: true, candidateExecutionEnabled: false });
 }
 
 const PROBE_SOURCE = `import fs from 'node:fs';import os from 'node:os';
@@ -116,8 +127,8 @@ console.log(JSON.stringify({sourceWriteError,interfaces}));`;
 // No exported function may execute a caller-supplied path or source. This helper
 // is reachable only after recordIsolationProbe durably reserves work and stages
 // the module-owned fixed bytes in its own private temporary directory.
-function probeIsolation(policy, candidateDirectory, outputDirectory, runtimeLayout, revalidateRuntime) {
-  const launch = buildLaunch(policy, candidateDirectory, outputDirectory, 'probe.mjs', runtimeLayout, revalidateRuntime);
+function probeIsolation(policy, candidateDirectory, outputDirectory, runtimeLayout, runtimeSnapshot, revalidateRuntime) {
+  const launch = buildLaunch(policy, candidateDirectory, outputDirectory, 'probe.mjs', runtimeLayout, runtimeSnapshot);
   assert.equal(launch.candidateSha256, createHash('sha256').update(PROBE_SOURCE).digest('hex'), 'fixed probe bytes required');
   if (revalidateRuntime) {
     const current = inspectRuntimeLayout();
@@ -143,7 +154,7 @@ function probeIsolation(policy, candidateDirectory, outputDirectory, runtimeLayo
   return { schema: 'ruflo.repair-isolation-probe/v2', policyHash: launch.policyHash,
     compatible: false, status: child.status, signal: child.signal, error: child.error?.code ?? null,
     stdout: child.stdout ?? '', stderr: child.stderr ?? '', observation, elapsedMs: performance.now() - started,
-    outputInspectionError,
+    outputInspectionError, runtimeSnapshotHash: launch.runtimeSnapshotHash,
     parentObservedProcessStarts: child.pid > 0 ? 1 : 0,
     checks: { fixedProbeExited: child.status === 0 && !child.error && !child.signal,
       outputWritable, visibleInterfacesInternal, osSourceReadOnlyVerified: false,
@@ -184,7 +195,7 @@ function recordProbe(receiptPath, policyPath, injectedRuntimeLayout) {
   // spawn. Never remove it, refund it, or retry it automatically after a crash.
   durableNew(reservationPath, reservation);
   const started = performance.now();
-  let temp;
+  let temp, runtimeSnapshot, runtimeParent;
   try {
     const runtimeLayout = injectedRuntimeLayout ?? inspectRuntimeLayout();
     const engineHash = existsSync(policy.engine.binary) ? fileHash(policy.engine.binary) : null;
@@ -197,11 +208,20 @@ function recordProbe(receiptPath, policyPath, injectedRuntimeLayout) {
       temp = mkdtempSync(join(tmpdir(), 'ruflo-isolation-probe-'));
       const candidate = join(temp, 'candidate'), output = join(temp, 'output');
       mkdirSync(candidate); mkdirSync(output); writeFileSync(join(candidate, 'probe.mjs'), PROBE_SOURCE, { flag: 'wx', mode: 0o600 });
-      capability = { attempted: true, ...probeIsolation(policy, candidate, output, runtimeLayout, !injectedRuntimeLayout) };
+      runtimeParent = join(temp, 'runtime-snapshots'); mkdirSync(runtimeParent);
+      if (injectedRuntimeLayout) {
+        const root = join(runtimeParent, 'test-only');
+        mkdirSync(join(root, 'usr'), { recursive: true });
+        mkdirSync(join(root, 'opt/codex/runtimes/codex-primary-runtime/dependencies/node'), { recursive: true });
+        runtimeSnapshot = { root: realpathSync(root), snapshotHash: 'test-only', runtimeLayoutHash: runtimeLayout.runtimeLayoutHash,
+          readOnlyStaged: true, candidateExecutionEnabled: false };
+      } else runtimeSnapshot = stageRuntimeSnapshot(realpathSync(runtimeParent));
+      capability = { attempted: true, ...probeIsolation(policy, candidate, output, runtimeLayout, runtimeSnapshot, !injectedRuntimeLayout) };
     }
     const receipt = { schema: 'ruflo.repair-isolation-capability-receipt/v2',
       reservationHash: sha256(reservation), policyHash: reservation.policyHash,
-      runtimeLayoutHash: runtimeLayout.runtimeLayoutHash, runtimeIdentities: runtimeLayout.identities,
+      runtimeLayoutHash: runtimeLayout.runtimeLayoutHash, runtimeSnapshotHash: runtimeSnapshot?.snapshotHash ?? null,
+      runtimeIdentities: runtimeLayout.identities,
       executorSourceSha256: reservation.executorSourceSha256, fixedProbeSha256: reservation.fixedProbeSha256,
       host: { platform: platform(), release: release(), arch: arch() },
       engine: { path: policy.engine.binary, sha256: engineHash, unchangedAfterVersion: engineUnchanged,
@@ -214,7 +234,11 @@ function recordProbe(receiptPath, policyPath, injectedRuntimeLayout) {
       resourceAuthorizationPresent: false, candidateExecutionEnabled: false, boundedRsiEvidenceAccepted: false };
     durableNew(receiptPath, receipt);
     return receipt;
-  } finally { if (temp) rmSync(temp, { recursive: true, force: true }); }
+  } finally {
+    if (runtimeSnapshot && runtimeParent && runtimeSnapshot.snapshotHash !== 'test-only' && existsSync(runtimeSnapshot.root))
+      discardRuntimeSnapshot(runtimeSnapshot, runtimeParent);
+    if (temp) rmSync(temp, { recursive: true, force: true });
+  }
 }
 
 export function recordIsolationProbe(receiptPath, policyPath = join(ROOT, 'executor-policy.json')) {

@@ -159,7 +159,11 @@ parsing and validates the complete declared static eight-library dependency clos
 including exact SONAME, symlink, canonical path, direct dependency and search-path
 properties plus reviewed file hashes. Data-driven loads, immutable runtime
 snapshotting, pinned Bubblewrap identity, actual relocation, sandbox startup and
-OS isolation still require a compatible runner. A host compatibility receipt cannot grant resource authority.
+OS isolation still require a compatible runner. [EXECUTOR-005.md](EXECUTOR-005.md)
+stages only that declared closure into a private content-addressed tree, validates
+its exact inventory immediately before launch construction, and removes the
+whole-host `/usr` bind. It does not claim immutability against a privileged parent.
+A host compatibility receipt cannot grant resource authority.
 Do not rerun the incompatible host unchanged.
 
 [MIGRATION-001.md](MIGRATION-001.md) records the implemented versioned projection

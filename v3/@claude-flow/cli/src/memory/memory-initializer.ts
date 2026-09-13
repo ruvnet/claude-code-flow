@@ -2917,7 +2917,7 @@ export async function storeEntry(options: {
     let embeddingDimensions: number | null = null;
     let embeddingModel: string | null = null;
 
-    if (generateEmbeddingFlag && value.length > 0) {
+    if (generateEmbeddingFlag && value && value.length > 0) {
       const embResult = await generateEmbedding(value);
       embeddingJson = JSON.stringify(embResult.embedding);
       embeddingDimensions = embResult.dimensions;

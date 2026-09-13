@@ -359,7 +359,17 @@ export const memoryTools: MCPTool[] = [
       const key = input.key as string;
       const namespace = (input.namespace as string) || 'default';
       const rawValue = input.value;
-      const value = typeof rawValue === 'string' ? rawValue : (rawValue !== undefined ? JSON.stringify(rawValue) : '');
+      if (rawValue === undefined || rawValue === null) {
+        return {
+          success: false,
+          key,
+          namespace,
+          stored: false,
+          hasEmbedding: false,
+          error: 'Missing required parameter: value (cannot be null or undefined)',
+        };
+      }
+      const value = typeof rawValue === 'string' ? rawValue : JSON.stringify(rawValue);
       const tags = (input.tags as string[]) || [];
       const ttl = input.ttl as number | undefined;
       // #2775 parity with CLI: default true; only explicit `upsert: false` opts out.

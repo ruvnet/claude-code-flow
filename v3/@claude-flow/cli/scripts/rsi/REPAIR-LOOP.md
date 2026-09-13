@@ -119,6 +119,10 @@ remain disabled. Read that increment before repeating accounting design work.
    mode, type and object-id entries and reconstructs both base and one-commit
    fix tree identities offline. Inventories prove whole-tree identity, but do
    not contain every blob payload or make the workloads executable.
+   [WORKLOADS-004.md](WORKLOADS-004.md) adds complete content-addressed base
+   and fix source payloads for the compact p-limit and Click workloads. The
+   larger RuVector payload set and every offline dependency closure remain
+   deliberately deferred, so candidate execution remains disabled.
    Continue to acquire independently specified real
    defects across repository and bug lineages. Record exclusions, fix exposure,
    source dependencies and costs. Freeze the sample before comparing methods.

@@ -15,7 +15,7 @@ const hash = (algorithm, bytes) => createHash(algorithm).update(bytes).digest('h
 const keys = (v, expected, reason) => ok(v && typeof v === 'object' && !Array.isArray(v) &&
   Object.keys(v).sort().join(',') === [...expected].sort().join(','), reason);
 
-function parseInventory(raw) {
+export function parseInventory(raw) {
   const records = raw.toString('utf8').split('\0');
   ok(records.pop() === '', 'inventory must be NUL terminated');
   const entries = new Map();
@@ -32,7 +32,7 @@ function parseInventory(raw) {
   return entries;
 }
 
-function treeOid(entries) {
+export function gitTreeOid(entries) {
   const root = { children: new Map() };
   for (const [path, leaf] of entries) {
     let node = root;
@@ -61,7 +61,7 @@ function treeOid(entries) {
   return digest(root);
 }
 
-function decode(record, inventoryDir) {
+export function decodePublicInventoryRecord(record, inventoryDir) {
   keys(record, ['repository','baseCommit','baseTree','fixCommit','fixTree','path','encoding','entryCount','rawBytes','compressedBytes','rawSha256','compressedSha256'], 'inventory record fields');
   ok(d40.test(record.baseCommit) && d40.test(record.baseTree) && d40.test(record.fixCommit) && d40.test(record.fixTree),
     'inventory Git identity');
@@ -118,14 +118,14 @@ export function validatePublicTreeInventories(manifest, workloads, capsules, opt
     ok(record.baseCommit === workload.source.baseCommit && record.baseTree === workload.source.baseTree &&
       record.fixCommit === workload.source.fixCommit && record.fixTree === workload.source.fixTree,
       'inventory workload provenance');
-    const entries = decode(record, inventoryDir);
-    ok(treeOid(entries) === record.baseTree, 'base tree reconstruction mismatch');
+    const entries = decodePublicInventoryRecord(record, inventoryDir);
+    ok(gitTreeOid(entries) === record.baseTree, 'base tree reconstruction mismatch');
     for (const changed of workload.changedFiles) {
       const prior = entries.get(changed.path);
       ok(prior?.oid === changed.baseBlob && prior.type === 'blob', 'changed base blob not in inventory');
       entries.set(changed.path, { ...prior, oid: changed.fixBlob });
     }
-    ok(treeOid(entries) === record.fixTree, 'fix tree reconstruction mismatch');
+    ok(gitTreeOid(entries) === record.fixTree, 'fix tree reconstruction mismatch');
     entryCount += record.entryCount; rawBytes += record.rawBytes; compressedBytes += record.compressedBytes;
   }
   ok(entryCount === manifest.coverage.inventoryEntryCount && rawBytes === manifest.coverage.inventoryRawBytes &&

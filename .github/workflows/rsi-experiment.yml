@@ -58,6 +58,8 @@ jobs:
         run: node --test v3/@claude-flow/cli/scripts/rsi/repair/public-capsules.test.mjs
       - name: Complete public Git tree inventory adversarial tests
         run: node --test v3/@claude-flow/cli/scripts/rsi/repair/public-tree-inventories.test.mjs
+      - name: Complete compact-workload source payload adversarial tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/repair/public-tree-payloads.test.mjs
       - name: Replay all native epochs using their original source trees
         run: >-
           node v3/@claude-flow/cli/scripts/rsi/loop/replay-history.mjs

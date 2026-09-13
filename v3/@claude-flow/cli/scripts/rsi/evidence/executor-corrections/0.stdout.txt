@@ -1,0 +1,1080 @@
+TAP version 13
+# Subtest: config has strict finite integer bounds and global resource ceiling
+ok 1 - config has strict finite integer bounds and global resource ceiling
+  ---
+  duration_ms: 2.678757
+  type: 'test'
+  ...
+# Subtest: genome permits only eight bounded integer axis weights
+ok 2 - genome permits only eight bounded integer axis weights
+  ---
+  duration_ms: 0.367304
+  type: 'test'
+  ...
+# Subtest: learning preserves failed attempts and corrupt-credit control differs
+ok 3 - learning preserves failed attempts and corrupt-credit control differs
+  ---
+  duration_ms: 0.484582
+  type: 'test'
+  ...
+# Subtest: exact sign test reports wins, ties, losses and refuses invalid inputs
+ok 4 - exact sign test reports wins, ties, losses and refuses invalid inputs
+  ---
+  duration_ms: 0.290259
+  type: 'test'
+  ...
+# Subtest: all arms receive identical logical work, including rejects and training
+ok 5 - all arms receive identical logical work, including rejects and training
+  ---
+  duration_ms: 0.523521
+  type: 'test'
+  ...
+# Subtest: lineage reconstructs from root with exact before/after and hashes
+ok 6 - lineage reconstructs from root with exact before/after and hashes
+  ---
+  duration_ms: 0.881331
+  type: 'test'
+  ...
+# Subtest: changing outer sample size never changes trained optimizer or history
+ok 7 - changing outer sample size never changes trained optimizer or history
+  ---
+  duration_ms: 13.769591
+  type: 'test'
+  ...
+# Subtest: null and rollback controls pass without claiming live efficacy
+ok 8 - null and rollback controls pass without claiming live efficacy
+  ---
+  duration_ms: 0.214955
+  type: 'test'
+  ...
+# Subtest: deterministic whole experiment replay and pinned signer verification
+ok 9 - deterministic whole experiment replay and pinned signer verification
+  ---
+  duration_ms: 25.15378
+  type: 'test'
+  ...
+# Subtest: even correctly signed falsified evidence fails recomputation
+ok 10 - even correctly signed falsified evidence fails recomputation
+  ---
+  duration_ms: 21.218475
+  type: 'test'
+  ...
+# Subtest: CLI requires explicit output, refuses overwrite, replays with pinned key
+ok 11 - CLI requires explicit output, refuses overwrite, replays with pinned key
+  ---
+  duration_ms: 427.892152
+  type: 'test'
+  ...
+# Subtest: registration is deterministic and pins exact learner/evaluator and protocol
+ok 12 - registration is deterministic and pins exact learner/evaluator and protocol
+  ---
+  duration_ms: 4.087845
+  type: 'test'
+  ...
+# Subtest: untrained objective families are finite normalized and structurally different
+ok 13 - untrained objective families are finite normalized and structurally different
+  ---
+  duration_ms: 1.457842
+  type: 'test'
+  ...
+# Subtest: split role and family separate addresses; training cannot request outer families
+ok 14 - split role and family separate addresses; training cannot request outer families
+  ---
+  duration_ms: 0.461617
+  type: 'test'
+  ...
+# Subtest: snapshots freeze all state and contain only inner task evidence
+ok 15 - snapshots freeze all state and contain only inner task evidence
+  ---
+  duration_ms: 36.377687
+  type: 'test'
+  ...
+# Subtest: proof requires every family, checkpoint and comparator; aggregate wins cannot hide a loss
+ok 16 - proof requires every family, checkpoint and comparator; aggregate wins cannot hide a loss
+  ---
+  duration_ms: 1.603883
+  type: 'test'
+  ...
+# Subtest: deployment budgets fixed across checkpoints, additional training disclosed
+ok 17 - deployment budgets fixed across checkpoints, additional training disclosed
+  ---
+  duration_ms: 0.24479
+  type: 'test'
+  ...
+# Subtest: untrusted evidence is rejected before computation
+ok 18 - untrusted evidence is rejected before computation
+  ---
+  duration_ms: 0.324771
+  type: 'test'
+  ...
+# Subtest: native repository retrieval is deterministic and target modules are split
+ok 19 - native repository retrieval is deterministic and target modules are split
+  ---
+  duration_ms: 622.697207
+  type: 'test'
+  ...
+# Subtest: crash after reservation retains work and forbids a free retry
+ok 20 - crash after reservation retains work and forbids a free retry
+  ---
+  duration_ms: 2700.712886
+  type: 'test'
+  ...
+# Subtest: SIGKILL during atomic append has explicit anchored recovery without resetting charged work
+ok 21 - SIGKILL during atomic append has explicit anchored recovery without resetting charged work
+  ---
+  duration_ms: 4736.896023
+  type: 'test'
+  ...
+# Subtest: resumable epochs execute all attempts without promoting development to proof
+ok 22 - resumable epochs execute all attempts without promoting development to proof
+  ---
+  duration_ms: 3873.991485
+  type: 'test'
+  ...
+# Subtest: joint coverage is explicit and old implementation control preserves its exact source
+ok 23 - joint coverage is explicit and old implementation control preserves its exact source
+  ---
+  duration_ms: 7.595424
+  type: 'test'
+  ...
+# Subtest: joint credit records heuristic allocation and ignores control or selection outcomes
+ok 24 - joint credit records heuristic allocation and ignores control or selection outcomes
+  ---
+  duration_ms: 0.343028
+  type: 'test'
+  ...
+# Subtest: proposer controls share random addresses and bind previous optimizer ancestry
+ok 25 - proposer controls share random addresses and bind previous optimizer ancestry
+  ---
+  duration_ms: 234.797026
+  type: 'test'
+  ...
+# Subtest: budget and concurrency checks occur before any evaluation
+ok 26 - budget and concurrency checks occur before any evaluation
+  ---
+  duration_ms: 2469.972631
+  type: 'test'
+  ...
+# Subtest: source changes require explicit new hypothesis without resetting lifetime counters
+ok 27 - source changes require explicit new hypothesis without resetting lifetime counters
+  ---
+  duration_ms: 1831.70987
+  type: 'test'
+  ...
+# Subtest: plateau stops redundant local execution
+ok 28 - plateau stops redundant local execution
+  ---
+  duration_ms: 6044.434543
+  type: 'test'
+  ...
+# Subtest: alpha lifetime allocation sums below .05 and cannot reset on restart
+ok 29 - alpha lifetime allocation sums below .05 and cannot reset on restart
+  ---
+  duration_ms: 5941.072275
+  type: 'test'
+  ...
+# Subtest: proof path recomputes all 72 comparisons and recognizes only approved evaluator attestations
+ok 30 - proof path recomputes all 72 comparisons and recognizes only approved evaluator attestations
+  ---
+  duration_ms: 5989.567714
+  type: 'test'
+  ...
+# Subtest: even trusted signatures cannot bypass missing evidence, altered controls, or regressions
+ok 31 - even trusted signatures cannot bypass missing evidence, altered controls, or regressions
+  ---
+  duration_ms: 6083.373666
+  type: 'test'
+  ...
+# Subtest: ordinary development missions cannot reserve or forge independent confirmation
+ok 32 - ordinary development missions cannot reserve or forge independent confirmation
+  ---
+  duration_ms: 3.894083
+  type: 'test'
+  ...
+# Subtest: one signing key in two PEM encodings is not independent replication
+ok 33 - one signing key in two PEM encodings is not independent replication
+  ---
+  duration_ms: 1.884236
+  type: 'test'
+  ...
+# Subtest: proof source and checkpoint identities must match this mission
+ok 34 - proof source and checkpoint identities must match this mission
+  ---
+  duration_ms: 5777.80514
+  type: 'test'
+  ...
+# Subtest: sign test matches exact small cases and supports larger replication samples
+ok 35 - sign test matches exact small cases and supports larger replication samples
+  ---
+  duration_ms: 0.307224
+  type: 'test'
+  ...
+# Subtest: policy pins isolation, equal controls, original usage and zero authorization
+ok 36 - policy pins isolation, equal controls, original usage and zero authorization
+  ---
+  duration_ms: 4.603084
+  type: 'test'
+  ...
+# Subtest: policy changes cannot authorize execution or weaken any limit
+ok 37 - policy changes cannot authorize execution or weaken any limit
+  ---
+  duration_ms: 3.767872
+  type: 'test'
+  ...
+# Subtest: launch is shell-free, network-isolated and mounts candidate read-only
+ok 38 - launch is shell-free, network-isolated and mounts candidate read-only
+  ---
+  duration_ms: 11.003634
+  type: 'test'
+  ...
+# Subtest: arguments, paths, symlinks and overlapping output cannot be injected
+ok 39 - arguments, paths, symlinks and overlapping output cannot be injected
+  ---
+  duration_ms: 6.456353
+  type: 'test'
+  ...
+# Subtest: inspection verifies mission but exposes both closed gates
+ok 40 - inspection verifies mission but exposes both closed gates
+  ---
+  duration_ms: 22.090072
+  type: 'test'
+  ...
+# Subtest: module exposes no execution entry for caller-supplied probe paths
+ok 41 - module exposes no execution entry for caller-supplied probe paths
+  ---
+  duration_ms: 0.751886
+  type: 'test'
+  ...
+# Subtest: probe results and caller claims cannot create resource authority
+ok 42 - probe results and caller claims cannot create resource authority
+  ---
+  duration_ms: 0.359002
+  type: 'test'
+  ...
+# Subtest: durable reservation precedes all spawn attempts and retains negative results
+ok 43 - durable reservation precedes all spawn attempts and retains negative results
+  ---
+  duration_ms: 4.882055
+  type: 'test'
+  ...
+# Subtest: interrupted reservation survives exception and prevents automatic retry
+ok 44 - interrupted reservation survives exception and prevents automatic retry
+  ---
+  duration_ms: 1.897135
+  type: 'test'
+  ...
+# Subtest: existing reservation and forged policy cannot reach a child process
+ok 45 - existing reservation and forged policy cannot reach a child process
+  ---
+  duration_ms: 2.593187
+  type: 'test'
+  ...
+# Subtest: unsupported or malformed engine versions stop before namespace launch
+ok 46 - unsupported or malformed engine versions stop before namespace launch
+  ---
+  duration_ms: 4.40883
+  type: 'test'
+  ...
+# Subtest: engine replacement during version discovery prevents namespace launch
+ok 47 - engine replacement during version discovery prevents namespace launch
+  ---
+  duration_ms: 2.23719
+  type: 'test'
+  ...
+# Subtest: only private fixed bytes are staged; permission denial is not OS isolation
+ok 48 - only private fixed bytes are staged; permission denial is not OS isolation
+  ---
+  duration_ms: 3.696865
+  type: 'test'
+  ...
+# Subtest: malformed fixed-probe observations are retained without false compatibility
+ok 49 - malformed fixed-probe observations are retained without false compatibility
+  ---
+  duration_ms: 8.013356
+  type: 'test'
+  ...
+# Subtest: durable projection preserves the complete charged mission and zero entitlements
+ok 50 - durable projection preserves the complete charged mission and zero entitlements
+  ---
+  duration_ms: 117.007645
+  type: 'test'
+  ...
+# Subtest: source registry covers every charged epoch exactly once
+ok 51 - source registry covers every charged epoch exactly once
+  ---
+  duration_ms: 13.3179
+  type: 'test'
+  ...
+# Subtest: dispatcher verifies all immutable historical Git trees
+ok 52 - dispatcher verifies all immutable historical Git trees
+  ---
+  duration_ms: 78.956586
+  type: 'test'
+  ...
+# Subtest: verified replay sources append durably and duplicate epochs reject
+ok 53 - verified replay sources append durably and duplicate epochs reject
+  ---
+  duration_ms: 325.248858
+  type: 'test'
+  ...
+# Subtest: rehashed legacy charge or gate tampering rejects
+ok 54 - rehashed legacy charge or gate tampering rejects
+  ---
+  duration_ms: 68.984646
+  type: 'test'
+  ...
+# Subtest: self-consistent forged mission cannot borrow the frozen proposal hash
+ok 55 - self-consistent forged mission cannot borrow the frozen proposal hash
+  ---
+  duration_ms: 64.713113
+  type: 'test'
+  ...
+# Subtest: rehashed source adapter or epoch coverage tampering rejects
+ok 56 - rehashed source adapter or epoch coverage tampering rejects
+  ---
+  duration_ms: 59.061074
+  type: 'test'
+  ...
+# Subtest: wrong proposal and journal head anchors reject
+ok 57 - wrong proposal and journal head anchors reject
+  ---
+  duration_ms: 60.184783
+  type: 'test'
+  ...
+# Subtest: publication failure retains owner lock and pending file until explicit recovery
+ok 58 - publication failure retains owner lock and pending file until explicit recovery
+  ---
+  duration_ms: 187.037585
+  type: 'test'
+  ...
+# Subtest: post-publication interruption leaves a complete replayable event
+ok 59 - post-publication interruption leaves a complete replayable event
+  ---
+  duration_ms: 131.564023
+  type: 'test'
+  ...
+# Subtest: explicit recovery accepts exactly one valid post-publication child
+ok 60 - explicit recovery accepts exactly one valid post-publication child
+  ---
+  duration_ms: 151.884661
+  type: 'test'
+  ...
+# Subtest: explicit genesis recovery quarantines and reconstructs only the frozen projection
+ok 61 - explicit genesis recovery quarantines and reconstructs only the frozen projection
+  ---
+  duration_ms: 176.836066
+  type: 'test'
+  ...
+# Subtest: published child plus pending publication is refused and preserved as ambiguous
+ok 62 - published child plus pending publication is refused and preserved as ambiguous
+  ---
+  duration_ms: 140.170835
+  type: 'test'
+  ...
+# Subtest: ordinary source recording cannot race an active recovery
+ok 63 - ordinary source recording cannot race an active recovery
+  ---
+  duration_ms: 176.10469
+  type: 'test'
+  ...
+# Subtest: recovery retains writer exclusion through quarantine and audit append
+ok 64 - recovery retains writer exclusion through quarantine and audit append
+  ---
+  duration_ms: 120.061096
+  type: 'test'
+  ...
+# Subtest: explicit anchored recovery quarantines one dead writer publication
+ok 65 - explicit anchored recovery quarantines one dead writer publication
+  ---
+  duration_ms: 100.769252
+  type: 'test'
+  ...
+# Subtest: live or ambiguously locked writer is preserved and refused
+ok 66 - live or ambiguously locked writer is preserved and refused
+  ---
+  duration_ms: 47.651987
+  type: 'test'
+  ...
+# Subtest: generic journal writes are not exported and migration application remains impossible
+ok 67 - generic journal writes are not exported and migration application remains impossible
+  ---
+  duration_ms: 46.053042
+  type: 'test'
+  ...
+# Subtest: swapped source trees and ledger prefix anchors reject dispatch
+ok 68 - swapped source trees and ledger prefix anchors reject dispatch
+  ---
+  duration_ms: 40.552442
+  type: 'test'
+  ...
+# Subtest: versioned projection retains all legacy state and literal native units
+ok 69 - versioned projection retains all legacy state and literal native units
+  ---
+  duration_ms: 41.051973
+  type: 'test'
+  ...
+# Subtest: refunds and relabeled native units reject even with a recomputed proposal hash
+ok 70 - refunds and relabeled native units reject even with a recomputed proposal hash
+  ---
+  duration_ms: 95.880848
+  type: 'test'
+  ...
+# Subtest: champion, credits, ancestry and failed history cannot be rewritten
+ok 71 - champion, credits, ancestry and failed history cannot be rewritten
+  ---
+  duration_ms: 43.274856
+  type: 'test'
+  ...
+# Subtest: source, protocol, trust, alpha and consumed evidence cannot be reset
+ok 72 - source, protocol, trust, alpha and consumed evidence cannot be reset
+  ---
+  duration_ms: 49.144574
+  type: 'test'
+  ...
+# Subtest: nonzero rejected confirmation history remains intact in projection fixtures
+ok 73 - nonzero rejected confirmation history remains intact in projection fixtures
+  ---
+  duration_ms: 15.931738
+  type: 'test'
+  ...
+# Subtest: durable interrupted reservation is charged and retained, not refunded
+ok 74 - durable interrupted reservation is charged and retained, not refunded
+  ---
+  duration_ms: 53.506694
+  type: 'test'
+  ...
+# Subtest: ambiguous locks and stranded publication files are refused and preserved
+ok 75 - ambiguous locks and stranded publication files are refused and preserved
+  ---
+  duration_ms: 2.670394
+  type: 'test'
+  ...
+# Subtest: resource vectors reject unknown, omitted, negative and fractional dimensions
+ok 76 - resource vectors reject unknown, omitted, negative and fractional dimensions
+  ---
+  duration_ms: 0.433485
+  type: 'test'
+  ...
+# Subtest: zero authorized repair dimensions reject even when native budget remains
+ok 77 - zero authorized repair dimensions reject even when native budget remains
+  ---
+  duration_ms: 13.530151
+  type: 'test'
+  ...
+# Subtest: complete and interrupted settlements retain the entire reservation
+ok 78 - complete and interrupted settlements retain the entire reservation
+  ---
+  duration_ms: 0.531713
+  type: 'test'
+  ...
+# Subtest: double reservation, forged pending charges and unreserved actual work reject
+ok 79 - double reservation, forged pending charges and unreserved actual work reject
+  ---
+  duration_ms: 0.31798
+  type: 'test'
+  ...
+# Subtest: proposal verification is repeatable, source bound and has no ledger writes
+ok 80 - proposal verification is repeatable, source bound and has no ledger writes
+  ---
+  duration_ms: 119.292977
+  type: 'test'
+  ...
+# Subtest: runtime dependency is exact upstream code with no production dependencies
+ok 81 - runtime dependency is exact upstream code with no production dependencies
+  ---
+  duration_ms: 1.449069
+  type: 'test'
+  ...
+# Subtest: altered dependency bytes cannot pass with a rewritten claimed identity
+ok 82 - altered dependency bytes cannot pass with a rewritten claimed identity
+  ---
+  duration_ms: 1.40998
+  type: 'test'
+  ...
+# Subtest: missing, duplicate and traversal dependency entries are refused
+ok 83 - missing, duplicate and traversal dependency entries are refused
+  ---
+  duration_ms: 1.269938
+  type: 'test'
+  ...
+# Subtest: mutable dependency ref or substituted provenance is refused
+ok 84 - mutable dependency ref or substituted provenance is refused
+  ---
+  duration_ms: 0.859769
+  type: 'test'
+  ...
+# Subtest: freeze binds runtime binary, witness bytes and original mission usage
+ok 85 - freeze binds runtime binary, witness bytes and original mission usage
+  ---
+  duration_ms: 154.63206
+  type: 'test'
+  ...
+# Subtest: changed plan, runtime, source and limits cannot execute even with a new hash
+ok 86 - changed plan, runtime, source and limits cannot execute even with a new hash
+  ---
+  duration_ms: 1925.475605
+  type: 'test'
+  ...
+# Subtest: wrong plan anchor is refused before writing a reservation
+ok 87 - wrong plan anchor is refused before writing a reservation
+  ---
+  duration_ms: 131.515229
+  type: 'test'
+  ...
+# Subtest: ambiguous prior reservation remains intact and cannot be retried automatically
+ok 88 - ambiguous prior reservation remains intact and cannot be retried automatically
+  ---
+  duration_ms: 260.462529
+  type: 'test'
+  ...
+# Subtest: offline historical witness reproduces defect and preserves ordinary behavior
+ok 89 - offline historical witness reproduces defect and preserves ordinary behavior
+  ---
+  duration_ms: 358.207557
+  type: 'test'
+  ...
+# Subtest: historical calibration cannot authorize arbitrary candidate execution
+ok 90 - historical calibration cannot authorize arbitrary candidate execution
+  ---
+  duration_ms: 0.274435
+  type: 'test'
+  ...
+# Subtest: verifies every frozen non-lock blob and byte count
+ok 91 - verifies every frozen non-lock blob and byte count
+  ---
+  duration_ms: 8.514353
+  type: 'test'
+  ...
+# Subtest: capsule manifest has a stable externally pinnable hash
+ok 92 - capsule manifest has a stable externally pinnable hash
+  ---
+  duration_ms: 11.325564
+  type: 'test'
+  ...
+# Subtest: every decoded payload reproduces its original Git blob id and SHA256
+ok 93 - every decoded payload reproduces its original Git blob id and SHA256
+  ---
+  duration_ms: 5.386948
+  type: 'test'
+  ...
+# Subtest: payload corruption fails closed against the frozen content identities
+ok 94 - payload corruption fails closed against the frozen content identities
+  ---
+  duration_ms: 2.87907
+  type: 'test'
+  ...
+# Subtest: missing, duplicate and unexpected capsule records reject
+ok 95 - missing, duplicate and unexpected capsule records reject
+  ---
+  duration_ms: 4.597566
+  type: 'test'
+  ...
+# Subtest: repository, role and original source path remain bound
+ok 96 - repository, role and original source path remain bound
+  ---
+  duration_ms: 1.13149
+  type: 'test'
+  ...
+# Subtest: workload freeze and reviewed source anchors cannot drift
+ok 97 - workload freeze and reviewed source anchors cannot drift
+  ---
+  duration_ms: 0.719868
+  type: 'test'
+  ...
+# Subtest: both deferred dependency lockfiles remain explicit and source-bound
+ok 98 - both deferred dependency lockfiles remain explicit and source-bound
+  ---
+  duration_ms: 11.978536
+  type: 'test'
+  ...
+# Subtest: partial capsules cannot be relabeled as complete or executable
+ok 99 - partial capsules cannot be relabeled as complete or executable
+  ---
+  duration_ms: 6.356313
+  type: 'test'
+  ...
+# Subtest: known public payloads cannot be relabeled as sealed evaluation
+ok 100 - known public payloads cannot be relabeled as sealed evaluation
+  ---
+  duration_ms: 1.438443
+  type: 'test'
+  ...
+# Subtest: capsules cannot enable candidate execution or RSI acceptance
+ok 101 - capsules cannot enable candidate execution or RSI acceptance
+  ---
+  duration_ms: 0.837324
+  type: 'test'
+  ...
+# Subtest: legacy counters and zero repair entitlements cannot be rewritten
+ok 102 - legacy counters and zero repair entitlements cannot be rewritten
+  ---
+  duration_ms: 1.832748
+  type: 'test'
+  ...
+# Subtest: unknown acquisition and evaluation dollars cannot be forged as zero
+ok 103 - unknown acquisition and evaluation dollars cannot be forged as zero
+  ---
+  duration_ms: 1.151871
+  type: 'test'
+  ...
+# Subtest: mirrored count and byte totals cannot be changed independently
+ok 104 - mirrored count and byte totals cannot be changed independently
+  ---
+  duration_ms: 3.787021
+  type: 'test'
+  ...
+# Subtest: CLI inspection is read-only and reports execution disabled
+ok 105 - CLI inspection is read-only and reports execution disabled
+  ---
+  duration_ms: 104.807645
+  type: 'test'
+  ...
+# Subtest: verifies the complete RuVector graph local source closure
+ok 106 - verifies the complete RuVector graph local source closure
+  ---
+  duration_ms: 365.365628
+  type: 'test'
+  ...
+# Subtest: manifest has a stable externally pinnable hash
+ok 107 - manifest has a stable externally pinnable hash
+  ---
+  duration_ms: 731.087443
+  type: 'test'
+  ...
+# Subtest: target payload corruption fails closed
+ok 108 - target payload corruption fails closed
+  ---
+  duration_ms: 232.311201
+  type: 'test'
+  ...
+# Subtest: full-tree size-table corruption fails closed
+ok 109 - full-tree size-table corruption fails closed
+  ---
+  duration_ms: 255.514655
+  type: 'test'
+  ...
+# Subtest: target selection paths and tree identities cannot drift
+ok 110 - target selection paths and tree identities cannot drift
+  ---
+  duration_ms: 559.576203
+  type: 'test'
+  ...
+# Subtest: both local path-dependency edges are source verified
+ok 111 - both local path-dependency edges are source verified
+  ---
+  duration_ms: 430.111362
+  type: 'test'
+  ...
+# Subtest: prior workload inventory and payload manifests remain bound
+ok 112 - prior workload inventory and payload manifests remain bound
+  ---
+  duration_ms: 1.973641
+  type: 'test'
+  ...
+# Subtest: payload counts byte totals and hashes cannot drift
+ok 113 - payload counts byte totals and hashes cannot drift
+  ---
+  duration_ms: 699.927
+  type: 'test'
+  ...
+# Subtest: full workspace size observations cover every unique inventory blob
+ok 114 - full workspace size observations cover every unique inventory blob
+  ---
+  duration_ms: 464.17443
+  type: 'test'
+  ...
+# Subtest: full-tree size aggregates cannot be rewritten
+ok 115 - full-tree size aggregates cannot be rewritten
+  ---
+  duration_ms: 1330.59457
+  type: 'test'
+  ...
+# Subtest: observed object sizes cannot be relabeled as payload proof
+ok 116 - observed object sizes cannot be relabeled as payload proof
+  ---
+  duration_ms: 386.79626
+  type: 'test'
+  ...
+# Subtest: missing runtime dependencies and hidden tests remain explicit
+ok 117 - missing runtime dependencies and hidden tests remain explicit
+  ---
+  duration_ms: 663.134763
+  type: 'test'
+  ...
+# Subtest: exposed acquisition cannot become sealed execution or RSI evidence
+ok 118 - exposed acquisition cannot become sealed execution or RSI evidence
+  ---
+  duration_ms: 656.79764
+  type: 'test'
+  ...
+# Subtest: legacy counters zero entitlements and unknown dollar costs cannot change
+ok 119 - legacy counters zero entitlements and unknown dollar costs cannot change
+  ---
+  duration_ms: 1189.921342
+  type: 'test'
+  ...
+# Subtest: CLI inspection is read-only and reports all execution gaps
+ok 120 - CLI inspection is read-only and reports all execution gaps
+  ---
+  duration_ms: 381.807193
+  type: 'test'
+  ...
+# Subtest: reconstructs all three public base and fix Git trees offline
+ok 121 - reconstructs all three public base and fix Git trees offline
+  ---
+  duration_ms: 195.596371
+  type: 'test'
+  ...
+# Subtest: manifest has a stable externally pinnable hash
+ok 122 - manifest has a stable externally pinnable hash
+  ---
+  duration_ms: 233.711862
+  type: 'test'
+  ...
+# Subtest: compressed and raw inventory corruption fails closed
+ok 123 - compressed and raw inventory corruption fails closed
+  ---
+  duration_ms: 133.403845
+  type: 'test'
+  ...
+# Subtest: base and fix tree identities cannot drift
+ok 124 - base and fix tree identities cannot drift
+  ---
+  duration_ms: 7.376113
+  type: 'test'
+  ...
+# Subtest: commit and repository provenance cannot drift
+ok 125 - commit and repository provenance cannot drift
+  ---
+  duration_ms: 7.464406
+  type: 'test'
+  ...
+# Subtest: workload and prior capsule manifests remain bound
+ok 126 - workload and prior capsule manifests remain bound
+  ---
+  duration_ms: 0.908553
+  type: 'test'
+  ...
+# Subtest: missing, duplicate and extra repository inventory records reject
+ok 127 - missing, duplicate and extra repository inventory records reject
+  ---
+  duration_ms: 8.574023
+  type: 'test'
+  ...
+# Subtest: entry counts and aggregate byte totals are verified
+ok 128 - entry counts and aggregate byte totals are verified
+  ---
+  duration_ms: 262.791507
+  type: 'test'
+  ...
+# Subtest: known public inventories cannot become sealed evaluation
+ok 129 - known public inventories cannot become sealed evaluation
+  ---
+  duration_ms: 15.783294
+  type: 'test'
+  ...
+# Subtest: inventory coverage cannot become payload or dependency coverage
+ok 130 - inventory coverage cannot become payload or dependency coverage
+  ---
+  duration_ms: 8.907055
+  type: 'test'
+  ...
+# Subtest: tree inventory cannot enable candidate execution or RSI acceptance
+ok 131 - tree inventory cannot enable candidate execution or RSI acceptance
+  ---
+  duration_ms: 5.677918
+  type: 'test'
+  ...
+# Subtest: legacy mission counters and zero repair entitlements cannot change
+ok 132 - legacy mission counters and zero repair entitlements cannot change
+  ---
+  duration_ms: 19.372556
+  type: 'test'
+  ...
+# Subtest: unknown acquisition and evaluation dollars cannot be forged as zero
+ok 133 - unknown acquisition and evaluation dollars cannot be forged as zero
+  ---
+  duration_ms: 11.474435
+  type: 'test'
+  ...
+# Subtest: decompression is bounded and malformed data rejects
+ok 134 - decompression is bounded and malformed data rejects
+  ---
+  duration_ms: 339.01286
+  type: 'test'
+  ...
+# Subtest: CLI inspection is read-only and reports all execution gates closed
+ok 135 - CLI inspection is read-only and reports all execution gates closed
+  ---
+  duration_ms: 236.330653
+  type: 'test'
+  ...
+# Subtest: verifies every base and fix payload for two compact repositories
+ok 136 - verifies every base and fix payload for two compact repositories
+  ---
+  duration_ms: 236.591126
+  type: 'test'
+  ...
+# Subtest: payload manifest has a stable externally pinnable hash
+ok 137 - payload manifest has a stable externally pinnable hash
+  ---
+  duration_ms: 265.513779
+  type: 'test'
+  ...
+# Subtest: compressed payload corruption fails closed
+ok 138 - compressed payload corruption fails closed
+  ---
+  duration_ms: 124.271055
+  type: 'test'
+  ...
+# Subtest: raw and compressed identities and byte counts cannot drift
+ok 139 - raw and compressed identities and byte counts cannot drift
+  ---
+  duration_ms: 265.824629
+  type: 'test'
+  ...
+# Subtest: repository and tree provenance cannot drift
+ok 140 - repository and tree provenance cannot drift
+  ---
+  duration_ms: 321.148486
+  type: 'test'
+  ...
+# Subtest: workload capsule and inventory manifests remain bound
+ok 141 - workload capsule and inventory manifests remain bound
+  ---
+  duration_ms: 1.531123
+  type: 'test'
+  ...
+# Subtest: missing duplicate and extra payload records reject
+ok 142 - missing duplicate and extra payload records reject
+  ---
+  duration_ms: 296.877241
+  type: 'test'
+  ...
+# Subtest: aggregate counts cannot be changed independently
+ok 143 - aggregate counts cannot be changed independently
+  ---
+  duration_ms: 279.399401
+  type: 'test'
+  ...
+# Subtest: RuVector remains an explicit bounded acquisition deferral
+ok 144 - RuVector remains an explicit bounded acquisition deferral
+  ---
+  duration_ms: 165.794324
+  type: 'test'
+  ...
+# Subtest: partial payload coverage cannot become complete or executable
+ok 145 - partial payload coverage cannot become complete or executable
+  ---
+  duration_ms: 235.302931
+  type: 'test'
+  ...
+# Subtest: exposed fixes cannot be relabeled as sealed or independently evaluated
+ok 146 - exposed fixes cannot be relabeled as sealed or independently evaluated
+  ---
+  duration_ms: 231.96638
+  type: 'test'
+  ...
+# Subtest: payload acquisition cannot enable candidate execution or RSI
+ok 147 - payload acquisition cannot enable candidate execution or RSI
+  ---
+  duration_ms: 221.282941
+  type: 'test'
+  ...
+# Subtest: legacy counters and zero repair entitlements cannot change
+ok 148 - legacy counters and zero repair entitlements cannot change
+  ---
+  duration_ms: 499.371847
+  type: 'test'
+  ...
+# Subtest: unknown acquisition and evaluation dollars cannot be forged as zero
+ok 149 - unknown acquisition and evaluation dollars cannot be forged as zero
+  ---
+  duration_ms: 161.614079
+  type: 'test'
+  ...
+# Subtest: CLI inspection is read-only and leaves all execution gates closed
+ok 150 - CLI inspection is read-only and leaves all execution gates closed
+  ---
+  duration_ms: 202.175425
+  type: 'test'
+  ...
+# Subtest: freezes three distinct public repository and bug lineages
+ok 151 - freezes three distinct public repository and bug lineages
+  ---
+  duration_ms: 2.4622
+  type: 'test'
+  ...
+# Subtest: freeze hash is deterministic and can be externally pinned
+ok 152 - freeze hash is deterministic and can be externally pinned
+  ---
+  duration_ms: 1.388218
+  type: 'test'
+  ...
+# Subtest: each fix is exactly one child of its bound base
+ok 153 - each fix is exactly one child of its bound base
+  ---
+  duration_ms: 2.117869
+  type: 'test'
+  ...
+# Subtest: Git identities and immutable compare URLs reject revision drift
+ok 154 - Git identities and immutable compare URLs reject revision drift
+  ---
+  duration_ms: 0.518373
+  type: 'test'
+  ...
+# Subtest: changed blobs must be different, content-addressed and path safe
+ok 155 - changed blobs must be different, content-addressed and path safe
+  ---
+  duration_ms: 0.587187
+  type: 'test'
+  ...
+# Subtest: license and dependency metadata are source-bound
+ok 156 - license and dependency metadata are source-bound
+  ---
+  duration_ms: 0.601549
+  type: 'test'
+  ...
+# Subtest: duplicate workloads, repositories and clusters reject
+ok 157 - duplicate workloads, repositories and clusters reject
+  ---
+  duration_ms: 0.917426
+  type: 'test'
+  ...
+# Subtest: selection stays frozen before any method comparison
+ok 158 - selection stays frozen before any method comparison
+  ---
+  duration_ms: 0.437
+  type: 'test'
+  ...
+# Subtest: published fixes cannot be relabeled as sealed or independent
+ok 159 - published fixes cannot be relabeled as sealed or independent
+  ---
+  duration_ms: 0.705997
+  type: 'test'
+  ...
+# Subtest: local evaluator keys and RSI acceptance reject
+ok 160 - local evaluator keys and RSI acceptance reject
+  ---
+  duration_ms: 0.401777
+  type: 'test'
+  ...
+# Subtest: no resource use or legacy counter reset is admitted
+ok 161 - no resource use or legacy counter reset is admitted
+  ---
+  duration_ms: 2.00542
+  type: 'test'
+  ...
+# Subtest: unknown dollar costs cannot be fabricated as zero
+ok 162 - unknown dollar costs cannot be fabricated as zero
+  ---
+  duration_ms: 1.734059
+  type: 'test'
+  ...
+# Subtest: candidate admission requires mirrored sources, frozen dependencies and hidden tests
+ok 163 - candidate admission requires mirrored sources, frozen dependencies and hidden tests
+  ---
+  duration_ms: 0.863925
+  type: 'test'
+  ...
+# Subtest: test declarations are data and cannot authorize arbitrary launchers
+ok 164 - test declarations are data and cannot authorize arbitrary launchers
+  ---
+  duration_ms: 0.524673
+  type: 'test'
+  ...
+# Subtest: CLI inspection is read-only and reports the proof boundary
+ok 165 - CLI inspection is read-only and reports the proof boundary
+  ---
+  duration_ms: 98.60619
+  type: 'test'
+  ...
+# (node:311) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: admission preserves the original mission, consumption and proof boundary
+ok 166 - admission preserves the original mission, consumption and proof boundary
+  ---
+  duration_ms: 28.792407
+  type: 'test'
+  ...
+# Subtest: forged success and enabled execution cannot enter a frozen plan
+ok 167 - forged success and enabled execution cannot enter a frozen plan
+  ---
+  duration_ms: 22.61505
+  type: 'test'
+  ...
+# Subtest: wrong head and corrupted historical bytes reject
+ok 168 - wrong head and corrupted historical bytes reject
+  ---
+  duration_ms: 5.876949
+  type: 'test'
+  ...
+# Subtest: a live or ambiguous lock is refused and retained
+ok 169 - a live or ambiguous lock is refused and retained
+  ---
+  duration_ms: 1.506145
+  type: 'test'
+  ...
+# Subtest: paths, command strings and symlinks cannot escape source snapshots
+ok 170 - paths, command strings and symlinks cannot escape source snapshots
+  ---
+  duration_ms: 0.922424
+  type: 'test'
+  ...
+# Subtest: duplicate tasks and inflated independence are refused
+ok 171 - duplicate tasks and inflated independence are refused
+  ---
+  duration_ms: 2.295468
+  type: 'test'
+  ...
+# Subtest: known fixes cannot be relabeled as sealed tasks
+ok 172 - known fixes cannot be relabeled as sealed tasks
+  ---
+  duration_ms: 0.23164
+  type: 'test'
+  ...
+# Subtest: mutable revisions and mismatched public provenance are refused
+ok 173 - mutable revisions and mismatched public provenance are refused
+  ---
+  duration_ms: 0.307435
+  type: 'test'
+  ...
+# Subtest: source changes invalidate an existing plan even when workload bytes are unchanged
+ok 174 - source changes invalidate an existing plan even when workload bytes are unchanged
+  ---
+  duration_ms: 24.692012
+  type: 'test'
+  ...
+# Subtest: mutated snapshot bytes reject against the original Git blob
+ok 175 - mutated snapshot bytes reject against the original Git blob
+  ---
+  duration_ms: 10.643289
+  type: 'test'
+  ...
+# Subtest: execution uses checked immutable bytes and refuses a changed reread
+ok 176 - execution uses checked immutable bytes and refuses a changed reread
+  ---
+  duration_ms: 14.585784
+  type: 'test'
+  ...
+# Subtest: a claimed source revision must match the recorded acquisition binding
+ok 177 - a claimed source revision must match the recorded acquisition binding
+  ---
+  duration_ms: 12.335987
+  type: 'test'
+  ...
+# Subtest: three native historical defects reproduce and all fixed revisions pass
+ok 178 - three native historical defects reproduce and all fixed revisions pass
+  ---
+  duration_ms: 532.638399
+  type: 'test'
+  ...
+1..178
+# tests 178
+# suites 0
+# pass 178
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 46523.08708

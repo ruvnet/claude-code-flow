@@ -1,0 +1,27 @@
+{
+  "command": [
+    "node",
+    "--test",
+    "--test-reporter=tap",
+    "v3/@claude-flow/cli/scripts/rsi/experiment.test.mjs",
+    "v3/@claude-flow/cli/scripts/rsi/generalization.test.mjs",
+    "v3/@claude-flow/cli/scripts/rsi/loop/loop.test.mjs",
+    "v3/@claude-flow/cli/scripts/rsi/repair/executor.test.mjs",
+    "v3/@claude-flow/cli/scripts/rsi/repair/journal-v2.test.mjs",
+    "v3/@claude-flow/cli/scripts/rsi/repair/migration.test.mjs",
+    "v3/@claude-flow/cli/scripts/rsi/repair/p-limit-offline.test.mjs",
+    "v3/@claude-flow/cli/scripts/rsi/repair/public-capsules.test.mjs",
+    "v3/@claude-flow/cli/scripts/rsi/repair/public-target-payloads.test.mjs",
+    "v3/@claude-flow/cli/scripts/rsi/repair/public-tree-inventories.test.mjs",
+    "v3/@claude-flow/cli/scripts/rsi/repair/public-tree-payloads.test.mjs",
+    "v3/@claude-flow/cli/scripts/rsi/repair/public-workloads.test.mjs",
+    "v3/@claude-flow/cli/scripts/rsi/repair/repair.test.mjs"
+  ],
+  "status": 0,
+  "error": null,
+  "wallMs": 46630.62854499731,
+  "stdout": "0.stdout.txt",
+  "stderr": "0.stderr.txt",
+  "stdoutSha256": "c20d7bebe020969cf3c5f73d6c4222f8a83dd6a29a38856838ccf600d962281b",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

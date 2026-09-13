@@ -1,0 +1,59 @@
+{
+  "schema": "ruflo.executor-correction-validation-reservation/v1",
+  "sourceCommit": "4700668961efbddbdf0d0b895923d79aeb2115ce",
+  "sourceTree": "d93b8003f188daf4dd9ea03bdbfecb60cdab6e85",
+  "validationScriptSha256": "b01acf2e2c12b1bb450a1f5a85328b30c4905479dd0f8cb8e98b51a44e399d99",
+  "commands": [
+    [
+      "node",
+      "--test",
+      "--test-reporter=tap",
+      "v3/@claude-flow/cli/scripts/rsi/experiment.test.mjs",
+      "v3/@claude-flow/cli/scripts/rsi/generalization.test.mjs",
+      "v3/@claude-flow/cli/scripts/rsi/loop/loop.test.mjs",
+      "v3/@claude-flow/cli/scripts/rsi/repair/executor.test.mjs",
+      "v3/@claude-flow/cli/scripts/rsi/repair/journal-v2.test.mjs",
+      "v3/@claude-flow/cli/scripts/rsi/repair/migration.test.mjs",
+      "v3/@claude-flow/cli/scripts/rsi/repair/p-limit-offline.test.mjs",
+      "v3/@claude-flow/cli/scripts/rsi/repair/public-capsules.test.mjs",
+      "v3/@claude-flow/cli/scripts/rsi/repair/public-target-payloads.test.mjs",
+      "v3/@claude-flow/cli/scripts/rsi/repair/public-tree-inventories.test.mjs",
+      "v3/@claude-flow/cli/scripts/rsi/repair/public-tree-payloads.test.mjs",
+      "v3/@claude-flow/cli/scripts/rsi/repair/public-workloads.test.mjs",
+      "v3/@claude-flow/cli/scripts/rsi/repair/repair.test.mjs"
+    ],
+    [
+      "node",
+      "v3/@claude-flow/cli/scripts/rsi/loop/replay-history.mjs",
+      "v3/@claude-flow/cli/scripts/rsi/evidence/loop-development",
+      "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e"
+    ]
+  ],
+  "ledgerFiles": {
+    "00000000.json": "5e359303aa0bdc4bec9c9fa5e26c794402e23123bf1130134ef915d87cbb988e",
+    "00000001.json": "93475d10c538e5901a74819e3eb42385df9f27c3e31c652ee8e0cc21f043e2b8",
+    "00000002.json": "e6c7b420427dc09f092f65ac204a82463eecf9a7a2de6ddd09e5356ba74ae22f",
+    "00000003.json": "33a8f614134f46a1d60b998dcf490c9ca01df73579aa295e6c9640e7216e5646",
+    "00000004.json": "2869134cb172d44f47b68d77be9a2f468df29aa3304c5adba91bef016c0c04ff",
+    "00000005.json": "cdef52e8e59a7fa15a57e803046b07160543f142334ef037c449479ec3be0722",
+    "00000006.json": "87cbe56c86344f37728654432b33b736c697fe0a2d5981457c68fabc909a3ccb",
+    "00000007.json": "86a7b5103ef0d30b887f5ef0ea5225a199283f9e5a16828896371988cb55dfc5",
+    "00000008.json": "0d7909bd8bbbee608b93bbed0c0042e7ef382f89a2c29e48b9a650cc8bb1d959",
+    "00000009.json": "724688272f2e3ca1e07d6b72954c69441ef7e9691379fb56e51c33343a2d3718",
+    "00000010.json": "024ddd329df25177ea3d79a7bac5b63b34f1eb654cbc53310df7851fa99b6809",
+    "00000011.json": "92c6b0d53ff6f33a83d1a756691f109fc575ac4d108a6c8e770ac71c900dd3ab",
+    "00000012.json": "3447daac927fd8d9511c131c9f01ee3230f0d33640fb634eb413c47a502b7030",
+    "00000013.json": "e7483ba3585c7da944599e77ab369dd4513f33c9fc21a892b947b75c0bd40fa2",
+    "00000014.json": "4f2e6cd3cd97cbb5b0e08404f5336e3727e69f86f13f3102e9afc67a551d73f0",
+    "00000015.json": "cf3cd433350f63ae880d601103a447f93e154ff1aece19601cf3c27a1c6e5d63",
+    "00000016.json": "7bcfb045876b18b5d2395bf002ed37d9e9a44d4ff59f7ace43790632902b966f"
+  },
+  "originalAnchor": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088",
+  "reservedParentSpawnAttempts": 2,
+  "reservedParentWaitMs": 240000,
+  "scope": "FOCUSED_TESTS_AND_HISTORICAL_REPLAY_ONLY",
+  "descendantProcessStarts": null,
+  "retainOnInterruption": true,
+  "missionBudgetChanged": false,
+  "candidateExecutionEnabled": false
+}

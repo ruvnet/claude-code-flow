@@ -13,6 +13,7 @@ import { inspectRuntimeLayout, RUNTIME_LAYOUT_HASH } from './runtime-layout.mjs'
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const MANIFEST_PATH = join(ROOT, 'executor-runtime-layout.json');
 const MAX_FILE_BYTES = 134217728;
+const OWNED_SNAPSHOTS = new WeakSet();
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const stableHash = value => digest(Buffer.from(JSON.stringify(value)));
 
@@ -107,8 +108,10 @@ function stage(parent, specification) {
     const freeze = freezeDirectories(work); freeze(entries);
     renameSync(work, destination);
     const parentFd = openSync(parent, 'r'); try { fsyncSync(parentFd); } finally { closeSync(parentFd); }
-    return { ...identity, snapshotHash, root: destination, readOnlyStaged: true,
+    const snapshot = { ...identity, snapshotHash, root: destination, readOnlyStaged: true,
       privilegedParentImmutabilityClaimed: false, candidateExecutionEnabled: false };
+    OWNED_SNAPSHOTS.add(snapshot);
+    return snapshot;
   } catch (error) {
     rmSync(work, { recursive: true, force: true });
     throw error;
@@ -153,16 +156,26 @@ export function validateRuntimeSnapshot(snapshot) {
     runtimeLayoutHash: snapshot.runtimeLayoutHash, entries: snapshot.entries }), 'snapshot identity hash');
   assert.equal(snapshot.root, join(dirname(snapshot.root), snapshot.snapshotHash), 'content-addressed snapshot path');
   assert.equal(lstatSync(snapshot.root).mode & 0o777, 0o555, 'snapshot root mode');
-  const observed = [];
+  const observed = [], observedDirectories = ['/'];
   function walk(directory) {
     for (const name of readdirSync(directory).sort()) {
       const path = join(directory, name), stat = lstatSync(path);
-      if (stat.isDirectory() && !stat.isSymbolicLink()) walk(path);
+      if (stat.isDirectory() && !stat.isSymbolicLink()) {
+        assert.equal(stat.mode & 0o777, 0o555, 'snapshot directory mode');
+        observedDirectories.push(`/${relative(snapshot.root, path).split(sep).join('/')}`);
+        walk(path);
+      }
       else observed.push(`/${relative(snapshot.root, path).split(sep).join('/')}`);
     }
   }
   walk(snapshot.root);
   assert.deepEqual(observed.sort(), snapshot.entries.map(entry => entry.path).sort(), 'snapshot exact path inventory');
+  const expectedDirectories = new Set(['/']);
+  for (const entry of snapshot.entries) {
+    let current = dirname(entry.path);
+    while (current !== '.' && current !== '/') { expectedDirectories.add(current); current = dirname(current); }
+  }
+  assert.deepEqual(observedDirectories.sort(), [...expectedDirectories].sort(), 'snapshot exact directory inventory');
   for (const entry of snapshot.entries) {
     const path = join(snapshot.root, entry.path.slice(1)), stat = lstatSync(path);
     if (entry.type === 'file') {
@@ -196,7 +209,11 @@ export function snapshotMounts(snapshot) {
 }
 
 export function discardRuntimeSnapshot(snapshot, parent) {
-  assert(snapshot?.snapshotHash && snapshot.root === join(parent, snapshot.snapshotHash), 'owned snapshot required');
+  assert(OWNED_SNAPSHOTS.has(snapshot), 'module-owned snapshot required');
+  assert(/^[a-f0-9]{64}$/.test(snapshot.snapshotHash) && snapshot.schema === 'ruflo.repair-runtime-snapshot/v1', 'snapshot identity required');
+  assert.equal(snapshot.snapshotHash, stableHash({ schema: snapshot.schema,
+    runtimeLayoutHash: snapshot.runtimeLayoutHash, entries: snapshot.entries }), 'snapshot identity hash');
+  assert(snapshot.root === join(parent, snapshot.snapshotHash), 'owned snapshot required');
   assert(realpathSync(parent) === parent && realpathSync(snapshot.root) === snapshot.root, 'canonical owned snapshot');
   function thaw(path) {
     const stat = lstatSync(path);
@@ -206,4 +223,5 @@ export function discardRuntimeSnapshot(snapshot, parent) {
   }
   thaw(snapshot.root);
   rmSync(snapshot.root, { recursive: true, force: false });
+  OWNED_SNAPSHOTS.delete(snapshot);
 }

@@ -52,6 +52,15 @@ test('post-stage corruption and undeclared files are rejected', () => fixture(({
   assert.throws(() => validateRuntimeSnapshot(snapshot), /inventory/);
 }));
 
+test('writable, missing and undeclared nested directories are rejected', () => fixture(({ parent, specification }) => {
+  const snapshot = stageRuntimeSnapshotForTest(parent, specification);
+  chmodSync(join(snapshot.root, 'usr/bin'), 0o777);
+  assert.throws(() => validateRuntimeSnapshot(snapshot), /directory mode/);
+  chmodSync(join(snapshot.root, 'usr/bin'), 0o555); chmodSync(snapshot.root, 0o755);
+  mkdirSync(join(snapshot.root, 'undeclared-empty')); chmodSync(join(snapshot.root, 'undeclared-empty'), 0o555); chmodSync(snapshot.root, 0o555);
+  assert.throws(() => validateRuntimeSnapshot(snapshot), /directory inventory/);
+}));
+
 test('source corruption is rejected and partial snapshot is removed', () => fixture(({ parent, specification }) => {
   specification.files[0].sha256 = '0'.repeat(64);
   assert.throws(() => stageRuntimeSnapshotForTest(parent, specification), /SHA-256/);
@@ -74,7 +83,9 @@ test('existing content-addressed snapshot requires explicit validation, never ov
 
 test('only an exactly owned content-addressed snapshot can be discarded', () => fixture(({ parent, specification }) => {
   const snapshot = stageRuntimeSnapshotForTest(parent, specification);
-  assert.throws(() => discardRuntimeSnapshot({ ...snapshot, snapshotHash: '0'.repeat(64) }, parent), /owned/);
+  const unrelated = join(parent, 'unrelated'); chmodSync(parent, 0o700); mkdirSync(unrelated); writeFileSync(join(unrelated, 'keep'), 'keep');
+  assert.throws(() => discardRuntimeSnapshot({ ...snapshot, root: unrelated, snapshotHash: 'unrelated' }, parent), /module-owned/);
+  assert.equal(readFileSync(join(unrelated, 'keep'), 'utf8'), 'keep');
   discardRuntimeSnapshot(snapshot, parent);
   assert.equal(existsSync(snapshot.root), false);
 }));

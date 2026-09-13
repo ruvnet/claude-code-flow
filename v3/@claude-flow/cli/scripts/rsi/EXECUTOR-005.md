@@ -12,11 +12,14 @@ reopened for verification. The deterministic inventory binds path, type, mode,
 size, hash, link target, and runtime-layout hash into a content address.
 
 The staged tree is read-only for ordinary writes and its complete inventory is
-revalidated before launch construction. The executor now mounts the snapshot's
+revalidated before launch construction, including the complete directory set and
+read-only mode of every directory. The executor now mounts the snapshot's
 minimal `/usr` and Node subtrees instead of the host's mutable `/usr` and `/opt`
 runtime directories. Direct production launch construction fails closed because
 only the durably reserved fixed probe owns the snapshot lifetime. Snapshot
-cleanup requires the exact parent, root, and content address.
+cleanup requires the original module-owned object identity plus the exact parent,
+root, schema, and content address; caller-constructed paths cannot reach recursive
+cleanup.
 
 This does not claim immutability against a privileged parent, successful dynamic
 relocation, coverage of data-driven loads, Bubblewrap identity, or OS namespace

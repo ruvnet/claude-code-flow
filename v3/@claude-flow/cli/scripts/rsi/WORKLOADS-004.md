@@ -4,6 +4,10 @@ Decision: preserve and verify every base and fix Git blob payload for the
 compact p-limit and Click development workloads. This is acquisition progress,
 not an optimizer result or RSI evidence.
 
+Reviewed source: `3344314d06b324210af4686660a164ab76dc982c`, tree
+`f55083c2227ccf31947e8be7fedb41bb63f2cb8d`. Raw benchmark outcomes are in
+`evidence/public-tree-payloads.json`.
+
 The deterministic payload-pack format stores each safe path and its exact bytes.
 The verifier binds the pack to the frozen workload, partial capsule and complete
 tree-inventory manifests. It recomputes every Git blob ID, checks complete path
@@ -29,6 +33,11 @@ epochs, 209,784 native field calls and head
 New native calls, repair candidate evaluations, repair starts, repair wall time
 and external-provider spend remain zero. Total acquisition and evaluation dollar
 costs are unknown.
+
+Five isolated payload-test runs took 17,579.726 ms total and five engineering
+validation process starts. All 139 focused tests and seven historical epoch
+replays passed. MetaHarness and Autogenous were not rerun because no candidate
+or descendant outcome was measured.
 
 ## Acceptance
 

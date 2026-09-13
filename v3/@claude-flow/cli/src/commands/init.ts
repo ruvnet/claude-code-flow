@@ -1386,7 +1386,7 @@ const hooksCommand: Command = {
             notification: false,
             teammateIdle: false,
             taskCompleted: false,
-            timeout: 5000,
+            timeout: 10000,
             continueOnError: true,
           }
         : DEFAULT_INIT_OPTIONS.hooks,

@@ -42,6 +42,8 @@ and refuses overwrite. It binds the policy and executor bytes, kernel platform,
 release and architecture, Bubblewrap version and binary hash, raw capability
 result and bounded cost. An interrupted or negative receipt is never deleted or
 converted into authorization.
+An absent isolation binary is recorded with a null binary hash and an incompatible
+capability result; it cannot crash the receipt path or open an execution gate.
 
 The launch builder accepts canonical, non symlink directories and one basename
 entry. It passes an argument vector directly with shell mode false. Candidate and

@@ -115,7 +115,7 @@ export function recordIsolationProbe(receiptPath, policyPath = join(ROOT, 'execu
     const receipt = { schema: 'ruflo.repair-isolation-capability-receipt/v1',
       policyHash: sha256(policy), executorSourceSha256: fileHash(fileURLToPath(import.meta.url)),
       host: { platform: platform(), release: release(), arch: arch() },
-      engine: { path: policy.engine.binary, sha256: fileHash(policy.engine.binary),
+      engine: { path: policy.engine.binary, sha256: existsSync(policy.engine.binary) ? fileHash(policy.engine.binary) : null,
         versionStatus: version.status, versionStdout: version.stdout, versionStderr: version.stderr },
       capability, costs: { engineeringProcessStarts: 2, wallMs: performance.now() - started,
         candidateEvaluations: 0, externalProviderSpendUsd: 0, totalAcquisitionUsd: null, totalEvaluationUsd: null },

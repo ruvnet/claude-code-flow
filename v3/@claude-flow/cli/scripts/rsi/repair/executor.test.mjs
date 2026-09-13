@@ -70,6 +70,7 @@ test('durable probe receipt is exclusive, source bound and retains negative resu
   const path = join(root, 'receipt.json'), receipt = recordIsolationProbe(path);
   assert.equal(receipt.policyHash, validateExecutorPolicy(policy()).policyHash);
   assert.match(receipt.executorSourceSha256, /^[a-f0-9]{64}$/);
+  assert(receipt.engine.sha256 === null || /^[a-f0-9]{64}$/.test(receipt.engine.sha256));
   assert.equal(receipt.costs.engineeringProcessStarts, 2);
   assert.equal(receipt.costs.candidateEvaluations, 0);
   assert.equal(receipt.candidateExecutionEnabled, false);

@@ -49,7 +49,9 @@ test('launch is shell-free, network-isolated and mounts candidate read-only', ()
   assert.equal(launch.networkNamespaceRequired, true);
   assert.equal(launch.candidateSourceReadOnly, true);
   assert(launch.args.includes('--unshare-all'));
-  assert.deepEqual(launch.args.slice(launch.args.indexOf('--ro-bind', 6), launch.args.indexOf('--ro-bind', 6) + 3), ['--ro-bind','/usr','/usr']);
+  const runtimeBind = launch.args.indexOf('--ro-bind', 6);
+  assert.match(launch.args[runtimeBind + 1], /test-runtime-snapshot\/usr$/);
+  assert.equal(launch.args[runtimeBind + 2], '/usr');
   const sourceAt = launch.args.lastIndexOf('--ro-bind');
   assert.deepEqual(launch.args.slice(sourceAt, sourceAt + 3), ['--ro-bind', candidate, '/workspace']);
   assert.equal(launch.args.at(-1), '/workspace/candidate.mjs');
@@ -58,10 +60,14 @@ test('launch is shell-free, network-isolated and mounts candidate read-only', ()
   assert(launch.args.includes('--nproc=16'));
   assert(launch.args.includes('/usr/bin/prlimit'));
   assert.equal(launch.runtimeLayoutHash, 'ccf90161f686638f6409a6f187631e5848713ed2f5174df47466018c5c5ae8f8');
+  assert.equal(launch.runtimeSnapshotHash, 'test-only');
   const symlinkAt = launch.args.indexOf('--symlink');
   assert.deepEqual(launch.args.slice(symlinkAt, symlinkAt + 6),
     ['--symlink','usr/lib','/lib','--symlink','usr/lib64','/lib64']);
   assert.equal(launch.candidateExecutionEnabled, false);
+}));
+test('production launch construction is reachable only through reserved snapshot ownership', () => temporary(({ candidate, output }) => {
+  assert.throws(() => executor.buildIsolationLaunch(policy(), candidate, output), /DIRECT_LAUNCH_DISABLED/);
 }));
 test('arguments, paths, symlinks and overlapping output cannot be injected', () => temporary(({ root, candidate, output }) => {
   for (const entry of ['../outside', '/etc/passwd', 'x;id', 'x/y']) assert.throws(() => buildIsolationLaunch(policy(), candidate, output, entry));

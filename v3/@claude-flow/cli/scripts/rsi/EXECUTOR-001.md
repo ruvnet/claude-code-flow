@@ -1,13 +1,14 @@
 # Fail closed isolated candidate executor contract
 
-Published source: `697fa805a66380063f1159e7e8b9bfc9199f2010`, tree
-`b2ed482db92d8bc79c5720dd8c86845616f353b7`. The raw capability receipt and
-summary are preserved in `evidence/executor-probe.json` and
-`evidence/executor.json`.
+Final corrected source: `477c19d36e60850fb0ba6147b9af04947cb6bdb5`, tree
+`665bc9dd3736162159a0678b53430a4502604ef2`. The current raw capability receipt
+and summary are preserved in `evidence/executor-probe-002.json` and
+`evidence/executor-002.json`. The first negative receipt and summary remain
+preserved; the corrected recorder also handles a missing isolation binary.
 
-All 172 focused tests passed in 46763.199 ms and all seven historical epochs
+All 172 focused tests passed in 44600.950 ms and all seven historical epochs
 replayed from the original anchor. The separately measured capability check used
-two engineering process starts and 5011.393 ms wall time. It performed zero
+two engineering process starts and 5050.070 ms wall time. It performed zero
 candidate evaluations, repair starts, mission epochs or native field calls.
 External provider spend was zero; complete acquisition and evaluation dollar
 costs remain unknown.

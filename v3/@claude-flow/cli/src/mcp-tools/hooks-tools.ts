@@ -1383,42 +1383,68 @@ export const hooksList: MCPTool = {
     properties: {},
   },
   handler: async () => {
+    // Read .claude/settings.json to determine which hooks are actually configured
+    const configuredTypes = new Set<string>();
+    const settingsPath = join(getProjectCwd(), '.claude', 'settings.json');
+    if (existsSync(settingsPath)) {
+      try {
+        const settings = JSON.parse(readFileSync(settingsPath, 'utf-8'));
+        if (settings.hooks && typeof settings.hooks === 'object') {
+          for (const [hookType, entries] of Object.entries(settings.hooks)) {
+            if (Array.isArray(entries) && entries.length > 0) {
+              configuredTypes.add(hookType);
+            }
+          }
+        }
+      } catch { /* ignore malformed settings */ }
+    }
+
+    // Map hook names to their Claude Code hook types
+    const hookDefinitions = [
+      // Core hooks
+      { name: 'pre-edit', type: 'PreToolUse' },
+      { name: 'post-edit', type: 'PostToolUse' },
+      { name: 'pre-command', type: 'PreToolUse' },
+      { name: 'post-command', type: 'PostToolUse' },
+      { name: 'pre-task', type: 'PreToolUse' },
+      { name: 'post-task', type: 'PostToolUse' },
+      // Routing hooks
+      { name: 'route', type: 'intelligence' },
+      { name: 'explain', type: 'intelligence' },
+      // Session hooks
+      { name: 'session-start', type: 'SessionStart' },
+      { name: 'session-end', type: 'Stop' },
+      { name: 'session-restore', type: 'SessionStart' },
+      // Learning hooks
+      { name: 'pretrain', type: 'intelligence' },
+      { name: 'build-agents', type: 'intelligence' },
+      { name: 'transfer', type: 'intelligence' },
+      { name: 'metrics', type: 'analytics' },
+      // System hooks
+      { name: 'init', type: 'system' },
+      { name: 'notify', type: 'coordination' },
+      // Intelligence subcommands
+      { name: 'intelligence', type: 'intelligence' },
+      { name: 'intelligence_trajectory-start', type: 'intelligence' },
+      { name: 'intelligence_trajectory-step', type: 'intelligence' },
+      { name: 'intelligence_trajectory-end', type: 'intelligence' },
+      { name: 'intelligence_pattern-store', type: 'intelligence' },
+      { name: 'intelligence_pattern-search', type: 'intelligence' },
+      { name: 'intelligence_stats', type: 'analytics' },
+      { name: 'intelligence_learn', type: 'intelligence' },
+      { name: 'intelligence_attention', type: 'intelligence' },
+    ];
+
+    const hooks = hookDefinitions.map(h => ({
+      name: h.name,
+      type: h.type,
+      enabled: configuredTypes.has(h.type),
+      status: configuredTypes.has(h.type) ? 'active' : 'inactive',
+    }));
+
     return {
-      hooks: [
-        // Core hooks
-        { name: 'pre-edit', type: 'PreToolUse', status: 'active' },
-        { name: 'post-edit', type: 'PostToolUse', status: 'active' },
-        { name: 'pre-command', type: 'PreToolUse', status: 'active' },
-        { name: 'post-command', type: 'PostToolUse', status: 'active' },
-        { name: 'pre-task', type: 'PreToolUse', status: 'active' },
-        { name: 'post-task', type: 'PostToolUse', status: 'active' },
-        // Routing hooks
-        { name: 'route', type: 'intelligence', status: 'active' },
-        { name: 'explain', type: 'intelligence', status: 'active' },
-        // Session hooks
-        { name: 'session-start', type: 'SessionStart', status: 'active' },
-        { name: 'session-end', type: 'SessionEnd', status: 'active' },
-        { name: 'session-restore', type: 'SessionStart', status: 'active' },
-        // Learning hooks
-        { name: 'pretrain', type: 'intelligence', status: 'active' },
-        { name: 'build-agents', type: 'intelligence', status: 'active' },
-        { name: 'transfer', type: 'intelligence', status: 'active' },
-        { name: 'metrics', type: 'analytics', status: 'active' },
-        // System hooks
-        { name: 'init', type: 'system', status: 'active' },
-        { name: 'notify', type: 'coordination', status: 'active' },
-        // Intelligence subcommands
-        { name: 'intelligence', type: 'intelligence', status: 'active' },
-        { name: 'intelligence_trajectory-start', type: 'intelligence', status: 'active' },
-        { name: 'intelligence_trajectory-step', type: 'intelligence', status: 'active' },
-        { name: 'intelligence_trajectory-end', type: 'intelligence', status: 'active' },
-        { name: 'intelligence_pattern-store', type: 'intelligence', status: 'active' },
-        { name: 'intelligence_pattern-search', type: 'intelligence', status: 'active' },
-        { name: 'intelligence_stats', type: 'analytics', status: 'active' },
-        { name: 'intelligence_learn', type: 'intelligence', status: 'active' },
-        { name: 'intelligence_attention', type: 'intelligence', status: 'active' },
-      ],
-      total: 26,
+      hooks,
+      total: hooks.length,
     };
   },
 };

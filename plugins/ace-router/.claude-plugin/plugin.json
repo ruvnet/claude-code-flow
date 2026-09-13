@@ -1,0 +1,19 @@
+{
+  "name": "ace-router",
+  "description": "ACE Command Core — intent detection, model routing, and Notion context loading for the Agentic Command Engine",
+  "version": "0.1.0",
+  "author": {
+    "name": "Nick",
+    "url": "https://github.com/ruvnet/ruflo"
+  },
+  "homepage": "https://github.com/ruvnet/ruflo",
+  "license": "MIT",
+  "keywords": [
+    "ace",
+    "router",
+    "command-core",
+    "notion",
+    "orchestration",
+    "claude-code"
+  ]
+}

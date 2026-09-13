@@ -57,7 +57,7 @@ test('launch is shell-free, network-isolated and mounts candidate read-only', ()
   assert(launch.args.includes('--cpu=5'));
   assert(launch.args.includes('--nproc=16'));
   assert(launch.args.includes('/usr/bin/prlimit'));
-  assert.equal(launch.runtimeLayoutHash, '6bcfdb29967558abbcff13c5cb4b3cbad9adeab85f6c15d3cd69de05e4c9b439');
+  assert.equal(launch.runtimeLayoutHash, 'ccf90161f686638f6409a6f187631e5848713ed2f5174df47466018c5c5ae8f8');
   const symlinkAt = launch.args.indexOf('--symlink');
   assert.deepEqual(launch.args.slice(symlinkAt, symlinkAt + 6),
     ['--symlink','usr/lib','/lib','--symlink','usr/lib64','/lib64']);

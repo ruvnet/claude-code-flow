@@ -153,10 +153,14 @@ negative receipts. [EXECUTOR-002.md](EXECUTOR-002.md) corrects its probe trust
 boundary, interrupted reservation handling and overstated isolation verdict.
 [EXECUTOR-003.md](EXECUTOR-003.md) binds the pinned Node, prlimit and ELF loader
 identities and adds the two exact synthetic /lib links inside the empty root.
-This removes the known loader-layout defect from the launch construction, but
-the transitive shared-library closure and actual sandbox startup still require
-a compatible runner. A host compatibility receipt cannot grant resource
-authority. Do not rerun the incompatible host unchanged.
+This removes the known loader-layout defect from the launch construction.
+[EXECUTOR-004.md](EXECUTOR-004.md) adds direct bounded ELF dynamic-section
+parsing and validates the complete declared static eight-library dependency closure,
+including exact SONAME, symlink, canonical path, direct dependency and search-path
+properties plus reviewed file hashes. Data-driven loads, immutable runtime
+snapshotting, pinned Bubblewrap identity, actual relocation, sandbox startup and
+OS isolation still require a compatible runner. A host compatibility receipt cannot grant resource authority.
+Do not rerun the incompatible host unchanged.
 
 [MIGRATION-001.md](MIGRATION-001.md) records the implemented versioned projection
 and reservation algebra, adversarial tests and a concrete resource authorization

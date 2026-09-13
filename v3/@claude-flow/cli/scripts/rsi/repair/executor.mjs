@@ -100,7 +100,7 @@ export function buildIsolationLaunch(policy, candidateDirectory, outputDirectory
 export function buildIsolationLaunchForTest(policy, candidateDirectory, outputDirectory, entry = 'candidate.mjs') {
   assert(process.env.NODE_TEST_CONTEXT, 'test-only launch builder');
   return buildLaunch(policy, candidateDirectory, outputDirectory, entry, {
-    schema: 'ruflo.repair-runtime-layout-observation/v1', runtimeLayoutHash: RUNTIME_LAYOUT_HASH,
+    schema: 'ruflo.repair-runtime-layout-observation/v2', runtimeLayoutHash: RUNTIME_LAYOUT_HASH,
     runtimeLayoutVerified: true, candidateExecutionEnabled: false,
     identities: { node: {}, prlimit: {}, interpreter: {} },
     syntheticSymlinks: [{ target: 'usr/lib', link: '/lib' }, { target: 'usr/lib64', link: '/lib64' }],
@@ -224,7 +224,7 @@ export function recordIsolationProbe(receiptPath, policyPath = join(ROOT, 'execu
 export function recordIsolationProbeForTest(receiptPath, policyPath = join(ROOT, 'executor-policy.json')) {
   assert(process.env.NODE_TEST_CONTEXT, 'test-only probe recorder');
   return recordProbe(receiptPath, policyPath, {
-    schema: 'ruflo.repair-runtime-layout-observation/v1', runtimeLayoutHash: RUNTIME_LAYOUT_HASH,
+    schema: 'ruflo.repair-runtime-layout-observation/v2', runtimeLayoutHash: RUNTIME_LAYOUT_HASH,
     runtimeLayoutVerified: true, candidateExecutionEnabled: false,
     identities: { node: {}, prlimit: {}, interpreter: {} },
     syntheticSymlinks: [{ target: 'usr/lib', link: '/lib' }, { target: 'usr/lib64', link: '/lib64' }],

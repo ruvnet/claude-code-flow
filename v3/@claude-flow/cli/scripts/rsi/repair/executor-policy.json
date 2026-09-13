@@ -5,6 +5,8 @@
     "name": "bubblewrap",
     "minimumVersion": "0.9.0",
     "binary": "/usr/bin/bwrap",
+    "sha256": "52231e1caf55bcbc667b269f49c63599a6f7db4767ae6a039580d0ff853db712",
+    "sizeBytes": 72160,
     "requiredArguments": ["--unshare-all", "--die-with-parent", "--new-session", "--cap-drop", "ALL", "--clearenv"],
     "networkMode": "NEW_EMPTY_NETWORK_NAMESPACE",
     "rootMode": "ALLOWLISTED_READ_ONLY_BINDS",

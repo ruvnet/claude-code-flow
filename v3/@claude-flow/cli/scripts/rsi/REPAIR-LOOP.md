@@ -166,9 +166,13 @@ whole-host `/usr` bind. It does not claim immutability against a privileged pare
 A host compatibility receipt cannot grant resource authority.
 [EXECUTOR-006.md](EXECUTOR-006.md) replaces unbounded pathname file reads with
 bounded `O_NOFOLLOW` descriptor reads, stable descriptor identity checks, and a
-final snapshot revalidation immediately before the fixed probe spawn. Directory
-cleanup still uses private path traversal and is not claimed safe against a
-hostile same-UID process; candidate execution remains disabled.
+final snapshot revalidation immediately before the fixed probe spawn. It also
+pins Bubblewrap 0.9.0 by exact hash and size, stages an owned private executable,
+and revalidates it immediately before spawn rather than invoking the host path.
+Validation is not atomically bound to pathname-based exec or mounts; engine,
+probe, snapshot and cleanup paths are not claimed safe against a hostile same-UID
+process. Attempted-but-unobserved spawns remain charged and explicitly unknown;
+candidate execution remains disabled.
 Do not rerun the incompatible host unchanged.
 
 [MIGRATION-001.md](MIGRATION-001.md) records the implemented versioned projection

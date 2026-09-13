@@ -1,10 +1,11 @@
 /** Exact, read-only ELF/runtime admission for the fixed Linux x64 executor. */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { existsSync, lstatSync, readFileSync, readlinkSync, realpathSync } from 'node:fs';
+import { existsSync, lstatSync, readlinkSync, realpathSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { arch, platform } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { readBoundRegularFile } from './bounded-file.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 export const RUNTIME_LAYOUT_HASH = 'ccf90161f686638f6409a6f187631e5848713ed2f5174df47466018c5c5ae8f8';
@@ -172,7 +173,9 @@ export function validateRuntimeLayout(layout) {
 }
 
 const defaultIo = {
-  exists: existsSync, lstat: lstatSync, read: readFileSync, readlink: readlinkSync, realpath: realpathSync,
+  exists: existsSync, lstat: lstatSync,
+  read: path => readBoundRegularFile(path, MAX_ELF_BYTES, 'runtime admission').bytes,
+  readlink: readlinkSync, realpath: realpathSync,
   digest, platform, arch, execPath: process.execPath, nodeVersion: process.version,
 };
 

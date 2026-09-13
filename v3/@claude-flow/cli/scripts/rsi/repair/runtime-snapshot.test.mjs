@@ -4,7 +4,8 @@ import { createHash } from 'node:crypto';
 import { chmodSync, existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { discardRuntimeSnapshot, snapshotMounts, stageRuntimeSnapshotForTest, validateRuntimeSnapshot } from './runtime-snapshot.mjs';
+import { discardRuntimeSnapshot, snapshotMounts, stagePinnedExecutable, stageRuntimeSnapshotForTest,
+  validatePinnedExecutable, validateRuntimeSnapshot } from './runtime-snapshot.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 function fixture(fn) {
@@ -68,6 +69,19 @@ test('file-to-symlink substitution is rejected by descriptor-bound validation', 
   unlinkSync(target); symlinkSync(join(source, 'prlimit'), target);
   chmodSync(join(snapshot.root, 'usr/bin'), 0o555); chmodSync(join(snapshot.root, 'usr'), 0o555); chmodSync(snapshot.root, 0o555);
   assert.throws(() => validateRuntimeSnapshot(snapshot), /regular file|ELOOP/);
+}));
+
+test('isolation engine is copied to and verified from a private pinned executable', () => fixture(({ root, source }) => {
+  const engine = join(root, 'engine'); mkdirSync(engine, { mode: 0o700 });
+  const bytes = readFileSync(join(source, 'prlimit'));
+  const identity = stagePinnedExecutable(join(source, 'prlimit'), join(engine, 'bwrap'), hash(bytes), bytes.length);
+  assert.equal(validatePinnedExecutable(identity).descriptorIdentityVerified, true);
+  assert.equal(lstatSync(identity.path).mode & 0o777, 0o555);
+  const forged = { ...identity, sha256: '0'.repeat(64) };
+  assert.throws(() => validatePinnedExecutable(forged), /SHA-256/);
+  const shared = join(root, 'shared-engine'); mkdirSync(shared, { mode: 0o755 });
+  assert.throws(() => stagePinnedExecutable(join(source, 'prlimit'), join(shared, 'bwrap'),
+    hash(bytes), bytes.length), /private canonical/);
 }));
 
 test('source corruption is rejected and partial snapshot is removed', () => fixture(({ parent, specification }) => {

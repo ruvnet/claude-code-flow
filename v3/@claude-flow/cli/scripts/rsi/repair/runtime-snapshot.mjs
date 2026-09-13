@@ -2,41 +2,22 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import {
-  chmodSync, closeSync, constants, existsSync, fchmodSync, fstatSync, fsyncSync, lstatSync, mkdirSync,
-  openSync, readFileSync, readdirSync, readlinkSync, readSync, realpathSync, renameSync, rmSync,
+  chmodSync, closeSync, constants, existsSync, fchmodSync, fsyncSync, lstatSync, mkdirSync,
+  openSync, readdirSync, readlinkSync, realpathSync, renameSync, rmSync,
   symlinkSync, writeFileSync,
 } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inspectRuntimeLayout, RUNTIME_LAYOUT_HASH } from './runtime-layout.mjs';
+import { readBoundRegularFile } from './bounded-file.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const MANIFEST_PATH = join(ROOT, 'executor-runtime-layout.json');
 const MAX_FILE_BYTES = 134217728;
+const MAX_MANIFEST_BYTES = 1048576;
 const OWNED_SNAPSHOTS = new WeakSet();
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const stableHash = value => digest(Buffer.from(JSON.stringify(value)));
-
-function readBoundRegularFile(path, maximumBytes, label) {
-  const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
-  try {
-    const before = fstatSync(fd, { bigint: true });
-    assert(before.isFile() && before.size > 0n && before.size <= BigInt(maximumBytes), `${label} regular bounded file`);
-    const length = Number(before.size), bytes = Buffer.allocUnsafe(length);
-    let offset = 0;
-    while (offset < length) {
-      const count = readSync(fd, bytes, offset, length - offset, offset);
-      assert(count > 0, `${label} truncated during descriptor read`); offset += count;
-    }
-    const extra = Buffer.allocUnsafe(1);
-    assert.equal(readSync(fd, extra, 0, 1, length), 0, `${label} grew during descriptor read`);
-    const after = fstatSync(fd, { bigint: true });
-    for (const field of ['dev','ino','size','mtimeNs','ctimeNs'])
-      assert.equal(after[field], before[field], `${label} descriptor identity changed`);
-    return { bytes, mode: Number(after.mode & 0o777n), size: length,
-      device: before.dev.toString(), inode: before.ino.toString() };
-  } finally { closeSync(fd); }
-}
 
 function confined(path, root, label) {
   assert(isAbsolute(path), `${label} absolute path`);
@@ -137,7 +118,8 @@ function stage(parent, specification) {
 function productionSpecification() {
   const observation = inspectRuntimeLayout();
   assert.equal(observation.runtimeLayoutHash, RUNTIME_LAYOUT_HASH);
-  const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
+  const manifest = JSON.parse(readBoundRegularFile(MANIFEST_PATH, MAX_MANIFEST_BYTES,
+    'runtime snapshot manifest').bytes.toString('utf8'));
   const files = new Map();
   const add = (path, source, sha256, mode) => {
     const prior = files.get(path);
@@ -160,6 +142,31 @@ function productionSpecification() {
 }
 
 export function stageRuntimeSnapshot(parent) { return stage(parent, productionSpecification()); }
+
+export function stagePinnedExecutable(source, destination, expectedSha256, expectedSize) {
+  assert(isAbsolute(source) && isAbsolute(destination), 'absolute executable paths required');
+  assert(/^[a-f0-9]{64}$/.test(expectedSha256) && Number.isSafeInteger(expectedSize) && expectedSize > 0,
+    'pinned executable identity');
+  const parent = dirname(destination);
+  const parentStat = existsSync(parent) ? lstatSync(parent) : null;
+  assert(parentStat?.isDirectory() && !parentStat.isSymbolicLink() &&
+    (parentStat.mode & 0o777) === 0o700 && realpathSync(parent) === parent &&
+    basename(destination) === 'bwrap',
+    'private canonical bwrap destination');
+  const entry = copyPinnedFile(parent, { path: '/bwrap', source, sha256: expectedSha256, mode: 0o555 });
+  assert.equal(entry.size, expectedSize, 'pinned executable size');
+  return { path: destination, sha256: expectedSha256, size: expectedSize, mode: 0o555 };
+}
+
+export function validatePinnedExecutable(identity) {
+  assert(identity && basename(identity.path) === 'bwrap' && /^[a-f0-9]{64}$/.test(identity.sha256),
+    'pinned executable receipt');
+  const opened = readBoundRegularFile(identity.path, identity.size, 'pinned executable');
+  assert.equal(opened.size, identity.size, 'pinned executable size');
+  assert.equal(opened.mode, identity.mode, 'pinned executable mode');
+  assert.equal(digest(opened.bytes), identity.sha256, 'pinned executable SHA-256');
+  return { ...identity, descriptorIdentityVerified: true };
+}
 
 export function stageRuntimeSnapshotForTest(parent, specification) {
   assert(process.env.NODE_TEST_CONTEXT, 'test-only snapshot specification');

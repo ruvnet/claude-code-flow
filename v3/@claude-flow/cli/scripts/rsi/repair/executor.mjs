@@ -8,23 +8,32 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { arch, platform, release, tmpdir } from 'node:os';
 import { inspectMission, LEDGER } from './admission.mjs';
+import { readBoundRegularFile } from './bounded-file.mjs';
 import { sha256 } from './public-workloads.mjs';
 import { inspectRuntimeLayout, runtimeSymlinkArguments, RUNTIME_LAYOUT_HASH } from './runtime-layout.mjs';
-import { discardRuntimeSnapshot, snapshotMounts, stageRuntimeSnapshot, validateRuntimeSnapshot } from './runtime-snapshot.mjs';
+import { discardRuntimeSnapshot, snapshotMounts, stagePinnedExecutable, stageRuntimeSnapshot,
+  validatePinnedExecutable, validateRuntimeSnapshot } from './runtime-snapshot.mjs';
 
 const ROOT = dirname(new URL(import.meta.url).pathname);
-const EXPECTED_POLICY_HASH = '84c079ec4d58d17bb63966bfe17924ed715c919cb46a7b6209d9836945608b9b';
+const EXPECTED_POLICY_HASH = '333f2dfe6820f1fc39f4c27050d89ea82de4834be7bae0e6b51c9bf7569dd339';
+const MAX_CONFIG_BYTES = 1048576;
+const MAX_SOURCE_BYTES = 134217728;
 const exact = (value, keys, reason) => assert(value && typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join(',') === [...keys].sort().join(','), reason);
-const fileHash = path => createHash('sha256').update(readFileSync(path)).digest('hex');
+const fileHash = path => createHash('sha256').update(
+  readBoundRegularFile(path, MAX_SOURCE_BYTES, 'executor source').bytes).digest('hex');
+const injectedFileHash = path => createHash('sha256').update(readFileSync(path)).digest('hex');
+const readJson = (path, label) => JSON.parse(
+  readBoundRegularFile(path, MAX_CONFIG_BYTES, label).bytes.toString('utf8'));
 
 export function validateExecutorPolicy(policy) {
   exact(policy, ['schema','purpose','engine','limits','environment','mounts','probe','controls','resourceProposal','legacyMission','candidateExecutionEnabled','boundedRsiEvidenceAccepted'], 'executor policy fields');
   assert.equal(policy.schema, 'ruflo.repair-isolated-executor-policy/v1');
   assert.equal(sha256(policy), EXPECTED_POLICY_HASH, 'executor policy hash mismatch');
-  exact(policy.engine, ['name','minimumVersion','binary','requiredArguments','networkMode','rootMode','candidateSourceMode','outputMode','shellEnabled'], 'engine fields');
+  exact(policy.engine, ['name','minimumVersion','binary','sha256','sizeBytes','requiredArguments','networkMode','rootMode','candidateSourceMode','outputMode','shellEnabled'], 'engine fields');
   assert.deepEqual(policy.engine, {
     name: 'bubblewrap', minimumVersion: '0.9.0', binary: '/usr/bin/bwrap',
+    sha256: '52231e1caf55bcbc667b269f49c63599a6f7db4767ae6a039580d0ff853db712', sizeBytes: 72160,
     requiredArguments: ['--unshare-all','--die-with-parent','--new-session','--cap-drop','ALL','--clearenv'],
     networkMode: 'NEW_EMPTY_NETWORK_NAMESPACE', rootMode: 'ALLOWLISTED_READ_ONLY_BINDS',
     candidateSourceMode: 'READ_ONLY', outputMode: 'DEDICATED_WRITABLE_BIND', shellEnabled: false,
@@ -57,7 +66,7 @@ function confinedDirectory(path, label) {
   return canonical;
 }
 
-function buildLaunch(policy, candidateDirectory, outputDirectory, entry, runtimeLayout, runtimeSnapshot) {
+function buildLaunch(policy, candidateDirectory, outputDirectory, entry, runtimeLayout, runtimeSnapshot, enginePath) {
   const check = validateExecutorPolicy(policy);
   assert.equal(runtimeLayout.runtimeLayoutHash, RUNTIME_LAYOUT_HASH, 'reviewed runtime layout required');
   assert.equal(runtimeLayout.runtimeLayoutVerified, true, 'verified runtime layout required');
@@ -95,7 +104,7 @@ function buildLaunch(policy, candidateDirectory, outputDirectory, entry, runtime
   return { schema: 'ruflo.repair-isolation-launch/v2', policyHash: check.policyHash,
     runtimeLayoutHash: runtimeLayout.runtimeLayoutHash, runtimeSnapshotHash: runtimeSnapshot.snapshotHash,
     runtimeIdentities: runtimeLayout.identities,
-    command: policy.engine.binary, args, timeoutMs: policy.limits.wallMsPerProcess,
+    command: enginePath, args, timeoutMs: policy.limits.wallMsPerProcess,
     maxBuffer: policy.limits.outputBytes, shell: false, candidateSha256: fileHash(source),
     networkNamespaceRequired: true, candidateSourceReadOnly: true, candidateExecutionEnabled: false };
 }
@@ -115,7 +124,7 @@ export function buildIsolationLaunchForTest(policy, candidateDirectory, outputDi
     identities: { node: {}, prlimit: {}, interpreter: {} },
     syntheticSymlinks: [{ target: 'usr/lib', link: '/lib' }, { target: 'usr/lib64', link: '/lib64' }],
   }, { root: realpathSync(snapshotRoot), snapshotHash: 'test-only', runtimeLayoutHash: RUNTIME_LAYOUT_HASH,
-    readOnlyStaged: true, candidateExecutionEnabled: false });
+    readOnlyStaged: true, candidateExecutionEnabled: false }, policy.engine.binary);
 }
 
 const PROBE_SOURCE = `import fs from 'node:fs';import os from 'node:os';
@@ -127,13 +136,15 @@ console.log(JSON.stringify({sourceWriteError,interfaces}));`;
 // No exported function may execute a caller-supplied path or source. This helper
 // is reachable only after recordIsolationProbe durably reserves work and stages
 // the module-owned fixed bytes in its own private temporary directory.
-function probeIsolation(policy, candidateDirectory, outputDirectory, runtimeLayout, runtimeSnapshot, revalidateRuntime) {
-  const launch = buildLaunch(policy, candidateDirectory, outputDirectory, 'probe.mjs', runtimeLayout, runtimeSnapshot);
+function probeIsolation(policy, candidateDirectory, outputDirectory, runtimeLayout, runtimeSnapshot, engineIdentity, revalidateRuntime) {
+  const launch = buildLaunch(policy, candidateDirectory, outputDirectory, 'probe.mjs', runtimeLayout, runtimeSnapshot,
+    engineIdentity?.path ?? policy.engine.binary);
   assert.equal(launch.candidateSha256, createHash('sha256').update(PROBE_SOURCE).digest('hex'), 'fixed probe bytes required');
   if (revalidateRuntime) {
     const current = inspectRuntimeLayout();
     assert.deepEqual(current.identities, runtimeLayout.identities, 'runtime identity drift before spawn');
     validateRuntimeSnapshot(runtimeSnapshot);
+    validatePinnedExecutable(engineIdentity);
   }
   const started = performance.now();
   const child = spawnSync(launch.command, launch.args, { cwd: '/', env: {}, encoding: 'utf8',
@@ -181,7 +192,7 @@ function supportedVersion(version) {
 
 function recordProbe(receiptPath, policyPath, injectedRuntimeLayout) {
   assert(isAbsolute(receiptPath) && !existsSync(receiptPath), 'probe receipt must be a new absolute path');
-  const policy = JSON.parse(readFileSync(policyPath, 'utf8'));
+  const policy = readJson(policyPath, 'executor policy');
   validateExecutorPolicy(policy);
   const reservationPath = `${receiptPath}.reservation.json`;
   assert(!existsSync(reservationPath), 'existing reservation retained; explicit anchored recovery required');
@@ -199,14 +210,41 @@ function recordProbe(receiptPath, policyPath, injectedRuntimeLayout) {
   let temp, runtimeSnapshot, runtimeParent;
   try {
     const runtimeLayout = injectedRuntimeLayout ?? inspectRuntimeLayout();
-    const engineHash = existsSync(policy.engine.binary) ? fileHash(policy.engine.binary) : null;
-    const version = spawnSync(policy.engine.binary, ['--version'], { env: {}, cwd: '/', encoding: 'utf8', timeout: 1000, maxBuffer: 4096, shell: false, killSignal: 'SIGKILL' });
-    const engineUnchanged = engineHash !== null && existsSync(policy.engine.binary) && engineHash === fileHash(policy.engine.binary);
+    temp = mkdtempSync(join(tmpdir(), 'ruflo-isolation-probe-'));
+    let engineIdentity = null, engineHash = null, engineStageError = null, versionAttempted = false;
+    let versionObservationComplete = true;
+    let version = { pid: null, status: null, signal: null, error: null, stdout: '', stderr: '' };
+    let engineUnchanged = false;
+    if (injectedRuntimeLayout) {
+      // Test-only injection keeps mocked pathname reads separate from the
+      // production descriptor-bound engine staging path.
+      engineHash = existsSync(policy.engine.binary) ? injectedFileHash(policy.engine.binary) : null;
+      version = spawnSync(policy.engine.binary, ['--version'], { env: {}, cwd: '/', encoding: 'utf8', timeout: 1000, maxBuffer: 4096, shell: false, killSignal: 'SIGKILL' });
+      versionAttempted = true;
+      engineUnchanged = engineHash !== null && existsSync(policy.engine.binary) && engineHash === injectedFileHash(policy.engine.binary);
+    } else {
+      const engineDirectory = join(temp, 'engine'); mkdirSync(engineDirectory, { mode: 0o700 });
+      try {
+        engineIdentity = stagePinnedExecutable(policy.engine.binary, join(engineDirectory, 'bwrap'),
+          policy.engine.sha256, policy.engine.sizeBytes);
+        engineHash = engineIdentity.sha256;
+        versionAttempted = true;
+        try {
+          version = spawnSync(engineIdentity.path, ['--version'], { env: {}, cwd: '/', encoding: 'utf8',
+            timeout: 1000, maxBuffer: 4096, shell: false, killSignal: 'SIGKILL' });
+        } catch (error) {
+          versionObservationComplete = false;
+          version = { pid: null, status: null, signal: null,
+            error: { code: error.code ?? 'SPAWN_THROW' }, stdout: '', stderr: String(error.message ?? error) };
+        }
+        validatePinnedExecutable(engineIdentity); engineUnchanged = true;
+      } catch (error) { engineStageError = error.code ?? error.message; }
+    }
     const admitted = supportedVersion(version) && engineUnchanged;
     let capability = { compatible: false, attempted: false,
-      blockers: [engineUnchanged ? 'ENGINE_VERSION_UNSUPPORTED' : 'ENGINE_MISSING_OR_CHANGED'], candidateExecutionEnabled: false };
+      blockers: [engineStageError ? 'ENGINE_IDENTITY_REJECTED' :
+        (engineUnchanged ? 'ENGINE_VERSION_UNSUPPORTED' : 'ENGINE_MISSING_OR_CHANGED')], candidateExecutionEnabled: false };
     if (admitted) {
-      temp = mkdtempSync(join(tmpdir(), 'ruflo-isolation-probe-'));
       const candidate = join(temp, 'candidate'), output = join(temp, 'output');
       mkdirSync(candidate); mkdirSync(output); writeFileSync(join(candidate, 'probe.mjs'), PROBE_SOURCE, { flag: 'wx', mode: 0o600 });
       runtimeParent = join(temp, 'runtime-snapshots'); mkdirSync(runtimeParent);
@@ -217,7 +255,8 @@ function recordProbe(receiptPath, policyPath, injectedRuntimeLayout) {
         runtimeSnapshot = { root: realpathSync(root), snapshotHash: 'test-only', runtimeLayoutHash: runtimeLayout.runtimeLayoutHash,
           readOnlyStaged: true, candidateExecutionEnabled: false };
       } else runtimeSnapshot = stageRuntimeSnapshot(realpathSync(runtimeParent));
-      capability = { attempted: true, ...probeIsolation(policy, candidate, output, runtimeLayout, runtimeSnapshot, !injectedRuntimeLayout) };
+      capability = { attempted: true, ...probeIsolation(policy, candidate, output, runtimeLayout, runtimeSnapshot,
+        engineIdentity, !injectedRuntimeLayout) };
     }
     const receipt = { schema: 'ruflo.repair-isolation-capability-receipt/v2',
       reservationHash: sha256(reservation), policyHash: reservation.policyHash,
@@ -225,12 +264,17 @@ function recordProbe(receiptPath, policyPath, injectedRuntimeLayout) {
       runtimeIdentities: runtimeLayout.identities,
       executorSourceSha256: reservation.executorSourceSha256, fixedProbeSha256: reservation.fixedProbeSha256,
       host: { platform: platform(), release: release(), arch: arch() },
-      engine: { path: policy.engine.binary, sha256: engineHash, unchangedAfterVersion: engineUnchanged,
+      engine: { sourcePath: policy.engine.binary, stagedPathUsed: engineIdentity !== null, sha256: engineHash,
+        expectedSha256: policy.engine.sha256, expectedSizeBytes: policy.engine.sizeBytes,
+        stageError: engineStageError, unchangedAfterVersion: engineUnchanged,
+        versionAttempted, versionObservationComplete,
         versionStatus: version.status, versionSignal: version.signal ?? null, versionError: version.error?.code ?? null,
         versionStdout: version.stdout ?? '', versionStderr: version.stderr ?? '' },
-      capability, costs: { parentSpawnAttempts: admitted ? 2 : 1,
-        parentObservedProcessStarts: (version.pid > 0 ? 1 : 0) + (capability.parentObservedProcessStarts ?? 0),
+      capability, costs: { parentSpawnAttempts: (versionAttempted ? 1 : 0) + (admitted ? 1 : 0),
+        parentObservedProcessStarts: versionObservationComplete
+          ? (version.pid > 0 ? 1 : 0) + (capability.parentObservedProcessStarts ?? 0) : null,
         descendantProcessStarts: null, wallMs: performance.now() - started,
+        wallMsScope: 'PRE_RECEIPT_WRITE_AND_CLEANUP',
         candidateEvaluations: 0, externalProviderSpendUsd: 0, totalAcquisitionUsd: null, totalEvaluationUsd: null },
       resourceAuthorizationPresent: false, candidateExecutionEnabled: false, boundedRsiEvidenceAccepted: false };
     durableNew(receiptPath, receipt);
@@ -257,7 +301,7 @@ export function recordIsolationProbeForTest(receiptPath, policyPath = join(ROOT,
 }
 
 export function inspectExecutor(policyPath = join(ROOT, 'executor-policy.json')) {
-  const policy = JSON.parse(readFileSync(policyPath, 'utf8'));
+  const policy = readJson(policyPath, 'executor policy');
   const policyCheck = validateExecutorPolicy(policy);
   const mission = inspectMission(LEDGER, policy.legacyMission.head);
   return { schema: 'ruflo.repair-isolated-executor-inspection/v1', ...policyCheck,

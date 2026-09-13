@@ -62,6 +62,11 @@ jobs:
         run: node --test v3/@claude-flow/cli/scripts/rsi/repair/public-tree-payloads.test.mjs
       - name: RuVector target local-source payload and sizing adversarial tests
         run: node --test v3/@claude-flow/cli/scripts/rsi/repair/public-target-payloads.test.mjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+      - name: Offline p-limit historical runtime witness and admission tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/repair/p-limit-offline.test.mjs
       - name: Replay all native epochs using their original source trees
         run: >-
           node v3/@claude-flow/cli/scripts/rsi/loop/replay-history.mjs

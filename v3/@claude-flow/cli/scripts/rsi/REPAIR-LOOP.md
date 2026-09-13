@@ -93,6 +93,13 @@ work, not a new HYPOTHESIS or mission candidate evaluation.
 
 ## Required implementation sequence
 
+[WORKLOADS-006.md](WORKLOADS-006.md) provides an executable offline historical
+p-limit runtime witness, using exact yocto-queue 1.2.1 payloads and Node 24.19.0.
+It has durable engineering reservations and raw process outcomes. Full upstream
+tests, hidden tests, arbitrary candidate isolation and resource approval remain
+missing. The host denied Bubblewrap network namespace setup; do not treat the
+fixed witness's Node permissions as an arbitrary candidate sandbox.
+
 [MIGRATION-001.md](MIGRATION-001.md) records the implemented versioned projection
 and reservation algebra, adversarial tests and a concrete resource authorization
 proposal. Live application, durable version dispatch and candidate execution

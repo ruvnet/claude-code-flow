@@ -1,0 +1,32 @@
+{
+  "schema": "ruflo.p-limit-runtime-dependency/v1",
+  "repository": "sindresorhus/yocto-queue",
+  "version": "1.2.1",
+  "tagObject": "38094e00614829af560bfc151a55ee2d30e0a481",
+  "commit": "ce72d41de87b2a4ec7c50e10480300bee674d845",
+  "acquiredAt": "2026-09-13T02:21:49.151Z",
+  "selection": "Runtime index.js, package manifest and MIT license. Explicit exact development pin satisfying ^1.2.1; not a historical lockfile resolution or complete upstream test environment.",
+  "files": [
+    {
+      "path": "index.js",
+      "oid": "fb645592b5e17d1b8f876a747757d5686e011d04",
+      "encoding": "utf8",
+      "content": "/*\nHow it works:\n`this.#head` is an instance of `Node` which keeps track of its current value and nests another instance of `Node` that keeps the value that comes after it. When a value is provided to `.enqueue()`, the code needs to iterate through `this.#head`, going deeper and deeper to find the last value. However, iterating through every single item is slow. This problem is solved by saving a reference to the last value as `this.#tail` so that it can reference it to add a new value.\n*/\n\nclass Node {\n\tvalue;\n\tnext;\n\n\tconstructor(value) {\n\t\tthis.value = value;\n\t}\n}\n\nexport default class Queue {\n\t#head;\n\t#tail;\n\t#size;\n\n\tconstructor() {\n\t\tthis.clear();\n\t}\n\n\tenqueue(value) {\n\t\tconst node = new Node(value);\n\n\t\tif (this.#head) {\n\t\t\tthis.#tail.next = node;\n\t\t\tthis.#tail = node;\n\t\t} else {\n\t\t\tthis.#head = node;\n\t\t\tthis.#tail = node;\n\t\t}\n\n\t\tthis.#size++;\n\t}\n\n\tdequeue() {\n\t\tconst current = this.#head;\n\t\tif (!current) {\n\t\t\treturn;\n\t\t}\n\n\t\tthis.#head = this.#head.next;\n\t\tthis.#size--;\n\t\treturn current.value;\n\t}\n\n\tpeek() {\n\t\tif (!this.#head) {\n\t\t\treturn;\n\t\t}\n\n\t\treturn this.#head.value;\n\n\t\t// TODO: Node.js 18.\n\t\t// return this.#head?.value;\n\t}\n\n\tclear() {\n\t\tthis.#head = undefined;\n\t\tthis.#tail = undefined;\n\t\tthis.#size = 0;\n\t}\n\n\tget size() {\n\t\treturn this.#size;\n\t}\n\n\t* [Symbol.iterator]() {\n\t\tlet current = this.#head;\n\n\t\twhile (current) {\n\t\t\tyield current.value;\n\t\t\tcurrent = current.next;\n\t\t}\n\t}\n\n\t* drain() {\n\t\twhile (this.#head) {\n\t\t\tyield this.dequeue();\n\t\t}\n\t}\n}\n",
+      "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/blobs/fb645592b5e17d1b8f876a747757d5686e011d04"
+    },
+    {
+      "path": "package.json",
+      "oid": "7fde9acb43a5ec3abed97b481ae36de4d24a8a43",
+      "encoding": "utf8",
+      "content": "{\n\t\"name\": \"yocto-queue\",\n\t\"version\": \"1.2.1\",\n\t\"description\": \"Tiny queue data structure\",\n\t\"license\": \"MIT\",\n\t\"repository\": \"sindresorhus/yocto-queue\",\n\t\"funding\": \"https://github.com/sponsors/sindresorhus\",\n\t\"author\": {\n\t\t\"name\": \"Sindre Sorhus\",\n\t\t\"email\": \"sindresorhus@gmail.com\",\n\t\t\"url\": \"https://sindresorhus.com\"\n\t},\n\t\"type\": \"module\",\n\t\"exports\": \"./index.js\",\n\t\"types\": \"./index.d.ts\",\n\t\"sideEffects\": false,\n\t\"engines\": {\n\t\t\"node\": \">=12.20\"\n\t},\n\t\"scripts\": {\n\t\t\"//test\": \"xo && ava && tsd\",\n\t\t\"test\": \"ava && tsd\"\n\t},\n\t\"files\": [\n\t\t\"index.js\",\n\t\t\"index.d.ts\"\n\t],\n\t\"keywords\": [\n\t\t\"queue\",\n\t\t\"data\",\n\t\t\"structure\",\n\t\t\"algorithm\",\n\t\t\"queues\",\n\t\t\"queuing\",\n\t\t\"list\",\n\t\t\"array\",\n\t\t\"linkedlist\",\n\t\t\"fifo\",\n\t\t\"enqueue\",\n\t\t\"dequeue\",\n\t\t\"data-structure\"\n\t],\n\t\"devDependencies\": {\n\t\t\"ava\": \"^3.15.0\",\n\t\t\"tsd\": \"^0.17.0\",\n\t\t\"xo\": \"^0.44.0\"\n\t}\n}\n",
+      "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/blobs/7fde9acb43a5ec3abed97b481ae36de4d24a8a43"
+    },
+    {
+      "path": "license",
+      "oid": "fa7ceba3eb4a9657a9db7f3ffca4e4e97a9019de",
+      "encoding": "utf8",
+      "content": "MIT License\n\nCopyright (c) Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n",
+      "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/blobs/fa7ceba3eb4a9657a9db7f3ffca4e4e97a9019de"
+    }
+  ]
+}

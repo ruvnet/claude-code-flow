@@ -151,8 +151,12 @@ fixed witness's Node permissions as an arbitrary candidate sandbox.
 [EXECUTOR-001.md](EXECUTOR-001.md) preserves the first Bubblewrap contract and
 negative receipts. [EXECUTOR-002.md](EXECUTOR-002.md) corrects its probe trust
 boundary, interrupted reservation handling and overstated isolation verdict.
-This remains an incomplete candidate executor. A host compatibility receipt
-cannot grant resource authority. Do not rerun the incompatible host unchanged.
+[EXECUTOR-003.md](EXECUTOR-003.md) binds the pinned Node, prlimit and ELF loader
+identities and adds the two exact synthetic /lib links inside the empty root.
+This removes the known loader-layout defect from the launch construction, but
+the transitive shared-library closure and actual sandbox startup still require
+a compatible runner. A host compatibility receipt cannot grant resource
+authority. Do not rerun the incompatible host unchanged.
 
 [MIGRATION-001.md](MIGRATION-001.md) records the implemented versioned projection
 and reservation algebra, adversarial tests and a concrete resource authorization

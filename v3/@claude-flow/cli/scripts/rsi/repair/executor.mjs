@@ -9,6 +9,7 @@ import { spawnSync } from 'node:child_process';
 import { arch, platform, release, tmpdir } from 'node:os';
 import { inspectMission, LEDGER } from './admission.mjs';
 import { sha256 } from './public-workloads.mjs';
+import { inspectRuntimeLayout, runtimeSymlinkArguments, RUNTIME_LAYOUT_HASH } from './runtime-layout.mjs';
 
 const ROOT = dirname(new URL(import.meta.url).pathname);
 const EXPECTED_POLICY_HASH = '84c079ec4d58d17bb63966bfe17924ed715c919cb46a7b6209d9836945608b9b';
@@ -55,8 +56,11 @@ function confinedDirectory(path, label) {
   return canonical;
 }
 
-export function buildIsolationLaunch(policy, candidateDirectory, outputDirectory, entry = 'candidate.mjs') {
+function buildLaunch(policy, candidateDirectory, outputDirectory, entry, runtimeLayout, checkRuntimeMounts) {
   const check = validateExecutorPolicy(policy);
+  assert.equal(runtimeLayout.runtimeLayoutHash, RUNTIME_LAYOUT_HASH, 'reviewed runtime layout required');
+  assert.equal(runtimeLayout.runtimeLayoutVerified, true, 'verified runtime layout required');
+  assert.equal(runtimeLayout.candidateExecutionEnabled, false);
   const candidate = confinedDirectory(candidateDirectory, 'candidate');
   const output = confinedDirectory(outputDirectory, 'output');
   const outside = (base, path) => { const rel = relative(base, path); return rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel); };
@@ -66,7 +70,13 @@ export function buildIsolationLaunch(policy, candidateDirectory, outputDirectory
   assert(existsSync(source) && lstatSync(source).isFile() && !lstatSync(source).isSymbolicLink() && realpathSync(source) === source, 'candidate entry file');
   const args = [...policy.engine.requiredArguments];
   for (const path of policy.mounts.runtimeParents) args.push('--dir', path);
-  for (const mount of policy.mounts.runtime) if (existsSync(mount)) args.push('--ro-bind', mount, mount);
+  for (const mount of policy.mounts.runtime) {
+    if (checkRuntimeMounts) {
+      assert(existsSync(mount) && realpathSync(mount) === mount, 'canonical runtime mount required');
+    }
+    args.push('--ro-bind', mount, mount);
+  }
+  args.push(...runtimeSymlinkArguments(runtimeLayout));
   args.push('--proc', policy.mounts.proc, '--dev', policy.mounts.dev, '--tmpfs', policy.mounts.tmpfs,
     '--ro-bind', candidate, policy.mounts.candidate, '--bind', output, policy.mounts.output,
     '--chdir', policy.mounts.candidate);
@@ -76,10 +86,25 @@ export function buildIsolationLaunch(policy, candidateDirectory, outputDirectory
     `--nproc=${policy.limits.processes}`, '--',
     '/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node',
     '--permission', '--allow-fs-read=/workspace', '--allow-fs-write=/output', `/workspace/${entry}`);
-  return { schema: 'ruflo.repair-isolation-launch/v1', policyHash: check.policyHash,
+  return { schema: 'ruflo.repair-isolation-launch/v2', policyHash: check.policyHash,
+    runtimeLayoutHash: runtimeLayout.runtimeLayoutHash, runtimeIdentities: runtimeLayout.identities,
     command: policy.engine.binary, args, timeoutMs: policy.limits.wallMsPerProcess,
     maxBuffer: policy.limits.outputBytes, shell: false, candidateSha256: fileHash(source),
     networkNamespaceRequired: true, candidateSourceReadOnly: true, candidateExecutionEnabled: false };
+}
+
+export function buildIsolationLaunch(policy, candidateDirectory, outputDirectory, entry = 'candidate.mjs') {
+  return buildLaunch(policy, candidateDirectory, outputDirectory, entry, inspectRuntimeLayout(), true);
+}
+
+export function buildIsolationLaunchForTest(policy, candidateDirectory, outputDirectory, entry = 'candidate.mjs') {
+  assert(process.env.NODE_TEST_CONTEXT, 'test-only launch builder');
+  return buildLaunch(policy, candidateDirectory, outputDirectory, entry, {
+    schema: 'ruflo.repair-runtime-layout-observation/v1', runtimeLayoutHash: RUNTIME_LAYOUT_HASH,
+    runtimeLayoutVerified: true, candidateExecutionEnabled: false,
+    identities: { node: {}, prlimit: {}, interpreter: {} },
+    syntheticSymlinks: [{ target: 'usr/lib', link: '/lib' }, { target: 'usr/lib64', link: '/lib64' }],
+  }, false);
 }
 
 const PROBE_SOURCE = `import fs from 'node:fs';import os from 'node:os';
@@ -91,9 +116,13 @@ console.log(JSON.stringify({sourceWriteError,interfaces}));`;
 // No exported function may execute a caller-supplied path or source. This helper
 // is reachable only after recordIsolationProbe durably reserves work and stages
 // the module-owned fixed bytes in its own private temporary directory.
-function probeIsolation(policy, candidateDirectory, outputDirectory) {
-  const launch = buildIsolationLaunch(policy, candidateDirectory, outputDirectory, 'probe.mjs');
+function probeIsolation(policy, candidateDirectory, outputDirectory, runtimeLayout, revalidateRuntime) {
+  const launch = buildLaunch(policy, candidateDirectory, outputDirectory, 'probe.mjs', runtimeLayout, revalidateRuntime);
   assert.equal(launch.candidateSha256, createHash('sha256').update(PROBE_SOURCE).digest('hex'), 'fixed probe bytes required');
+  if (revalidateRuntime) {
+    const current = inspectRuntimeLayout();
+    assert.deepEqual(current.identities, runtimeLayout.identities, 'runtime identity drift before spawn');
+  }
   const started = performance.now();
   const child = spawnSync(launch.command, launch.args, { cwd: '/', env: {}, encoding: 'utf8',
     timeout: launch.timeoutMs, maxBuffer: launch.maxBuffer, shell: false, killSignal: 'SIGKILL' });
@@ -138,7 +167,7 @@ function supportedVersion(version) {
   return parts.every(Number.isSafeInteger) && (parts[0] > 0 || parts[1] >= 9);
 }
 
-export function recordIsolationProbe(receiptPath, policyPath = join(ROOT, 'executor-policy.json')) {
+function recordProbe(receiptPath, policyPath, injectedRuntimeLayout) {
   assert(isAbsolute(receiptPath) && !existsSync(receiptPath), 'probe receipt must be a new absolute path');
   const policy = JSON.parse(readFileSync(policyPath, 'utf8'));
   validateExecutorPolicy(policy);
@@ -157,6 +186,7 @@ export function recordIsolationProbe(receiptPath, policyPath = join(ROOT, 'execu
   const started = performance.now();
   let temp;
   try {
+    const runtimeLayout = injectedRuntimeLayout ?? inspectRuntimeLayout();
     const engineHash = existsSync(policy.engine.binary) ? fileHash(policy.engine.binary) : null;
     const version = spawnSync(policy.engine.binary, ['--version'], { env: {}, cwd: '/', encoding: 'utf8', timeout: 1000, maxBuffer: 4096, shell: false, killSignal: 'SIGKILL' });
     const engineUnchanged = engineHash !== null && existsSync(policy.engine.binary) && engineHash === fileHash(policy.engine.binary);
@@ -167,10 +197,11 @@ export function recordIsolationProbe(receiptPath, policyPath = join(ROOT, 'execu
       temp = mkdtempSync(join(tmpdir(), 'ruflo-isolation-probe-'));
       const candidate = join(temp, 'candidate'), output = join(temp, 'output');
       mkdirSync(candidate); mkdirSync(output); writeFileSync(join(candidate, 'probe.mjs'), PROBE_SOURCE, { flag: 'wx', mode: 0o600 });
-      capability = { attempted: true, ...probeIsolation(policy, candidate, output) };
+      capability = { attempted: true, ...probeIsolation(policy, candidate, output, runtimeLayout, !injectedRuntimeLayout) };
     }
     const receipt = { schema: 'ruflo.repair-isolation-capability-receipt/v2',
       reservationHash: sha256(reservation), policyHash: reservation.policyHash,
+      runtimeLayoutHash: runtimeLayout.runtimeLayoutHash, runtimeIdentities: runtimeLayout.identities,
       executorSourceSha256: reservation.executorSourceSha256, fixedProbeSha256: reservation.fixedProbeSha256,
       host: { platform: platform(), release: release(), arch: arch() },
       engine: { path: policy.engine.binary, sha256: engineHash, unchangedAfterVersion: engineUnchanged,
@@ -184,6 +215,20 @@ export function recordIsolationProbe(receiptPath, policyPath = join(ROOT, 'execu
     durableNew(receiptPath, receipt);
     return receipt;
   } finally { if (temp) rmSync(temp, { recursive: true, force: true }); }
+}
+
+export function recordIsolationProbe(receiptPath, policyPath = join(ROOT, 'executor-policy.json')) {
+  return recordProbe(receiptPath, policyPath, null);
+}
+
+export function recordIsolationProbeForTest(receiptPath, policyPath = join(ROOT, 'executor-policy.json')) {
+  assert(process.env.NODE_TEST_CONTEXT, 'test-only probe recorder');
+  return recordProbe(receiptPath, policyPath, {
+    schema: 'ruflo.repair-runtime-layout-observation/v1', runtimeLayoutHash: RUNTIME_LAYOUT_HASH,
+    runtimeLayoutVerified: true, candidateExecutionEnabled: false,
+    identities: { node: {}, prlimit: {}, interpreter: {} },
+    syntheticSymlinks: [{ target: 'usr/lib', link: '/lib' }, { target: 'usr/lib64', link: '/lib64' }],
+  });
 }
 
 export function inspectExecutor(policyPath = join(ROOT, 'executor-policy.json')) {

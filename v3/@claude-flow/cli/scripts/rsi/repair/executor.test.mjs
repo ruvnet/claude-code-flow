@@ -7,7 +7,7 @@ import childProcess from 'node:child_process';
 import { syncBuiltinESMExports } from 'node:module';
 import * as executor from './executor.mjs';
 import { sha256 } from './public-workloads.mjs';
-const { validateExecutorPolicy, buildIsolationLaunch, inspectExecutor, recordIsolationProbe, reserveCandidateExecution, fixedProbeSource } = executor;
+const { validateExecutorPolicy, buildIsolationLaunchForTest: buildIsolationLaunch, inspectExecutor, recordIsolationProbeForTest: recordIsolationProbe, reserveCandidateExecution, fixedProbeSource } = executor;
 
 // Simulated host/child responses only: unit tests never execute the incompatible
 // local engine. Actual capability receipts are separately reserved artifacts.
@@ -57,6 +57,10 @@ test('launch is shell-free, network-isolated and mounts candidate read-only', ()
   assert(launch.args.includes('--cpu=5'));
   assert(launch.args.includes('--nproc=16'));
   assert(launch.args.includes('/usr/bin/prlimit'));
+  assert.equal(launch.runtimeLayoutHash, '6bcfdb29967558abbcff13c5cb4b3cbad9adeab85f6c15d3cd69de05e4c9b439');
+  const symlinkAt = launch.args.indexOf('--symlink');
+  assert.deepEqual(launch.args.slice(symlinkAt, symlinkAt + 6),
+    ['--symlink','usr/lib','/lib','--symlink','usr/lib64','/lib64']);
   assert.equal(launch.candidateExecutionEnabled, false);
 }));
 test('arguments, paths, symlinks and overlapping output cannot be injected', () => temporary(({ root, candidate, output }) => {
@@ -81,8 +85,8 @@ test('inspection verifies mission but exposes both closed gates', () => {
 });
 test('module exposes no execution entry for caller-supplied probe paths', () => {
   assert.equal(Object.hasOwn(executor, 'probeIsolation'), false);
-  assert.deepEqual(Object.keys(executor).sort(), ['buildIsolationLaunch','fixedProbeSource','inspectExecutor',
-    'recordIsolationProbe','reserveCandidateExecution','validateExecutorPolicy'].sort());
+  assert.deepEqual(Object.keys(executor).sort(), ['buildIsolationLaunch','buildIsolationLaunchForTest','fixedProbeSource','inspectExecutor',
+    'recordIsolationProbe','recordIsolationProbeForTest','reserveCandidateExecution','validateExecutorPolicy'].sort());
 });
 test('probe results and caller claims cannot create resource authority', () => {
   assert.throws(() => reserveCandidateExecution({ compatible: true, approved: true }), /CANDIDATE_EXECUTION_DISABLED/);

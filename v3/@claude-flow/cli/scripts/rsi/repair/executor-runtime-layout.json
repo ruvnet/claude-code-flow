@@ -1,0 +1,26 @@
+{
+  "schema": "ruflo.repair-executor-runtime-layout/v1",
+  "platform": "linux",
+  "architecture": "x64",
+  "node": {
+    "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "version": "v24.19.0",
+    "interpreter": "/lib64/ld-linux-x86-64.so.2"
+  },
+  "prlimit": {
+    "path": "/usr/bin/prlimit",
+    "interpreter": "/lib64/ld-linux-x86-64.so.2"
+  },
+  "allowedInterpreter": {
+    "path": "/usr/lib64/ld-linux-x86-64.so.2",
+    "linkTarget": "../lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+    "canonicalPath": "/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+    "root": "/usr"
+  },
+  "syntheticSymlinks": [
+    {"target": "usr/lib", "link": "/lib"},
+    {"target": "usr/lib64", "link": "/lib64"}
+  ],
+  "candidateExecutionEnabled": false,
+  "boundedRsiEvidenceAccepted": false
+}

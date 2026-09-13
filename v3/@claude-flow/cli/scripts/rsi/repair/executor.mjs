@@ -10,7 +10,7 @@ import { arch, platform, release, tmpdir } from 'node:os';
 import { inspectMission, LEDGER } from './admission.mjs';
 import { sha256 } from './public-workloads.mjs';
 import { inspectRuntimeLayout, runtimeSymlinkArguments, RUNTIME_LAYOUT_HASH } from './runtime-layout.mjs';
-import { discardRuntimeSnapshot, snapshotMounts, stageRuntimeSnapshot } from './runtime-snapshot.mjs';
+import { discardRuntimeSnapshot, snapshotMounts, stageRuntimeSnapshot, validateRuntimeSnapshot } from './runtime-snapshot.mjs';
 
 const ROOT = dirname(new URL(import.meta.url).pathname);
 const EXPECTED_POLICY_HASH = '84c079ec4d58d17bb63966bfe17924ed715c919cb46a7b6209d9836945608b9b';
@@ -133,6 +133,7 @@ function probeIsolation(policy, candidateDirectory, outputDirectory, runtimeLayo
   if (revalidateRuntime) {
     const current = inspectRuntimeLayout();
     assert.deepEqual(current.identities, runtimeLayout.identities, 'runtime identity drift before spawn');
+    validateRuntimeSnapshot(runtimeSnapshot);
   }
   const started = performance.now();
   const child = spawnSync(launch.command, launch.args, { cwd: '/', env: {}, encoding: 'utf8',

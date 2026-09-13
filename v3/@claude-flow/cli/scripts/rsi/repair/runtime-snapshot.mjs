@@ -2,8 +2,8 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import {
-  chmodSync, closeSync, constants, existsSync, fsyncSync, lstatSync, mkdirSync,
-  openSync, readFileSync, readdirSync, readlinkSync, realpathSync, renameSync, rmSync,
+  chmodSync, closeSync, constants, existsSync, fchmodSync, fstatSync, fsyncSync, lstatSync, mkdirSync,
+  openSync, readFileSync, readdirSync, readlinkSync, readSync, realpathSync, renameSync, rmSync,
   symlinkSync, writeFileSync,
 } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
@@ -16,6 +16,27 @@ const MAX_FILE_BYTES = 134217728;
 const OWNED_SNAPSHOTS = new WeakSet();
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const stableHash = value => digest(Buffer.from(JSON.stringify(value)));
+
+function readBoundRegularFile(path, maximumBytes, label) {
+  const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  try {
+    const before = fstatSync(fd, { bigint: true });
+    assert(before.isFile() && before.size > 0n && before.size <= BigInt(maximumBytes), `${label} regular bounded file`);
+    const length = Number(before.size), bytes = Buffer.allocUnsafe(length);
+    let offset = 0;
+    while (offset < length) {
+      const count = readSync(fd, bytes, offset, length - offset, offset);
+      assert(count > 0, `${label} truncated during descriptor read`); offset += count;
+    }
+    const extra = Buffer.allocUnsafe(1);
+    assert.equal(readSync(fd, extra, 0, 1, length), 0, `${label} grew during descriptor read`);
+    const after = fstatSync(fd, { bigint: true });
+    for (const field of ['dev','ino','size','mtimeNs','ctimeNs'])
+      assert.equal(after[field], before[field], `${label} descriptor identity changed`);
+    return { bytes, mode: Number(after.mode & 0o777n), size: length,
+      device: before.dev.toString(), inode: before.ino.toString() };
+  } finally { closeSync(fd); }
+}
 
 function confined(path, root, label) {
   assert(isAbsolute(path), `${label} absolute path`);
@@ -46,19 +67,14 @@ function ensureParents(root, destination) {
 function copyPinnedFile(root, item) {
   const destination = join(root, item.path.slice(1));
   ensureParents(root, destination);
-  const sourceStat = lstatSync(item.source);
-  assert(sourceStat.isFile() && !sourceStat.isSymbolicLink(), 'snapshot source regular file');
-  assert(sourceStat.size > 0 && sourceStat.size <= MAX_FILE_BYTES, 'snapshot source size bound');
-  const sourceFd = openSync(item.source, constants.O_RDONLY | constants.O_NOFOLLOW);
-  let bytes;
-  try { bytes = readFileSync(sourceFd); } finally { closeSync(sourceFd); }
-  assert.equal(bytes.length, sourceStat.size, 'snapshot source changed during read');
+  const { bytes } = readBoundRegularFile(item.source, MAX_FILE_BYTES, 'snapshot source');
   assert.equal(digest(bytes), item.sha256, 'snapshot source SHA-256 mismatch');
   const destinationFd = openSync(destination, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, item.mode);
-  try { writeFileSync(destinationFd, bytes); fsyncSync(destinationFd); } finally { closeSync(destinationFd); }
-  chmodSync(destination, item.mode);
-  const written = readFileSync(destination);
-  assert.equal(digest(written), item.sha256, 'snapshot destination SHA-256 mismatch');
+  try { writeFileSync(destinationFd, bytes); fchmodSync(destinationFd, item.mode); fsyncSync(destinationFd); }
+  finally { closeSync(destinationFd); }
+  const written = readBoundRegularFile(destination, MAX_FILE_BYTES, 'snapshot destination');
+  assert.equal(written.mode, item.mode, 'snapshot destination mode');
+  assert.equal(digest(written.bytes), item.sha256, 'snapshot destination SHA-256 mismatch');
   return { path: item.path, type: 'file', mode: item.mode, size: bytes.length, sha256: item.sha256 };
 }
 
@@ -180,9 +196,10 @@ export function validateRuntimeSnapshot(snapshot) {
     const path = join(snapshot.root, entry.path.slice(1)), stat = lstatSync(path);
     if (entry.type === 'file') {
       assert(stat.isFile() && !stat.isSymbolicLink(), 'snapshot regular file');
-      assert.equal(stat.mode & 0o777, entry.mode, 'snapshot file mode');
-      assert.equal(stat.size, entry.size, 'snapshot file size');
-      assert.equal(digest(readFileSync(path)), entry.sha256, 'snapshot file SHA-256');
+      const opened = readBoundRegularFile(path, MAX_FILE_BYTES, 'snapshot file');
+      assert.equal(opened.mode, entry.mode, 'snapshot file mode');
+      assert.equal(opened.size, entry.size, 'snapshot file size');
+      assert.equal(digest(opened.bytes), entry.sha256, 'snapshot file SHA-256');
     } else {
       assert.equal(entry.type, 'symlink'); assert(stat.isSymbolicLink(), 'snapshot symlink type');
       assert.equal(readlinkSync(path), entry.target, 'snapshot link target');

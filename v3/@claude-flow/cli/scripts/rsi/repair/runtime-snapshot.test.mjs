@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { chmodSync, existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { discardRuntimeSnapshot, snapshotMounts, stageRuntimeSnapshotForTest, validateRuntimeSnapshot } from './runtime-snapshot.mjs';
@@ -59,6 +59,15 @@ test('writable, missing and undeclared nested directories are rejected', () => f
   chmodSync(join(snapshot.root, 'usr/bin'), 0o555); chmodSync(snapshot.root, 0o755);
   mkdirSync(join(snapshot.root, 'undeclared-empty')); chmodSync(join(snapshot.root, 'undeclared-empty'), 0o555); chmodSync(snapshot.root, 0o555);
   assert.throws(() => validateRuntimeSnapshot(snapshot), /directory inventory/);
+}));
+
+test('file-to-symlink substitution is rejected by descriptor-bound validation', () => fixture(({ parent, specification, source }) => {
+  const snapshot = stageRuntimeSnapshotForTest(parent, specification);
+  const target = join(snapshot.root, 'usr/bin/prlimit');
+  chmodSync(snapshot.root, 0o700); chmodSync(join(snapshot.root, 'usr'), 0o700); chmodSync(join(snapshot.root, 'usr/bin'), 0o700);
+  unlinkSync(target); symlinkSync(join(source, 'prlimit'), target);
+  chmodSync(join(snapshot.root, 'usr/bin'), 0o555); chmodSync(join(snapshot.root, 'usr'), 0o555); chmodSync(snapshot.root, 0o555);
+  assert.throws(() => validateRuntimeSnapshot(snapshot), /regular file|ELOOP/);
 }));
 
 test('source corruption is rejected and partial snapshot is removed', () => fixture(({ parent, specification }) => {

@@ -164,6 +164,11 @@ stages only that declared closure into a private content-addressed tree, validat
 its exact inventory immediately before launch construction, and removes the
 whole-host `/usr` bind. It does not claim immutability against a privileged parent.
 A host compatibility receipt cannot grant resource authority.
+[EXECUTOR-006.md](EXECUTOR-006.md) replaces unbounded pathname file reads with
+bounded `O_NOFOLLOW` descriptor reads, stable descriptor identity checks, and a
+final snapshot revalidation immediately before the fixed probe spawn. Directory
+cleanup still uses private path traversal and is not claimed safe against a
+hostile same-UID process; candidate execution remains disabled.
 Do not rerun the incompatible host unchanged.
 
 [MIGRATION-001.md](MIGRATION-001.md) records the implemented versioned projection

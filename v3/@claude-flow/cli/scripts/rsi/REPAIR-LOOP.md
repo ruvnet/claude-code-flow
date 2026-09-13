@@ -91,7 +91,55 @@ unsafe paths, duplicate tasks, inflated clusters and ambiguous locks. It reads
 the ledger without adding events. Fixed regression validation is engineering
 work, not a new HYPOTHESIS or mission candidate evaluation.
 
-## Required implementation sequence
+## Required implementation sequence (operator update, 2026-09-13)
+
+Advance the next executable comparison. At the start of each increment name the
+execution blocker it removes or experimental uncertainty it resolves. At acceptance
+demonstrate that change; test counts and additional manifests alone do not qualify.
+Stop redundant infrastructure work. If no authorized useful work remains, preserve
+state, report the exact missing input and pause the existing task. Do not create a
+replacement task or ledger. The resource proposal below remains unapproved.
+
+1. **Finish p-limit end to end.** Use the already frozen compact source, exact
+   offline dependency and Node 24.19.0 witness. Finish the isolated executor and
+   reproduce the historical failure and known fix in a clean environment without
+   network access. A single runnable workload is a development milestone. Defer
+   broader RuVector acquisition until it contributes to this comparison.
+2. **Implement the smallest inherited improver.** Descendants inherit diagnosis
+   rules, patch-selection logic and test-selection state. A child must produce
+   and evaluate successors without additional researcher coaching. First proposed
+   hypothesis: inherited training-only failure-analysis state selects more productive
+   repair attempts on fresh development tasks at equal cost. This is a proposed
+   hypothesis, not an admitted HYPOTHESIS event or permission to execute trials.
+3. **Measure improvement capacity.** Freeze implementation, model, evaluator,
+   permissions and task samples before comparing inherited state against frozen,
+   static, shuffled and previous-optimizer controls. Include matched acquisition,
+   execution and outer Codex treatment. Measure successor productivity on fresh
+   tasks, distinguishing inheritance from a Codex-written proposer improvement.
+   Exposed known fixes cannot be relabeled as fresh or sealed tasks.
+4. **Derive publication and costs from validated evidence.** Generate report and
+   Federation identities from the same checked artifact and verify public readback.
+   Include failures, interruptions, acquisition, model use, process starts and time;
+   distinguish spawn attempts from observed starts and unmeasured descendants.
+   Unknown costs remain explicitly unknown and block confirmation.
+5. **Run bounded development, then independent confirmation.** Complete reviewed
+   migration and resource authorization, bind reviewed source in HYPOTHESIS and
+   reserve durably before at most three development epochs, twelve candidates each.
+   Preserve all failures and lifetime native units. Confirmation still requires
+   three families, three generations, four controls, two approved evaluators, sealed
+   fresh workloads, complete dollar costs and the unchanged 72-cell/alpha protocol.
+   Independently accepted and externally replicated bounded evidence is required
+   before declaring success. Z3/Lean may check explicit correctness invariants;
+   they cannot establish empirical generalization.
+
+Research grounding, verified 2026-09-13: [Hyperagents v1, submitted 2026-03-19](https://arxiv.org/abs/2603.19461v1)
+distinguishes the task agent from an editable mechanism that modifies agents.
+Its meta-level transfer findings are author-reported, not reproduced here.
+The [official implementation at 59a68f67, dated 2026-04-14](https://github.com/facebookresearch/Hyperagents/tree/59a68f672dfb92c74aeb7e61535d776fb36e172d)
+separates task_agent.py, meta_agent.py and generate_loop.py. No code or paid
+execution from that repository is used in this increment.
+
+## Existing artifacts and admission requirements
 
 [WORKLOADS-006.md](WORKLOADS-006.md) provides an executable offline historical
 p-limit runtime witness, using exact yocto-queue 1.2.1 payloads and Node 24.19.0.
@@ -100,19 +148,18 @@ tests, hidden tests, arbitrary candidate isolation and resource approval remain
 missing. The host denied Bubblewrap network namespace setup; do not treat the
 fixed witness's Node permissions as an arbitrary candidate sandbox.
 
-[EXECUTOR-001.md](EXECUTOR-001.md) freezes and implements the fail closed
-Bubblewrap launch contract, fixed capability probe, canonical source and output
-admission, resource limits and all four controls. The current host fails the
-namespace probe, and resource authorization remains absent, so candidate
-reservation and execution still reject. Continue on a compatible reviewed runner
-without adding a relaxed fallback or changing the existing resource proposal.
+[EXECUTOR-001.md](EXECUTOR-001.md) preserves the first Bubblewrap contract and
+negative receipts. [EXECUTOR-002.md](EXECUTOR-002.md) corrects its probe trust
+boundary, interrupted reservation handling and overstated isolation verdict.
+This remains an incomplete candidate executor. A host compatibility receipt
+cannot grant resource authority. Do not rerun the incompatible host unchanged.
 
 [MIGRATION-001.md](MIGRATION-001.md) records the implemented versioned projection
 and reservation algebra, adversarial tests and a concrete resource authorization
 proposal. Live application, durable version dispatch and candidate execution
 remain disabled. Read that increment before repeating accounting design work.
 
-1. **Accounting and source migration.** The v1 ledger only accepts retrieval
+**Accounting and source migration.** The v1 ledger only accepts retrieval
    policies and native BM25 calls. Design a versioned migration retaining its
    exact history, 209784 consumed native calls, 7 epochs, alpha, tasks, trust and
    gates. Repair executions cannot spend a relabeled native call budget. State
@@ -121,7 +168,7 @@ remain disabled. Read that increment before repeating accounting design work.
    optimization. Preserve original source snapshots and test mixed-version replay,
    interrupted reservations and retained charges. Do not invent zero acquisition
    costs. The current adapter always reports execution disabled.
-2. **Broader public development tasks.** [WORKLOADS-001.md](WORKLOADS-001.md)
+**Preserved broader public development tasks.** [WORKLOADS-001.md](WORKLOADS-001.md)
    freezes the first three exact public base/fix lineages and fail-closed
    admission checks. Complete source archives, offline dependency closures,
    toolchains and hidden development tests remain missing, so candidate
@@ -142,26 +189,17 @@ remain disabled. Read that increment before repeating accounting design work.
    crates. It also freezes an object-size inventory showing that the unrelated
    full workspace is 316496519 referenced bytes; that larger acquisition remains
    separately gated and no runnable dependency closure is claimed.
-   Continue to acquire independently specified real
-   defects across repository and bug lineages. Record exclusions, fix exposure,
-   source dependencies and costs. Freeze the sample before comparing methods.
-   The three known witnesses may calibrate tooling but cannot become final data.
-3. **Executable improver.** Implement inherited failure diagnosis, patch proposal
-   and test selection. Freeze the base model, evaluator, permissions and resource
-   envelope. Compare against frozen, static, shuffled and previous optimizers.
-   Every measured child must execute without new researcher coaching. Include
-   the outer Codex procedure if it is part of the claimed system, with the same
-   cost scope and treatment for controls.
-4. **Bounded development.** Only after migration admission, publish a reviewed
-   source, record HYPOTHESIS, reserve work durably and run at most three epochs
-   with at most twelve candidates per epoch. Preserve all failures. Optimize only
-   measured bottlenecks; do not remove gates to improve latency or acceptance.
-5. **Independent confirmation.** Separately controlled sealed workloads, two
-   approved evaluator identities, full dollar costs and three descendant
-   generations are still required. The original three families and 72-cell gate
-   remain in force; a repair-only success cannot satisfy them. Publish and verify
-   the frozen reservation before outcomes, consume final datasets once, preserve
-   lifetime alpha, and obtain external replication before declaring success.
+   These artifacts remain preserved; broader acquisition is deferred in favor of
+   the p-limit comparison above. Record exclusions, fix exposure, dependencies
+   and costs when further task acquisition becomes relevant. Freeze samples
+   before comparing methods. The known witnesses cannot become final data.
+
+The separate initial repair resource proposal is **not approved**: at most
+36 candidate evaluations, 216 isolated process starts and 1080000 summed process
+wall milliseconds across at most three existing shared epochs. No local helper,
+review of this document or capability result authorizes that envelope. Retain
+209784 native BM25 calls, seven epochs, original ancestry, consumed tasks,
+trust, lifetime alpha and every existing proof gate.
 
 Each continuing run completes one useful bounded engineering increment in the
 existing draft PR, updates Core Memory issue 85 and releases its Federation claim.

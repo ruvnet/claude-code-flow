@@ -1,5 +1,14 @@
 # Fail closed isolated candidate executor contract
 
+**Correction, 2026-09-13:** this document preserves the original increment.
+[EXECUTOR-002.md](EXECUTOR-002.md) supersedes its readiness claims. The original
+export accepted caller-controlled probe bytes, interruptions before publication
+could leave no reservation, and Node permission denial did not verify an OS
+read-only mount. The corrected partial probe always reports compatible false.
+Only its durable reservation is guaranteed to remain after interruption; a
+completed receipt is not guaranteed. Runtime layout and OS verification are
+unfinished. No candidate execution or RSI evidence is established here.
+
 Final portable source: `2e8924c6b39719cd5a61a84bb729a4ea8cd8df58`, tree
 `0f61e077d389ae3174cd4fa6d91759d5fd2ff167`. The current raw capability receipt
 and summary are preserved in `evidence/executor-probe-003.json` and

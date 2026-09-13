@@ -4,6 +4,10 @@ Decision: preserve the complete local source closure needed by the frozen
 RuVector graph package and quantify the remaining full-workspace acquisition.
 This advances reproducibility; it is not candidate execution or RSI evidence.
 
+Reviewed source: `93ccdd8d8bade4a60726ecafb9a07577b915533a`, tree
+`15291192e392e4b12ed6687de90c8283333bf5c5`. Raw outcomes are preserved in
+`evidence/public-target-payloads.json`.
+
 The content-addressed pack covers the root Cargo manifests and configuration,
 the complete `ruvector-graph` crate, its `ruvector-core` path dependency and the
 transitive `ruvector-turboquant` path dependency. All 169 selected Git blobs and
@@ -29,6 +33,12 @@ Mission accounting remains seven epochs, 209,784 native calls and ledger head
 No HYPOTHESIS, epoch, native call, repair evaluation, repair start or repair wall
 time was added. External-provider spend is $0; total acquisition and evaluation
 dollar costs remain unknown.
+
+Five isolated target-payload test runs took 38,596.269 ms total and five
+engineering validation process starts. All 154 focused tests and seven historical
+epoch replays passed. The local Cargo probe failed with status 127 because the
+binary is absent. MetaHarness and Autogenous were not rerun because no candidate
+or descendant outcome was measured.
 
 ## Acceptance
 

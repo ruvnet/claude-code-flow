@@ -1,0 +1,10 @@
+{
+  "schema": "ruflo.p-limit-engineering-reservation/v1",
+  "planHash": "e1a2ceb10e0c1013a4eb7c571632a55befaa012a60e180064967b3e9c0b0ecce",
+  "startedAt": "2026-09-13T02:28:28.571Z",
+  "scope": "EXPOSED_HISTORICAL_RUNTIME_WITNESS_ONLY",
+  "reservedWitnessProcesses": 2,
+  "reservedWitnessWallMs": 10000,
+  "missionBudgetChanged": false,
+  "retainOnInterruption": true
+}

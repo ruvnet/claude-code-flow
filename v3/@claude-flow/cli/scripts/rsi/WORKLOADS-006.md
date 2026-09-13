@@ -1,5 +1,22 @@
 # Executable offline p-limit historical witness
 
+Published implementation source: `65f98d0489876f6c359616603626c6c67e712b36`,
+tree `ff3bc2b021a161bab40be66f5f7ed77f17ef1792`. Frozen measured plan:
+`e1a2ceb10e0c1013a4eb7c571632a55befaa012a60e180064967b3e9c0b0ecce`.
+Raw plan, reservation, stdout/stderr and results are in
+`evidence/p-limit-offline-plan.json`, `evidence/p-limit-offline-run-001/`, and
+`evidence/p-limit-offline.json`.
+
+All 164 focused tests passed in 46384.288 ms, including ten new tests. All seven
+historical epochs replayed from the original anchor. One separately measured
+fixed witness run took 68.812 ms summed subprocess wall time across two starts;
+both processes exited zero and produced the expected base 3/4 and fix 4/4 checks.
+Preparation and execution CLI parents add two more Node process starts. Research,
+acquisition, test descendants, CI and full dollar costs are not completely metered.
+External provider spend was zero. There were no new mission epochs, native calls
+or repair candidate evaluations. This is a historical fixture result, not a
+measured repair optimizer improvement or independent RSI evidence.
+
 This increment makes the frozen p-limit queue-clearing defect executable from
 committed runtime payloads. It closes the runtime dependency gap for one public
 historical witness. It does not implement a repair proposer, the complete upstream

@@ -12,7 +12,7 @@
 
 import type { MCPTool, MCPToolResult } from './types.js';
 import { validateText, validateIdentifier } from './validate-input.js';
-import { autoInstallPackage } from './auto-install.js';
+import { autoInstallPackage, importProjectLocalPackage } from './auto-install.js';
 import { createRequire } from 'module';
 
 // Create require for resolving module paths
@@ -70,6 +70,19 @@ async function getAIDefence(): Promise<AIDefenceInstance> {
     }
   }
 
+  // npx keeps Ruflo in an isolated cache, so a bare import above cannot see a
+  // package installed in the user's project. Resolve explicitly from cwd
+  // before attempting installation; this is the persistent optional-package
+  // path documented for npx-launched MCP servers (#2946).
+  const projectLocal = await importProjectLocalPackage<typeof import('@claude-flow/aidefence')>(packageName);
+  if (projectLocal) {
+    const instance = projectLocal.createAIDefence({ enableLearning: true });
+    if (instance) {
+      aidefenceInstance = instance;
+      return instance;
+    }
+  }
+
   // Don't attempt install more than once per session
   if (installAttempted) {
     throw new Error('AIDefence package not available. Install with: npm install @claude-flow/aidefence');
@@ -82,6 +95,16 @@ async function getAIDefence(): Promise<AIDefenceInstance> {
 
   if (!installed) {
     throw new Error('AIDefence package not available. Install with: npm install @claude-flow/aidefence');
+  }
+
+  const installedProjectLocal = await importProjectLocalPackage<typeof import('@claude-flow/aidefence')>(packageName);
+  if (installedProjectLocal) {
+    const instance = installedProjectLocal.createAIDefence({ enableLearning: true });
+    if (instance) {
+      aidefenceInstance = instance;
+      console.error(`[claude-flow] ${packageName} loaded after install (project-local path)`);
+      return instance;
+    }
   }
 
   // #1807 — auto-install lands the package somewhere Node's standard
@@ -122,7 +145,7 @@ async function getAIDefence(): Promise<AIDefenceInstance> {
       `This usually means npm installed the package somewhere Node's module resolver doesn't search ` +
       `(common with global installs of \`claude-flow\`). Recovery options:\n` +
       `  1. Run \`npm install --save @claude-flow/aidefence\` in your project's working directory.\n` +
-      `  2. Or run \`npx ruflo@latest mcp start\` from a directory whose node_modules contains the package.\n` +
+      `  2. Or run \`npx ruflo@latest mcp start\` from the project where the package is installed.\n` +
       `  3. Or restart the MCP server after the install completes.`
     );
   }

@@ -775,6 +775,29 @@ claude mcp add claude-flow -- npx -y ruflo@latest mcp start
 claude mcp list
 ```
 
+#### Optional packages with the npx launcher
+
+The generated `npx -y ruflo@latest mcp start` command intentionally uses
+npx's isolated package cache so a new MCP process can resolve the requested
+Ruflo version reproducibly. Treat that cache as disposable: do not install
+optional packages into `~/.npm/_npx/.../node_modules/ruflo`, because a later
+npx launch may reconcile or replace the cached dependency tree.
+
+Install optional packages in the project that launches the MCP server instead:
+
+```bash
+cd /path/to/your/project
+npm install --save @claude-flow/aidefence
+claude mcp add claude-flow -- npx -y ruflo@latest mcp start
+```
+
+Start Claude Code from that project. Ruflo resolves optional packages from the
+explicit Claude/Ruflo project directory when available, then falls back to the
+MCP process working directory. This keeps the optional dependency persistent
+across MCP reconnects and Ruflo upgrades while retaining the generated npx
+launcher. If an optional package was installed into the npx cache already,
+remove that manual cache customization and reinstall it in the project.
+
 Once added, Claude Code can use all 313 ruflo MCP tools directly:
 - `swarm_init` - Initialize agent swarms
 - `agent_spawn` - Spawn specialized agents

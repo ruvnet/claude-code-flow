@@ -1,5 +1,17 @@
 # Fail closed isolated candidate executor contract
 
+Published source: `697fa805a66380063f1159e7e8b9bfc9199f2010`, tree
+`b2ed482db92d8bc79c5720dd8c86845616f353b7`. The raw capability receipt and
+summary are preserved in `evidence/executor-probe.json` and
+`evidence/executor.json`.
+
+All 172 focused tests passed in 46763.199 ms and all seven historical epochs
+replayed from the original anchor. The separately measured capability check used
+two engineering process starts and 5011.393 ms wall time. It performed zero
+candidate evaluations, repair starts, mission epochs or native field calls.
+External provider spend was zero; complete acquisition and evaluation dollar
+costs remain unknown.
+
 Decision: implement the operating system isolation and resource admission boundary
 for future repair candidates. This increment does not authorize or execute a
 candidate and does not create a new optimizer hypothesis or mission epoch.

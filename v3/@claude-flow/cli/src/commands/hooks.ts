@@ -4749,6 +4749,36 @@ const statuslineCommand: Command = {
       } catch { /* ignore */ }
     }
 
+    // Get ADR stats — scan well-known ADR directories for .md files
+    const adrStats = { count: 0, implemented: 0 };
+    const adrPaths = [
+      path.join(process.cwd(), 'v3', 'implementation', 'adrs'),
+      path.join(process.cwd(), 'docs', 'adrs'),
+      path.join(process.cwd(), 'docs', 'adr'),
+      path.join(process.cwd(), '.claude-flow', 'adrs'),
+    ];
+    for (const adrPath of adrPaths) {
+      try {
+        if (fs.existsSync(adrPath)) {
+          const files = fs.readdirSync(adrPath).filter((f: string) =>
+            f.endsWith('.md') && (f.startsWith('ADR-') || f.startsWith('adr-') || /^\d{4}-/.test(f))
+          );
+          adrStats.count = files.length;
+          // Count implemented/accepted ADRs by scanning file content
+          for (const file of files) {
+            try {
+              const content = fs.readFileSync(path.join(adrPath, file), 'utf-8');
+              if (/Status\s*[:\*]*\s*(Accepted|Implemented)/i.test(content)) {
+                adrStats.implemented++;
+              }
+            } catch { /* ignore */ }
+          }
+          if (adrStats.count === 0) continue; // Empty dir, try next
+          break;
+        }
+      } catch { /* ignore */ }
+    }
+
     const domainsColor = progress.domainsCompleted >= 3 ? c.brightGreen : progress.domainsCompleted > 0 ? c.yellow : c.red;
     // Dynamic perf indicator based on patterns/HNSW
     let perfIndicator = `${c.dim}⚡ target: 150x-12500x${c.reset}`;
@@ -4778,8 +4808,9 @@ const statuslineCommand: Command = {
       `${c.brightPurple}🧠 ${String(system.intelligencePct).padStart(3)}%${c.reset}`;
 
     const dddColor = progress.dddProgress >= 50 ? c.brightGreen : progress.dddProgress > 0 ? c.yellow : c.red;
+    const adrColor = adrStats.implemented > 0 ? c.brightGreen : c.dim;
     const line3 = `${c.brightPurple}🔧 Architecture${c.reset}    ` +
-      `${c.cyan}ADRs${c.reset} ${c.dim}●0/0${c.reset}  ${c.dim}│${c.reset}  ` +
+      `${c.cyan}ADRs${c.reset} ${adrColor}●${adrStats.implemented}/${adrStats.count}${c.reset}  ${c.dim}│${c.reset}  ` +
       `${c.cyan}DDD${c.reset} ${dddColor}●${String(progress.dddProgress).padStart(3)}%${c.reset}  ${c.dim}│${c.reset}  ` +
       `${c.cyan}Security${c.reset} ${securityColor}●${security.status}${c.reset}`;
 

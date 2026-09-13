@@ -1,0 +1,115 @@
+{
+  "schema": "ruflo.executor-correction-validation/v1",
+  "decision": "PROBE_ADMISSION_DEFECTS_CORRECTED_ISOLATED_WORKLOAD_INCOMPLETE",
+  "sourceCommit": "4700668961efbddbdf0d0b895923d79aeb2115ce",
+  "sourceTree": "d93b8003f188daf4dd9ea03bdbfecb60cdab6e85",
+  "rows": [
+    {
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "v3/@claude-flow/cli/scripts/rsi/experiment.test.mjs",
+        "v3/@claude-flow/cli/scripts/rsi/generalization.test.mjs",
+        "v3/@claude-flow/cli/scripts/rsi/loop/loop.test.mjs",
+        "v3/@claude-flow/cli/scripts/rsi/repair/executor.test.mjs",
+        "v3/@claude-flow/cli/scripts/rsi/repair/journal-v2.test.mjs",
+        "v3/@claude-flow/cli/scripts/rsi/repair/migration.test.mjs",
+        "v3/@claude-flow/cli/scripts/rsi/repair/p-limit-offline.test.mjs",
+        "v3/@claude-flow/cli/scripts/rsi/repair/public-capsules.test.mjs",
+        "v3/@claude-flow/cli/scripts/rsi/repair/public-target-payloads.test.mjs",
+        "v3/@claude-flow/cli/scripts/rsi/repair/public-tree-inventories.test.mjs",
+        "v3/@claude-flow/cli/scripts/rsi/repair/public-tree-payloads.test.mjs",
+        "v3/@claude-flow/cli/scripts/rsi/repair/public-workloads.test.mjs",
+        "v3/@claude-flow/cli/scripts/rsi/repair/repair.test.mjs"
+      ],
+      "status": 0,
+      "error": null,
+      "wallMs": 46630.62854499731,
+      "stdout": "0.stdout.txt",
+      "stderr": "0.stderr.txt",
+      "stdoutSha256": "c20d7bebe020969cf3c5f73d6c4222f8a83dd6a29a38856838ccf600d962281b",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "node",
+        "v3/@claude-flow/cli/scripts/rsi/loop/replay-history.mjs",
+        "v3/@claude-flow/cli/scripts/rsi/evidence/loop-development",
+        "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e"
+      ],
+      "status": 0,
+      "error": null,
+      "wallMs": 8235.801586997695,
+      "stdout": "1.stdout.txt",
+      "stderr": "1.stderr.txt",
+      "stdoutSha256": "5c58fa8a15412f83454fd5b1c15982c4b3bf6abd3a277eda85146ea798cbadb2",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "focusedTests": {
+    "tests": 178,
+    "pass": 178,
+    "fail": 0
+  },
+  "executorTests": 14,
+  "executorProcessResponsesSimulated": true,
+  "historicalReplay": {
+    "verified": true,
+    "originalAnchor": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088",
+    "head": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "historical": [
+      {
+        "sourceCommit": "b0be9e24b8d42ce89eb5d3606628cf6f1b15fa07",
+        "sourceTree": "6a05e5889061aebfbc5adfb228539b9c264df338",
+        "anchor": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088",
+        "replayedEpochNumbers": [
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "sourceCommit": "959d70cebcd413cee16b181999b0fb6a962fed1b",
+        "sourceTree": "a59659ebcf4a29e1c616ac9a6a0dad5b619a1de8",
+        "anchor": "98fbc3753edc28a14882e0f090177b69dd9c2b13c01506ea0ba5cd4a5e0719ec",
+        "replayedEpochNumbers": [
+          4
+        ]
+      }
+    ],
+    "currentEpochs": [
+      5,
+      6,
+      7
+    ],
+    "replayedEpochs": 7,
+    "lifetimeReservedUnits": 209784,
+    "timingReplayed": false,
+    "boundedRsiEvidenceAccepted": false
+  },
+  "originalAnchor": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088",
+  "ledgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+  "ledgerUnchanged": true,
+  "lifetimeEpochs": 7,
+  "lifetimeNativeFieldCallsReserved": 209784,
+  "costs": {
+    "measuredValidationParentStarts": 2,
+    "measuredValidationWallMs": 54866.430131995,
+    "identityPreflightProcessStarts": 4,
+    "validationDescendantProcessStarts": null,
+    "actualIsolationProbeStarts": 0,
+    "newRepairCandidateEvaluations": 0,
+    "newMissionEpochs": 0,
+    "newMissionNativeFieldCalls": 0,
+    "externalProviderSpendUsd": 0,
+    "totalAcquisitionUsd": null,
+    "totalEvaluationUsd": null,
+    "outerCodexModelUsage": null,
+    "excluded": "Python parent, editing, initial tests, review, Git acquisition/publication, memory, source research and CI; total work/dollars unknown"
+  },
+  "candidateExecutionEnabled": false,
+  "boundedRsiEvidenceAccepted": false,
+  "largestUncertainty": "Whether inherited failure-analysis state improves descendant successor productivity on fresh tasks at matched cost",
+  "nextAcceptance": "Resolve the allowed-runtime ELF loader layout and verify fixed p-limit startup under unchanged limits on a compatible authorized isolation runner"
+}

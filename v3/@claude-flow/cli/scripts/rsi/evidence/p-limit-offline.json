@@ -1,0 +1,144 @@
+{
+  "schema": "ruflo.p-limit-offline-engineering-evidence/v1",
+  "sourceCommit": "65f98d0489876f6c359616603626c6c67e712b36",
+  "sourceTree": "ff3bc2b021a161bab40be66f5f7ed77f17ef1792",
+  "planHash": "e1a2ceb10e0c1013a4eb7c571632a55befaa012a60e180064967b3e9c0b0ecce",
+  "planPath": "evidence/p-limit-offline-plan.json",
+  "rawOutcomeDirectory": "evidence/p-limit-offline-run-001",
+  "decision": "HISTORICAL_WITNESS_REPRODUCED_CANDIDATE_EXECUTION_BLOCKED",
+  "measurement": {
+    "schema": "ruflo.p-limit-offline-result/v1",
+    "planHash": "e1a2ceb10e0c1013a4eb7c571632a55befaa012a60e180064967b3e9c0b0ecce",
+    "historicalWitnessVerified": true,
+    "rows": [
+      {
+        "role": "base",
+        "elapsedMs": 36.231446000000005,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"rows\":[{\"name\":\"ordinary map retains order\",\"passed\":true},{\"name\":\"invalid concurrency rejects\",\"passed\":true},{\"name\":\"function wrapper preserves arguments and result\",\"passed\":true},{\"name\":\"wrapper clears pending calls without cancelling running call\",\"passed\":false,\"error\":\"Expected values to be strictly equal:\\n+ actual - expected\\n\\n+ 'undefined'\\n- 'function'\\n\"}],\"elapsedMs\":2.053953,\"cpuMicros\":{\"user\":3325,\"system\":0},\"maxRssKb\":129680}\n",
+        "stderr": "",
+        "measurement": {
+          "rows": [
+            {
+              "name": "ordinary map retains order",
+              "passed": true
+            },
+            {
+              "name": "invalid concurrency rejects",
+              "passed": true
+            },
+            {
+              "name": "function wrapper preserves arguments and result",
+              "passed": true
+            },
+            {
+              "name": "wrapper clears pending calls without cancelling running call",
+              "passed": false,
+              "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'undefined'\n- 'function'\n"
+            }
+          ],
+          "elapsedMs": 2.053953,
+          "cpuMicros": {
+            "user": 3325,
+            "system": 0
+          },
+          "maxRssKb": 129680
+        }
+      },
+      {
+        "role": "fix",
+        "elapsedMs": 32.58011000000002,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"rows\":[{\"name\":\"ordinary map retains order\",\"passed\":true},{\"name\":\"invalid concurrency rejects\",\"passed\":true},{\"name\":\"function wrapper preserves arguments and result\",\"passed\":true},{\"name\":\"wrapper clears pending calls without cancelling running call\",\"passed\":true}],\"elapsedMs\":1.4383529999999993,\"cpuMicros\":{\"user\":2370,\"system\":373},\"maxRssKb\":129680}\n",
+        "stderr": "",
+        "measurement": {
+          "rows": [
+            {
+              "name": "ordinary map retains order",
+              "passed": true
+            },
+            {
+              "name": "invalid concurrency rejects",
+              "passed": true
+            },
+            {
+              "name": "function wrapper preserves arguments and result",
+              "passed": true
+            },
+            {
+              "name": "wrapper clears pending calls without cancelling running call",
+              "passed": true
+            }
+          ],
+          "elapsedMs": 1.4383529999999993,
+          "cpuMicros": {
+            "user": 2370,
+            "system": 373
+          },
+          "maxRssKb": 129680
+        }
+      }
+    ],
+    "ledgerUnchanged": true,
+    "costs": {
+      "engineeringWitnessProcessStarts": 2,
+      "summedWitnessWallMs": 68.81155600000002,
+      "runnerWallMs": 73.27702099999999,
+      "parentCpuMicros": {
+        "user": 11658,
+        "system": 1549
+      },
+      "missionCandidateEvaluations": 0,
+      "missionNativeFieldCallsAdded": 0,
+      "externalProviderSpendUsd": 0,
+      "totalAcquisitionUsd": null,
+      "totalEvaluationUsd": null,
+      "scope": "Only this fixed witness run. Preparation, research, tool acquisition, other tests and CI excluded. Child CPU in each raw row excludes startup."
+    },
+    "completeUpstreamTestEnvironment": false,
+    "adversarialSandbox": false,
+    "candidateExecutionEnabled": false,
+    "boundedRsiEvidenceAccepted": false
+  },
+  "validation": {
+    "focusedTests": 164,
+    "focusedTestsPassed": 164,
+    "focusedTestWallMs": 46384.287848,
+    "newTests": 10,
+    "historicalEpochsReplayed": 7,
+    "originalAnchor": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088",
+    "ledgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "lifetimeReservedNativeCalls": 209784,
+    "lifetimeEpochs": 7
+  },
+  "isolationProbe": {
+    "command": [
+      "bwrap",
+      "--unshare-all",
+      "--die-with-parent",
+      "--ro-bind",
+      "/usr",
+      "/usr",
+      "--symlink",
+      "usr/bin",
+      "/bin",
+      "--proc",
+      "/proc",
+      "--dev",
+      "/dev",
+      "--",
+      "/usr/bin/true"
+    ],
+    "status": 1,
+    "stderr": "bwrap: loopback: Failed to create NETLINK_ROUTE socket: Operation not permitted\n",
+    "arbitraryCandidateFallback": false
+  },
+  "costBoundary": "68.811556 ms is the sum of two fixed witness subprocess wall times. Full test suite separately took 46384.287848 ms. Neither measures total research cost. Preparation CLI and execution CLI add two parent Node process starts; shells, connector acquisition, all test subprocesses and CI are outside witness process accounting and are not fully metered.",
+  "nextAction": "Complete an isolated candidate executor on a compatible authorized runner, fresh development tests and inherited proposer state; obtain explicit approval for the existing 36 evaluation / 216 process / 1080000 ms proposal before repair trials.",
+  "largestUncertainty": "Inherited descendants' capacity to generate better successors on fresh repository tasks remains unmeasured.",
+  "boundedRsiEvidenceAccepted": false
+}

@@ -1,0 +1,80 @@
+name: bounded-rsi-experiment
+on:
+  pull_request:
+    paths:
+      - 'v3/@claude-flow/cli/scripts/rsi/**'
+      - 'v3/docs/adr/ADR-RSI-001-bounded-optimizer-experiment.md'
+      - '.github/workflows/rsi-experiment.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'v3/@claude-flow/cli/scripts/rsi/**'
+      - '.github/workflows/rsi-experiment.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unit and adversarial tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/experiment.test.mjs v3/@claude-flow/cli/scripts/rsi/generalization.test.mjs
+      - name: Recompute signed evidence (NULL is a valid research outcome)
+        run: >-
+          node v3/@claude-flow/cli/scripts/rsi/run.mjs replay
+          --bundle v3/@claude-flow/cli/scripts/rsi/evidence/default.json
+          --public-key v3/@claude-flow/cli/scripts/rsi/evidence/public.pem
+      - name: Recompute preregistered generalization evidence (failure must remain failure)
+        run: >-
+          node v3/@claude-flow/cli/scripts/rsi/generalization.mjs replay
+          v3/@claude-flow/cli/scripts/rsi/evidence/generalization.json
+          v3/@claude-flow/cli/scripts/rsi/evidence/generalization-public.pem
+  research-loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Durable loop, native retrieval and adversarial proof tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/loop/loop.test.mjs
+      - name: Repair admission and historical regression calibration
+        run: node --test v3/@claude-flow/cli/scripts/rsi/repair/repair.test.mjs
+      - name: Versioned migration projection and resource accounting adversarial tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/repair/migration.test.mjs
+      - name: Durable v2 journal and historical source dispatch adversarial tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/repair/journal-v2.test.mjs
+      - name: Frozen public repair workload admission and lineage adversarial tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/repair/public-workloads.test.mjs
+      - name: Content-addressed public source capsule adversarial tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/repair/public-capsules.test.mjs
+      - name: Complete public Git tree inventory adversarial tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/repair/public-tree-inventories.test.mjs
+      - name: Complete compact-workload source payload adversarial tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/repair/public-tree-payloads.test.mjs
+      - name: RuVector target local-source payload and sizing adversarial tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/repair/public-target-payloads.test.mjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+      - name: Offline p-limit historical runtime witness and admission tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/repair/p-limit-offline.test.mjs
+      - name: Fail-closed isolated candidate executor contract tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/repair/executor.test.mjs
+      - name: Pinned Linux x64 executor runtime and dependency-closure tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/repair/runtime-layout.test.mjs
+      - name: Content-addressed minimal runtime snapshot adversarial tests
+        run: node --test v3/@claude-flow/cli/scripts/rsi/repair/runtime-snapshot.test.mjs
+      - name: Replay all native epochs using their original source trees
+        run: >-
+          node v3/@claude-flow/cli/scripts/rsi/loop/replay-history.mjs
+          v3/@claude-flow/cli/scripts/rsi/evidence/loop-development
+          5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e

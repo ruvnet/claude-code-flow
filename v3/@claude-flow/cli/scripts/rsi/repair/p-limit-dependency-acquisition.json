@@ -1,0 +1,162 @@
+{
+  "schema": "ruflo.p-limit-dependency-acquisition/v1",
+  "observedAt": "2026-09-13T02:27:09.357Z",
+  "independentAttestation": false,
+  "records": [
+    {
+      "response": {
+        "message": "1.2.1\n",
+        "node_id": "TA_kwDOEs6hEtoAKDM4MDk0ZTAwNjE0ODI5YWY1NjBiZmMxNTFhNTVlZTJkMzBlMGE0ODE",
+        "object": {
+          "sha": "ce72d41de87b2a4ec7c50e10480300bee674d845",
+          "type": "commit",
+          "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/commits/ce72d41de87b2a4ec7c50e10480300bee674d845"
+        },
+        "sha": "38094e00614829af560bfc151a55ee2d30e0a481",
+        "tag": "v1.2.1",
+        "tagger": {
+          "date": "2025-03-22T04:49:58Z",
+          "email": "sindresorhus@gmail.com",
+          "name": "Sindre Sorhus"
+        },
+        "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/tags/38094e00614829af560bfc151a55ee2d30e0a481",
+        "verification": {
+          "payload": null,
+          "reason": "unsigned",
+          "signature": null,
+          "verified": false,
+          "verified_at": null
+        }
+      },
+      "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/tags/38094e00614829af560bfc151a55ee2d30e0a481"
+    },
+    {
+      "response": {
+        "sha": "ce72d41de87b2a4ec7c50e10480300bee674d845",
+        "tree": [
+          {
+            "mode": "100644",
+            "path": ".editorconfig",
+            "sha": "1c6314a31833395fd5ff016a6506bdd51860657c",
+            "size": 175,
+            "type": "blob",
+            "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/blobs/1c6314a31833395fd5ff016a6506bdd51860657c"
+          },
+          {
+            "mode": "100644",
+            "path": ".gitattributes",
+            "sha": "6313b56c57848efce05faa7aa7e901ccfc2886ea",
+            "size": 19,
+            "type": "blob",
+            "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/blobs/6313b56c57848efce05faa7aa7e901ccfc2886ea"
+          },
+          {
+            "mode": "040000",
+            "path": ".github",
+            "sha": "38f6f71e7eb9da58e5d8fa53a4f0a7f535556b18",
+            "type": "tree",
+            "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/trees/38f6f71e7eb9da58e5d8fa53a4f0a7f535556b18"
+          },
+          {
+            "mode": "100644",
+            "path": ".github/security.md",
+            "sha": "5358dc50b2883157fca0fa4a12d2bb18acb093ee",
+            "size": 179,
+            "type": "blob",
+            "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/blobs/5358dc50b2883157fca0fa4a12d2bb18acb093ee"
+          },
+          {
+            "mode": "040000",
+            "path": ".github/workflows",
+            "sha": "a9c67974f2227184434b96cd1739383776d8dbc1",
+            "type": "tree",
+            "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/trees/a9c67974f2227184434b96cd1739383776d8dbc1"
+          },
+          {
+            "mode": "100644",
+            "path": ".github/workflows/main.yml",
+            "sha": "5f816e231deed299c6482cea041906a009a2c207",
+            "size": 406,
+            "type": "blob",
+            "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/blobs/5f816e231deed299c6482cea041906a009a2c207"
+          },
+          {
+            "mode": "100644",
+            "path": ".gitignore",
+            "sha": "239ecff1372358a22aa99dcbb375fdad7abba817",
+            "size": 23,
+            "type": "blob",
+            "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/blobs/239ecff1372358a22aa99dcbb375fdad7abba817"
+          },
+          {
+            "mode": "100644",
+            "path": ".npmrc",
+            "sha": "43c97e719a5a824700932f72e6e7e6748ce45d01",
+            "size": 19,
+            "type": "blob",
+            "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/blobs/43c97e719a5a824700932f72e6e7e6748ce45d01"
+          },
+          {
+            "mode": "100644",
+            "path": "index.d.ts",
+            "sha": "0475d9853a37ea304cac34ad41b1ac3736447ff3",
+            "size": 1991,
+            "type": "blob",
+            "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/blobs/0475d9853a37ea304cac34ad41b1ac3736447ff3"
+          },
+          {
+            "mode": "100644",
+            "path": "index.js",
+            "sha": "fb645592b5e17d1b8f876a747757d5686e011d04",
+            "size": 1479,
+            "type": "blob",
+            "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/blobs/fb645592b5e17d1b8f876a747757d5686e011d04"
+          },
+          {
+            "mode": "100644",
+            "path": "index.test-d.ts",
+            "sha": "7f413f89fc5f1710b2715df9f57bcf65974fe28d",
+            "size": 173,
+            "type": "blob",
+            "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/blobs/7f413f89fc5f1710b2715df9f57bcf65974fe28d"
+          },
+          {
+            "mode": "100644",
+            "path": "license",
+            "sha": "fa7ceba3eb4a9657a9db7f3ffca4e4e97a9019de",
+            "size": 1117,
+            "type": "blob",
+            "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/blobs/fa7ceba3eb4a9657a9db7f3ffca4e4e97a9019de"
+          },
+          {
+            "mode": "100644",
+            "path": "package.json",
+            "sha": "7fde9acb43a5ec3abed97b481ae36de4d24a8a43",
+            "size": 849,
+            "type": "blob",
+            "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/blobs/7fde9acb43a5ec3abed97b481ae36de4d24a8a43"
+          },
+          {
+            "mode": "100644",
+            "path": "readme.md",
+            "sha": "f94f98ef865f793b8e09c28e9d1a862fd088ae34",
+            "size": 2573,
+            "type": "blob",
+            "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/blobs/f94f98ef865f793b8e09c28e9d1a862fd088ae34"
+          },
+          {
+            "mode": "100644",
+            "path": "test.js",
+            "sha": "1ed25bfc91dc47f148a57838fd814bf790f3e007",
+            "size": 1744,
+            "type": "blob",
+            "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/blobs/1ed25bfc91dc47f148a57838fd814bf790f3e007"
+          }
+        ],
+        "truncated": false,
+        "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/trees/ce72d41de87b2a4ec7c50e10480300bee674d845"
+      },
+      "url": "https://api.github.com/repos/sindresorhus/yocto-queue/git/trees/ce72d41de87b2a4ec7c50e10480300bee674d845?recursive=1"
+    }
+  ]
+}

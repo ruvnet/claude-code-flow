@@ -1,0 +1,87 @@
+{
+  "schema": "ruflo.public-repair-target-payload-evidence/v1",
+  "recordedAt": "2026-09-13T00:51:00Z",
+  "sourceCommit": "93ccdd8d8bade4a60726ecafb9a07577b915533a",
+  "sourceTree": "15291192e392e4b12ed6687de90c8283333bf5c5",
+  "targetPayloadManifestHash": "e7f91e0578503dade9dadc596ade8fccf3f656e5d975a91a3fa03c50674922d4",
+  "decision": "ACCEPT_RUVECTOR_TARGET_SOURCE_CLOSURE_ONLY",
+  "outcome": {
+    "targetPackage": "ruvector-graph",
+    "selectedBlobCount": 169,
+    "selectedPayloadBytes": 2448546,
+    "fullTreeUniqueBlobs": 11997,
+    "fullTreeReferencedBytes": 316496519,
+    "completeTargetLocalSourceClosure": true,
+    "completeWorkspacePayloads": false,
+    "completeCratesIoDependencyClosure": false,
+    "pinnedRustToolchain": false,
+    "hiddenDevelopmentTestsFrozen": false,
+    "offlineExecutable": false,
+    "candidateExecutionEnabled": false,
+    "boundedRsiEvidenceAccepted": false
+  },
+  "verification": {
+    "focusedTestsPassed": 154,
+    "focusedTestsFailed": 0,
+    "historicalEpochsReplayed": 7,
+    "ledgerAncestryVerified": true,
+    "cargoAvailable": false,
+    "cargoProbeExitStatus": 127,
+    "runs": [
+      {
+        "run": 1,
+        "status": 0,
+        "elapsedMs": 7613.064,
+        "stdoutBytes": 1241,
+        "stderrBytes": 0
+      },
+      {
+        "run": 2,
+        "status": 0,
+        "elapsedMs": 7670.755,
+        "stdoutBytes": 1245,
+        "stderrBytes": 0
+      },
+      {
+        "run": 3,
+        "status": 0,
+        "elapsedMs": 7691.429,
+        "stdoutBytes": 1241,
+        "stderrBytes": 0
+      },
+      {
+        "run": 4,
+        "status": 0,
+        "elapsedMs": 7805.544,
+        "stdoutBytes": 1244,
+        "stderrBytes": 0
+      },
+      {
+        "run": 5,
+        "status": 0,
+        "elapsedMs": 7815.477,
+        "stdoutBytes": 1242,
+        "stderrBytes": 0
+      }
+    ],
+    "isolatedTestWallMs": 38596.269,
+    "engineeringValidationProcessStarts": 5,
+    "metaHarnessRun": false,
+    "autogenousRun": false,
+    "omissionReason": "No candidate or descendant outcome was measured; outcome checkers would add no measured value."
+  },
+  "accounting": {
+    "legacyLedgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "legacyNativeFieldCallsReserved": 209784,
+    "legacyEpochsConsumed": 7,
+    "newNativeFieldCalls": 0,
+    "repairCandidateEvaluations": 0,
+    "repairProcessStarts": 0,
+    "repairWallMs": 0,
+    "externalProviderSpendUsd": 0,
+    "totalAcquisitionUsd": null,
+    "totalEvaluationUsd": null
+  },
+  "largestUncertainty": "Whether inherited descendants improve their ability to produce further improvements on unseen repository tasks.",
+  "actionableBlocker": "The current host has no cargo binary; offline crates.io closure, pinned Rust toolchain, hidden tests, sandbox and repair authorization are also absent. The complete RuVector workspace is 316,496,519 referenced bytes and requires separate storage/acquisition approval."
+}

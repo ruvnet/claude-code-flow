@@ -1,0 +1,50 @@
+{
+  "schema": "ruflo.repair-migration-journal-check/v1",
+  "proposalHash": "0662eec69224f1c4e1ea9e06be03863f72dc409136d2210285a879d09ee87203",
+  "journalSourceCommit": "e03f10700fcb873fb9628e55aa3cf7dc15aaa0a8",
+  "journalSourceTree": "e9fc7aed4aa8789cbc1d9f867a0da27ffedb002c",
+  "legacyHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+  "legacyOriginalAnchor": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088",
+  "sourceBindings": [
+    {
+      "commit": "b0be9e24b8d42ce89eb5d3606628cf6f1b15fa07",
+      "tree": "6a05e5889061aebfbc5adfb228539b9c264df338",
+      "epochs": [1, 2, 3]
+    },
+    {
+      "commit": "959d70cebcd413cee16b181999b0fb6a962fed1b",
+      "tree": "a59659ebcf4a29e1c616ac9a6a0dad5b619a1de8",
+      "epochs": [4]
+    },
+    {
+      "commit": "837386c864f97b2170a385fd4639c1ec165a7e5e",
+      "tree": "b49166bc3cf5942720b4aec0c7fc36a9961c34d3",
+      "epochs": [5, 6, 7]
+    }
+  ],
+  "benchmarkRuns": [
+    { "iteration": 1, "wallMs": 2228.832 },
+    { "iteration": 2, "wallMs": 2341.851 },
+    { "iteration": 3, "wallMs": 2135.327 },
+    { "iteration": 4, "wallMs": 2087.616 },
+    { "iteration": 5, "wallMs": 2040.372 }
+  ],
+  "totalWallMs": 10833.997,
+  "journalAdversarialTests": 19,
+  "focusedTestsTotal": 79,
+  "readOnlyReviewerCriticalOrHighFindingsRemaining": 0,
+  "historicalEpochsReplayed": 7,
+  "nativeFieldCallsReserved": 209784,
+  "sharedEpochsConsumed": 7,
+  "missionEpochsAdded": 0,
+  "missionNativeFieldCallsAdded": 0,
+  "missionRepairCandidateEvaluations": 0,
+  "externalProviderSpendUsd": 0,
+  "fullAcquisitionUsd": null,
+  "fullEvaluationUsd": null,
+  "migrationApplied": false,
+  "candidateExecutionEnabled": false,
+  "boundedRsiEvidenceAccepted": false,
+  "measurementScope": "five isolated Node 24 executions of the 19 journal tests, including immutable source resolution and crash fixtures; excludes source acquisition, code generation, reviewer work, the full suite, native epoch replay and CI",
+  "decision": "Accept the journal and source dispatcher as a reviewable engineering increment. Do not apply migration or run repair candidates without a separately approved resource envelope and reviewed isolated executor."
+}

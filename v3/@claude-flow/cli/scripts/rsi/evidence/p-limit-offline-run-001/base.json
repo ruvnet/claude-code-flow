@@ -1,0 +1,36 @@
+{
+  "role": "base",
+  "elapsedMs": 36.231446000000005,
+  "status": 0,
+  "signal": null,
+  "error": null,
+  "stdout": "{\"rows\":[{\"name\":\"ordinary map retains order\",\"passed\":true},{\"name\":\"invalid concurrency rejects\",\"passed\":true},{\"name\":\"function wrapper preserves arguments and result\",\"passed\":true},{\"name\":\"wrapper clears pending calls without cancelling running call\",\"passed\":false,\"error\":\"Expected values to be strictly equal:\\n+ actual - expected\\n\\n+ 'undefined'\\n- 'function'\\n\"}],\"elapsedMs\":2.053953,\"cpuMicros\":{\"user\":3325,\"system\":0},\"maxRssKb\":129680}\n",
+  "stderr": "",
+  "measurement": {
+    "rows": [
+      {
+        "name": "ordinary map retains order",
+        "passed": true
+      },
+      {
+        "name": "invalid concurrency rejects",
+        "passed": true
+      },
+      {
+        "name": "function wrapper preserves arguments and result",
+        "passed": true
+      },
+      {
+        "name": "wrapper clears pending calls without cancelling running call",
+        "passed": false,
+        "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'undefined'\n- 'function'\n"
+      }
+    ],
+    "elapsedMs": 2.053953,
+    "cpuMicros": {
+      "user": 3325,
+      "system": 0
+    },
+    "maxRssKb": 129680
+  }
+}

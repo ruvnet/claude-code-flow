@@ -1,0 +1,97 @@
+{
+  "proposal": {
+    "schema": "ruflo.repair-migration-proposal/v1",
+    "mission": {
+      "mission": "rsi-ruflo-loop-20260912",
+      "head": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+      "originalAnchor": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088",
+      "fingerprint": "63258db258f134fe91277a3a542ba847f4c57a20e50027fb04cd51310a19c45b",
+      "epochs": 7,
+      "nativeFieldCallsReserved": 209784,
+      "proofIndex": 0,
+      "consumedDatasets": [],
+      "consumedTasks": [],
+      "trustHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "rulesHash": "f6a04994d6c576c8c85840109f9acfb653338f66ff9e77a44f7c7142d0b4e653",
+      "sourceHash": "b83696de9d2a9b3f95cc74bef2b3ed0c48f3bc52abfcfcbf84b6bd5e5c66269f"
+    },
+    "legacyStateHash": "410ae63073d856feb0171f79436275b9db3bffcf6a5d21525201246972e5309a",
+    "projectedStateHash": "354e6fef942db76b7846e04c57f145604a41dcc7c222d5f096e527ee2ee486fd",
+    "sourceClosure": {
+      "migration.mjs": "4ae94c2342ea4593b88b156c2f6fdbc07ca3ba7e2d87ca8da957e4f30022ec5e",
+      "admission.mjs": "ea58849fd46762946484703a77b76e860f7899c9ff44171f962a9cbe013ad895",
+      "run.mjs": "72190af0c104b00553c362a293139642cbc875fb75003653add21583ff8ca242",
+      "witness.mjs": "87c06dae85d04f862a148bfae24789fb4d190727737c570f68241f49585c7636",
+      "../loop/ledger.mjs": "f62660103a28387fc0d6239db9eeb9cd478670343bb51a131502733a5c54b5ab",
+      "../loop/proof.mjs": "ae02dc49e1b8874fdbea995b40293e0384b4fd6545af43d4c0960bb3e90c5325",
+      "../loop/run.mjs": "7061be363a4423d677ffbc4dd5c5fe3e470fa43f7d0e4c74a5b94f146d32fb23",
+      "../loop/retrieval.mjs": "52e936bb9b03bda9e75677fcb0fef1e3f6a2fde4582d59a5119dff871232ebb4",
+      "../loop/replay-history.mjs": "d47a4cd37d9b31ddddeec7a04ac3720e4fc0697f833c602f3d72a7ee3a48c629",
+      "../evidence/loop-sources.json": "7a2dfb1912cab8a2c1053e1931fb1e36089ff2a2b96f71395f49d15be24b95c7",
+      "../../../src/memory/hybrid-retrieval.ts": "01c1eb6569786fd5bfb0b98f7598156810aa46f48e53bf9bee4f38f3f6cbef5e"
+    },
+    "calibrationReadinessHash": "278b2fcdd4be671857eb28354eafcd37b3342a5b7188a14c72594ea0e437908f",
+    "accounting": {
+      "unitDefinitions": {
+        "nativeFieldCalls": "one original native BM25 field-score call",
+        "repairCandidateEvaluations": "one future candidate evaluation",
+        "repairProcessStarts": "one future isolated process start",
+        "repairWallMs": "one future reserved process wall millisecond"
+      },
+      "reserved": {
+        "nativeFieldCalls": 209784,
+        "repairCandidateEvaluations": 0,
+        "repairProcessStarts": 0,
+        "repairWallMs": 0
+      },
+      "authorizedCeilings": {
+        "nativeFieldCalls": 1000000,
+        "repairCandidateEvaluations": 0,
+        "repairProcessStarts": 0,
+        "repairWallMs": 0
+      },
+      "sharedEpochs": {
+        "consumed": 7,
+        "ceiling": 64
+      },
+      "perEpoch": {
+        "nativeFieldCalls": 100000,
+        "candidates": 12
+      },
+      "unitConversion": null,
+      "newResourceAuthorization": null,
+      "historicalAcquisitionUsd": null,
+      "historicalEvaluationUsd": null,
+      "externalProviderSpendCeilingUsd": 0
+    },
+    "policy": {
+      "schema": "ruflo.retrieval-grid/v1",
+      "value": {
+        "b": 1,
+        "k1": 2.5,
+        "subjectWeight": 6
+      },
+      "credits": [
+        1.368095787779696,
+        1.2026925182097594,
+        1.2026925182097594
+      ]
+    },
+    "retention": {
+      "fullLegacyState": true,
+      "attemptHistoryHash": "3c7aff3e73df6fede48e659f9f96c7c0809da3a66e252cd9cffccd05ada02418",
+      "snapshotsHash": "ea111ab8db6e9248b93dc4522f092759b03cf75649fdf8ca75fa541bd2ea0250",
+      "completedHistoryHash": "a2834967188a3341527046af85b3f2b9eb91ca905ca969b56449b81b418c5edb",
+      "confirmationStateHash": "97b63f892699ee1cf950de08db29b3eddc84240c747b1b6de02b4dc61d020d15",
+      "nextAlpha": 0.025
+    },
+    "migrationApplied": false,
+    "candidateExecutionEnabled": false,
+    "requiredBeforeApplication": [
+      "OPERATOR_APPROVED_REPAIR_RESOURCE_ENVELOPE",
+      "VERSIONED_DURABLE_EVENT_REDUCER_AND_SOURCE_DISPATCH",
+      "REVIEWED_ISOLATED_CANDIDATE_EXECUTOR"
+    ]
+  },
+  "proposalHash": "0662eec69224f1c4e1ea9e06be03863f72dc409136d2210285a879d09ee87203"
+}

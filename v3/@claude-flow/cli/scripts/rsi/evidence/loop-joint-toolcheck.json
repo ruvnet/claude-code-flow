@@ -1,0 +1,190 @@
+{
+  "version": "ruflo.loop-capacity-toolcheck/v1",
+  "ledgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+  "receiptHash": "c052c6b1d8c2a905225c0117bbc048969be4b6e8e292bd9a7277dadd3f8cff8c",
+  "sourceReplay": {
+    "verified": true,
+    "originalAnchor": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088",
+    "head": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "historical": [
+      {
+        "sourceCommit": "b0be9e24b8d42ce89eb5d3606628cf6f1b15fa07",
+        "sourceTree": "6a05e5889061aebfbc5adfb228539b9c264df338",
+        "anchor": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088",
+        "replayedEpochNumbers": [
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "sourceCommit": "959d70cebcd413cee16b181999b0fb6a962fed1b",
+        "sourceTree": "a59659ebcf4a29e1c616ac9a6a0dad5b619a1de8",
+        "anchor": "98fbc3753edc28a14882e0f090177b69dd9c2b13c01506ea0ba5cd4a5e0719ec",
+        "replayedEpochNumbers": [
+          4
+        ]
+      }
+    ],
+    "currentEpochs": [
+      5,
+      6,
+      7
+    ],
+    "replayedEpochs": 7,
+    "lifetimeReservedUnits": 209784,
+    "timingReplayed": false,
+    "boundedRsiEvidenceAccepted": false
+  },
+  "comparator": "adaptive versus fixed static",
+  "adaptive": {
+    "primary": 0.45850319035802906,
+    "noopRate": 0.75,
+    "costPerWin": 2680,
+    "regressed": false
+  },
+  "static": {
+    "primary": 0.45850319035802906,
+    "noopRate": 0.75,
+    "costPerWin": 2680,
+    "regressed": false
+  },
+  "metaharness": {
+    "version": "0.1.11",
+    "replay": {
+      "pass": true,
+      "checks": {
+        "receipts": true,
+        "reachesRoot": true,
+        "contiguousParents": true,
+        "allPromoted": true,
+        "gateUnchanged": true,
+        "gateReExecutes": true,
+        "allCommitsReceipts": true,
+        "sealedFieldsAuthentic": true
+      },
+      "failures": [],
+      "chainSummary": "gen0(root)"
+    },
+    "improvements": 0,
+    "bundle": {
+      "data_source": "REPOSITORY_DEVELOPMENT",
+      "root_id": "root",
+      "chain": [
+        {
+          "id": "root",
+          "generation": 0,
+          "parents": [],
+          "mutation": null,
+          "primaryDelta": 0,
+          "anchorScore": null,
+          "verdict": "ROOT",
+          "failureReasons": [],
+          "receipt": {
+            "payload": {
+              "kind": "root",
+              "root": "root"
+            },
+            "signature": "9QFzHh0mtOup18Od/oxACzTlr2i+nvQUOEmXs/54uJhlpt9QhejR5y0HEPyBDwCqlGuIVT7tiKbkHMV79PqMCg==",
+            "publicKey": "MCowBQYDK2VwAyEArr1/ZRi8XKkOsmDOZE07Ojmk/E2cADtbvz1zBgNpRfE=",
+            "alg": "ed25519"
+          },
+          "createdAt": "gen-0"
+        }
+      ],
+      "all_commits": [
+        {
+          "id": "root__arm_gen1",
+          "generation": 1,
+          "parents": [
+            "root"
+          ],
+          "mutation": {
+            "target": "arm",
+            "summary": "adapt arm"
+          },
+          "primaryDelta": 0,
+          "anchorScore": null,
+          "verdict": "REJECTED",
+          "failureReasons": [
+            "noop_rate_not_improved"
+          ],
+          "receipt": {
+            "payload": {
+              "kind": "candidate",
+              "id": "root__arm_gen1",
+              "target": "arm",
+              "verdict": "REJECTED",
+              "primaryDelta": 0,
+              "baselineScore": {
+                "primary": 0.45850319035802906,
+                "noopRate": 0.75,
+                "costPerWin": 2680,
+                "regressed": false
+              },
+              "candidateScore": {
+                "primary": 0.45850319035802906,
+                "noopRate": 0.75,
+                "costPerWin": 2680,
+                "regressed": false
+              },
+              "anchorScore": null,
+              "failureReasons": [
+                "noop_rate_not_improved"
+              ],
+              "parents": [
+                "root"
+              ],
+              "generation": 1
+            },
+            "signature": "V1PQnPz5RVN0AAhQMvg9UkC1L3v0NT88ghPwc7os9KE4EVxeMJxekKCWL6AIVvs1YBzXKjs5B21tz5/u2xUyBw==",
+            "publicKey": "MCowBQYDK2VwAyEArr1/ZRi8XKkOsmDOZE07Ojmk/E2cADtbvz1zBgNpRfE=",
+            "alg": "ed25519"
+          },
+          "createdAt": "gen-1",
+          "baselineScore": {
+            "primary": 0.45850319035802906,
+            "noopRate": 0.75,
+            "costPerWin": 2680,
+            "regressed": false
+          },
+          "candidateScore": {
+            "primary": 0.45850319035802906,
+            "noopRate": 0.75,
+            "costPerWin": 2680,
+            "regressed": false
+          }
+        }
+      ],
+      "lift_curve": [
+        {
+          "generation": 0,
+          "primary": 0.45850319035802906,
+          "delta": 0,
+          "anchor": null
+        }
+      ],
+      "gate_fingerprint": "b730019b67f5c0dd1aacb8674ce46933be9ff91c499eea87875fff3d0372e36d",
+      "verified_improvements": 0,
+      "anchor_surviving_improvements": 0,
+      "milestone_reached": false,
+      "created_at": "gen-1"
+    }
+  },
+  "autogenous": {
+    "source": "7bf327a9754ce798364dbee8b2825af42a421fd4",
+    "decision": {
+      "better": false,
+      "safe": true,
+      "authorized": true,
+      "reversible": true,
+      "promote": false
+    },
+    "projection": "Recorded child MRR mapped to separation. Authorization flags and MetaHarness signer are local gate fixtures, not independent evaluator identities."
+  },
+  "providerSpendUsd": 0,
+  "newTaskMeasurements": 0,
+  "limitation": "Same public development rows projected into two existing native library gates. Work-unit cost proxy is not full acquisition dollars. No independent replication.",
+  "boundedRsiEvidenceAccepted": false,
+  "productionPromotion": false
+}

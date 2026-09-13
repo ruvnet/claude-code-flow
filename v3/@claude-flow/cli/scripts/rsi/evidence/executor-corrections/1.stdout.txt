@@ -1,0 +1,34 @@
+{
+  "verified": true,
+  "originalAnchor": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088",
+  "head": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+  "historical": [
+    {
+      "sourceCommit": "b0be9e24b8d42ce89eb5d3606628cf6f1b15fa07",
+      "sourceTree": "6a05e5889061aebfbc5adfb228539b9c264df338",
+      "anchor": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088",
+      "replayedEpochNumbers": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "sourceCommit": "959d70cebcd413cee16b181999b0fb6a962fed1b",
+      "sourceTree": "a59659ebcf4a29e1c616ac9a6a0dad5b619a1de8",
+      "anchor": "98fbc3753edc28a14882e0f090177b69dd9c2b13c01506ea0ba5cd4a5e0719ec",
+      "replayedEpochNumbers": [
+        4
+      ]
+    }
+  ],
+  "currentEpochs": [
+    5,
+    6,
+    7
+  ],
+  "replayedEpochs": 7,
+  "lifetimeReservedUnits": 209784,
+  "timingReplayed": false,
+  "boundedRsiEvidenceAccepted": false
+}

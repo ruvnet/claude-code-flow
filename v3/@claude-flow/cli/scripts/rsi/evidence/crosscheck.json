@@ -1,0 +1,2040 @@
+{
+  "version": "ruflo.rsi-crosscheck/v1",
+  "dataSource": "SYNTHETIC",
+  "experimentDigest": "c4eae9987c814dfe54b4d47117b48dc691964391c3a8da770da59a6fe59019cc",
+  "originalReplay": {
+    "verified": true,
+    "verdict": "NULL",
+    "liveRsiProven": false
+  },
+  "metaharness": {
+    "version": "0.1.11",
+    "projection": "recorded fresh optimizer gains, not independent task measurements",
+    "defaultGateFingerprint": "b730019b67f5c0dd1aacb8674ce46933be9ff91c499eea87875fff3d0372e36d",
+    "replay": {
+      "pass": true,
+      "checks": {
+        "receipts": true,
+        "reachesRoot": true,
+        "contiguousParents": true,
+        "allPromoted": true,
+        "gateUnchanged": true,
+        "gateReExecutes": true,
+        "allCommitsReceipts": true,
+        "sealedFieldsAuthentic": true
+      },
+      "failures": [],
+      "chainSummary": "gen0(root)"
+    },
+    "improvements": 0,
+    "rejectedReasons": [
+      [
+        "primary_regressed",
+        "noop_rate_not_improved",
+        "cost_per_win_worsened"
+      ]
+    ],
+    "bundle": {
+      "data_source": "SYNTHETIC",
+      "root_id": "root",
+      "chain": [
+        {
+          "id": "root",
+          "generation": 0,
+          "parents": [],
+          "mutation": null,
+          "primaryDelta": 0,
+          "anchorScore": 0.04316265614840364,
+          "verdict": "ROOT",
+          "failureReasons": [],
+          "receipt": {
+            "payload": {
+              "kind": "root",
+              "root": "root"
+            },
+            "signature": "Qp+fnYYgeiq/wCx0O6h7i01Wj8oSaSIdJjqsUS/LYdIsyH7/vwoi7lDJXdRnppFBzRqCI+VMb679ZrNiOTGfDg==",
+            "publicKey": "MCowBQYDK2VwAyEAzfCVrfWsIN2ZK7RfyxfCx+3GWiCcQ+8XL+M9UkpLkBs=",
+            "alg": "ed25519"
+          },
+          "createdAt": "SYNTHETIC-CROSSCHECK-0"
+        }
+      ],
+      "all_commits": [
+        {
+          "id": "root__optimizer_gen1",
+          "generation": 1,
+          "parents": [
+            "root"
+          ],
+          "mutation": {
+            "target": "optimizer",
+            "summary": "adapt optimizer"
+          },
+          "primaryDelta": -0.0072593074215494685,
+          "anchorScore": null,
+          "verdict": "REJECTED",
+          "failureReasons": [
+            "primary_regressed",
+            "noop_rate_not_improved",
+            "cost_per_win_worsened"
+          ],
+          "receipt": {
+            "payload": {
+              "kind": "candidate",
+              "id": "root__optimizer_gen1",
+              "target": "optimizer",
+              "verdict": "REJECTED",
+              "primaryDelta": -0.0072593074215494685,
+              "baselineScore": {
+                "primary": 0.041068996060352865,
+                "noopRate": 0,
+                "costPerWin": 51,
+                "regressed": false
+              },
+              "candidateScore": {
+                "primary": 0.0338096886388034,
+                "noopRate": 0.00390625,
+                "costPerWin": 51.2,
+                "regressed": false
+              },
+              "anchorScore": null,
+              "failureReasons": [
+                "primary_regressed",
+                "noop_rate_not_improved",
+                "cost_per_win_worsened"
+              ],
+              "parents": [
+                "root"
+              ],
+              "generation": 1
+            },
+            "signature": "sJds13MjVcPg1xlh5rHuZj6rr1/Js/P1WnaslJmBbdLqqaQjgJ3qnIpTvvyyJ5y3/xRCQZiUvxrUkVpgxytzDw==",
+            "publicKey": "MCowBQYDK2VwAyEAzfCVrfWsIN2ZK7RfyxfCx+3GWiCcQ+8XL+M9UkpLkBs=",
+            "alg": "ed25519"
+          },
+          "createdAt": "SYNTHETIC-CROSSCHECK-1",
+          "baselineScore": {
+            "primary": 0.041068996060352865,
+            "noopRate": 0,
+            "costPerWin": 51,
+            "regressed": false
+          },
+          "candidateScore": {
+            "primary": 0.0338096886388034,
+            "noopRate": 0.00390625,
+            "costPerWin": 51.2,
+            "regressed": false
+          }
+        }
+      ],
+      "lift_curve": [
+        {
+          "generation": 0,
+          "primary": 0.041068996060352865,
+          "delta": 0,
+          "anchor": 0.04316265614840364
+        }
+      ],
+      "gate_fingerprint": "b730019b67f5c0dd1aacb8674ce46933be9ff91c499eea87875fff3d0372e36d",
+      "verified_improvements": 0,
+      "anchor_surviving_improvements": 0,
+      "milestone_reached": false,
+      "created_at": "SYNTHETIC-CROSSCHECK-1"
+    }
+  },
+  "autogenous": {
+    "source": "7bf327a9754ce798364dbee8b2825af42a421fd4",
+    "domain": "native fixed mesh separation fixture, NOT optimizer-efficiency benchmark",
+    "seed": 42,
+    "generations": 30,
+    "population": 4,
+    "initial": 0.6875,
+    "final": 1.25,
+    "promotions": 4,
+    "hardGates": true,
+    "deterministicChampion": true,
+    "signatureAndChainVerified": true,
+    "tamperRejected": true,
+    "unauthorizedRejected": true,
+    "irreversibleRejected": true,
+    "publicKeyDerHex": "302a300506032b657003210091a75b19ea7202b810fdd317da82d45e8c66f55ba45e0b22dc72350ba048a920",
+    "history": [
+      {
+        "generation": 1,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.4747627411503345,
+            "sameArch": 0.35,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 2
+        },
+        "fitness": {
+          "separation": 0.855716167588253,
+          "familyStack": 1.3504745176993307,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": true,
+        "candidateCount": 4
+      },
+      {
+        "generation": 2,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.4747627411503345,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 2
+        },
+        "fitness": {
+          "separation": 1.0551209157565609,
+          "familyStack": 1.1732258526608348,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": true,
+        "candidateCount": 4
+      },
+      {
+        "generation": 3,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.5406416832935066,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.203348535578698,
+          "familyStack": 1.0414679683744907,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": true,
+        "candidateCount": 4
+      },
+      {
+        "generation": 4,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.5406416832935066,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.203348535578698,
+          "familyStack": 1.0414679683744907,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 5,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.5406416832935066,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.203348535578698,
+          "familyStack": 1.0414679683744907,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 6,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.5406416832935066,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.203348535578698,
+          "familyStack": 1.0414679683744907,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 7,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.5406416832935066,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.203348535578698,
+          "familyStack": 1.0414679683744907,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 8,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.5406416832935066,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.203348535578698,
+          "familyStack": 1.0414679683744907,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 9,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": true,
+        "candidateCount": 4
+      },
+      {
+        "generation": 10,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 11,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 12,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 13,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 14,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 15,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 16,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 17,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 18,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 19,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 20,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 21,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 22,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 23,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 24,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 25,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 26,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 27,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 28,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 29,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      },
+      {
+        "generation": 30,
+        "champion": {
+          "weights": {
+            "sameProvider": 0.6248072216752918,
+            "sameArch": 0.4386243325192481,
+            "sameSize": 0.1,
+            "sourceJaccard": 0.15,
+            "sameAccuracyBand": 0.2
+          },
+          "quorumThreshold": 1.8682114632800222
+        },
+        "fitness": {
+          "separation": 1.25,
+          "familyStack": 1,
+          "diversePair": 2,
+          "topicRatio": null,
+          "hardGatesPass": true
+        },
+        "promoted": false,
+        "candidateCount": 4
+      }
+    ],
+    "ledgerFrames": [
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 1,
+        "kind": "evidence",
+        "value": {
+          "generation": 1,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.4747627411503345,
+              "sameArch": 0.35,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 2
+          },
+          "fitness": {
+            "separation": 0.855716167588253,
+            "familyStack": 1.3504745176993307,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": true,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "67caf17879440c34422b8caffa3e853b53f7b55ee37824c799362927e059f479f41b0026eaf6b8a5698218425597df95e0e05fc47ebf73001fde6a3073f1950c"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 2,
+        "kind": "evidence",
+        "value": {
+          "generation": 2,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.4747627411503345,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 2
+          },
+          "fitness": {
+            "separation": 1.0551209157565609,
+            "familyStack": 1.1732258526608348,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": true,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "6ba0424c9f5d44b0366dd620dcc2f135034a7df104743d3218d936a5dd6d31cdc36e9446f77f4c5cfe5214891bda9af9f21b713e7f30cf96130f9b2c63754006"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 3,
+        "kind": "evidence",
+        "value": {
+          "generation": 3,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.5406416832935066,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.203348535578698,
+            "familyStack": 1.0414679683744907,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": true,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "174c56df731b875c6958762b89ba17a168971be607642045e68623b0713e255c568240476fc944dceb89a0d8cf0964b5118b9531b7fbf6083d5330b12caf4b0c"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 4,
+        "kind": "evidence",
+        "value": {
+          "generation": 4,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.5406416832935066,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.203348535578698,
+            "familyStack": 1.0414679683744907,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "a3197ec36578970650c0afcf7b84bcb27e48ebaf926a923a78cda3cf661da655e793df5ca8accae3068018b2b843608dc0db68d75d4a97e0eeaea49f64eb8401"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 5,
+        "kind": "evidence",
+        "value": {
+          "generation": 5,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.5406416832935066,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.203348535578698,
+            "familyStack": 1.0414679683744907,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "415282c901b57638253050e36c0e1f3a66db169002f6efe94bab9e0995ee3c1a6f4838c6abf8159c6549891a5524b3af7bb0e446ae98aca3818d5c97d1adce0d"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 6,
+        "kind": "evidence",
+        "value": {
+          "generation": 6,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.5406416832935066,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.203348535578698,
+            "familyStack": 1.0414679683744907,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "404dd561c56a42fc29c63ab7f4a00064fdb297d1fbd79cbae4f336b96770ed23030c4d557e1194381d104e59d6ce17f5bc19a61433025efe6552151519780508"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 7,
+        "kind": "evidence",
+        "value": {
+          "generation": 7,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.5406416832935066,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.203348535578698,
+            "familyStack": 1.0414679683744907,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "f39ea1002e1ad630dd7ef1746f40378d6d8289d81cb7801074ea1b255f25c23f6f920a5dffcc1cd33a1215987d8dc8e36c7823ced4bfaf1e8c11e40bddab260c"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 8,
+        "kind": "evidence",
+        "value": {
+          "generation": 8,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.5406416832935066,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.203348535578698,
+            "familyStack": 1.0414679683744907,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "dfe056b1e4e0adfedbd3ceddb1ebe74fd3e5a42889b6d0a3be4a689dbc4ea9e0fd7635bc40127dfd4af776d65255c3be575d06f9d392655f56b72ef0b144b507"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 9,
+        "kind": "evidence",
+        "value": {
+          "generation": 9,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": true,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "164de41aaf120334c06dc04e146955f4e6dba6c6fcaec1f63b9397f979e342f740b799a84044fa8decca3738233d02a5f98728c69d63decb5610c279e679df0f"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 10,
+        "kind": "evidence",
+        "value": {
+          "generation": 10,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "e27c55b406df164ec17e00150eccff336cb30763c7bbb7f8a6d1f7b0241d5fe3d2ace0a1e9d80c9733f67c9486cef605dada0d1c825e6b9fd81ffe3cb9cfde0b"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 11,
+        "kind": "evidence",
+        "value": {
+          "generation": 11,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "18aa8840a54f6d14e9913b9c54c397ab793289121d6a4228b05136ae084169768c8ff90e496fb4481b317e1d36b0ef6884c107601d9477c020d96ee9436f1b02"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 12,
+        "kind": "evidence",
+        "value": {
+          "generation": 12,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "21a05fbb98f9c89aa9357c30394c64a67331374cc7ff5fc11b1b08b0e943f82b7b0933ba86ec70f672d6c3df759c2729a235f2c21fe96a4cefbf0e1152986e0d"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 13,
+        "kind": "evidence",
+        "value": {
+          "generation": 13,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "ce15530dfe963ed49e5b46ab7d9ba0f7be2596a2b7a4de67a2b6844574ebd1b80b352fb50f269aa73d091ad5f1601c6db8390f552d0177624fe46ff57d071e07"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 14,
+        "kind": "evidence",
+        "value": {
+          "generation": 14,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "78ee7270ab4450d4014414ef1c575c66defcc74105eb09d08b7c74bf274af4349fd96f56834d39e529d85d022cba330990a0c3f7e968d54ff2360253c73bc605"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 15,
+        "kind": "evidence",
+        "value": {
+          "generation": 15,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "a117abd76da708e110291a724481c3395e6a88611fba53c955bb6f07c23b80d392d24b4f19d84918c1f9d1bdc0d2b2fbb7134da7a187129ec7441473217ce301"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 16,
+        "kind": "evidence",
+        "value": {
+          "generation": 16,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "341384a4ad442ddc21aa52780e356c1ead88929e86018ff752ab9007a075f84552d1197ee15b850d0f600441fbceb55b68209014891b3bc306b5ea0af8cd180c"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 17,
+        "kind": "evidence",
+        "value": {
+          "generation": 17,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "7906bbc540419cc2fdea3bd1cc45a4bd6d9ce033e151912c391733e89cde4c2f62e08cae9855b2153260160eb9b51bdafed6c317bf0c1e2b227110aea9a7bb06"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 18,
+        "kind": "evidence",
+        "value": {
+          "generation": 18,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "91caa7f6bb591bdf72b18e17a6153d3a4aa8042b25031a75982d3c3ca31f562a0e38bfc1b66e896a4dafd858a8893c21f00bbfb930749e6edaf8f911b277d204"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 19,
+        "kind": "evidence",
+        "value": {
+          "generation": 19,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "af64de156aa1462b1f14a8d990ff74dabc7e9f87b94343789841f38270bda8391a79c4ecad71c082259ad4724eaf452ed992c8edffd8dfde9fde56175a956b01"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 20,
+        "kind": "evidence",
+        "value": {
+          "generation": 20,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "928fff58e4c7d12dd74707ff3df3dba9d4d4afe809206e6dbc8aff859b05b9a08451d39dfb6aab065f6b9b895506bf9b6cc19cfb6380d818008bc8e8b28c670a"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 21,
+        "kind": "evidence",
+        "value": {
+          "generation": 21,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "ee0fe0be00b4f0897ea0e68b42e0d3d0ecc6ab6a6040798c1fb5aecb95c8f59a498210ba8020e3b83fff59b28a77ebcb6b51a8d2f913313591f9b6141f09b304"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 22,
+        "kind": "evidence",
+        "value": {
+          "generation": 22,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "1dd1d5aa8937870703819c26523cf068e6f98c0bc2a37eb5b1477fd6390e7a64227fee0c2eb61dcc8e3ec50bc336c7b9196ed8bead43b0912c862fdf131b2f00"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 23,
+        "kind": "evidence",
+        "value": {
+          "generation": 23,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "f9e9ab00bbfd1679e67a63f1b4102b464933b3e187efe485ae992c15f427695e23727d23c26925b2b3201c346972226b630ce99f72432ff4dc73718fb022da03"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 24,
+        "kind": "evidence",
+        "value": {
+          "generation": 24,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "d26ef44a7f4bac289aeeb460608f6f5ee6fb0333fe89c929a63d83ec3e9e0118ec389a0f73fcfcc8a38f6be2453e2c3136242abde088a051d7028f7f32292d03"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 25,
+        "kind": "evidence",
+        "value": {
+          "generation": 25,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "78b9905697f898a69343dd29e004e7826f10cc00a411363c58e5de437b153c1d6ebb86719fa1bef49b2cfc7b2da01dd0f215ffe036f65fb68237bf32fa43770f"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 26,
+        "kind": "evidence",
+        "value": {
+          "generation": 26,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "63b01e033b29b536fc16089ea063e767a8d00c0ca969d56b1f72638f943cbcc54ee2871cf95b8319c04b586c1195d4105d5f3a5f370225568df2570a8d5bc003"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 27,
+        "kind": "evidence",
+        "value": {
+          "generation": 27,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "bf5ff708028c960d85a445dc693bb902f8caa8493b151d685e7e42207b3b9d90714b031ba9174a50ed38e314db301e043d2af93c3b12b05bcb72eeffd62d140d"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 28,
+        "kind": "evidence",
+        "value": {
+          "generation": 28,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "07f8a8451f195f5b2142a17d76cb9535f8274e6aec4a9ccc5e0ef525bbd12b29bfddf9c193c36d76f3b0e2601d40ff7b2e64c971deb27e92cceeb1acb76a920b"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 29,
+        "kind": "evidence",
+        "value": {
+          "generation": 29,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "c86e8ab6b239dc3088e4dfd285c3594343654cf160f1e571d37c61e182b2c08e5408bf7cbacfa91cb4a40c24f8c1ec6c282b7356b32190868a67ce8615823200"
+      },
+      {
+        "requestId": "mesh-evolve-42",
+        "agentId": "mesh-evolver",
+        "step": 30,
+        "kind": "evidence",
+        "value": {
+          "generation": 30,
+          "champion": {
+            "weights": {
+              "sameProvider": 0.6248072216752918,
+              "sameArch": 0.4386243325192481,
+              "sameSize": 0.1,
+              "sourceJaccard": 0.15,
+              "sameAccuracyBand": 0.2
+            },
+            "quorumThreshold": 1.8682114632800222
+          },
+          "fitness": {
+            "separation": 1.25,
+            "familyStack": 1,
+            "diversePair": 2,
+            "topicRatio": null,
+            "hardGatesPass": true
+          },
+          "promoted": false,
+          "candidateCount": 4
+        },
+        "confidence": 1,
+        "uncertainty": 0,
+        "dependencies": [],
+        "capabilityUsed": "governed-evolution",
+        "evidenceHashes": [],
+        "cost": 0,
+        "signature": "bde5e27e08e02a98e5923ce19c6846d3e65984457288ab59226b8bec08a03ab3d44b61bed7e85994b915f91d0f1ce4582e54baf8bd952bc49f2651760fbc940a"
+      }
+    ],
+    "ledger": {
+      "requestId": "mesh-evolve-42",
+      "entries": [
+        {
+          "index": 0,
+          "frameHash": "609f98b5375edf7b043795056b695a4c5b0599a780c19434a2033ff4bbdb0bba",
+          "chain": "471dc640e3cf1c000df7a30bdff258705a7164885bdc411cd25a6ebd981f3c6c"
+        },
+        {
+          "index": 1,
+          "frameHash": "9ae60eb315bad16391b0ba2359f0f18c67aa19a0797d1617b26b0e8684420a41",
+          "chain": "149cc6549d05329a9876d3d3b0d9f0aeefb705a075a12a2a6310c90db5136064"
+        },
+        {
+          "index": 2,
+          "frameHash": "936105da727b7a873e9babb4f99ee7a2d00c4db29a646e5024f60d05a175e2d3",
+          "chain": "9af833a2821d90016cd2bd3588a2ad2c728070e329cbbe0136e4d926c4796c78"
+        },
+        {
+          "index": 3,
+          "frameHash": "b7edfb7dae4a625060d344403bfc41aa2f51e5fcd9fcd8c0a132fd5b0f843a43",
+          "chain": "0adc38d5c3742acc718f2f1d45d30a0d7e01b2c84328caaebc8b6c67737bd725"
+        },
+        {
+          "index": 4,
+          "frameHash": "e2f9854122df4516232ec8254a16edc10b78d9e58e569382523d4b5fe4713254",
+          "chain": "5ba6cbb6a8b34a5506cc3ae0b9d4fb673b24f59ee3185b0917bc42e95449e964"
+        },
+        {
+          "index": 5,
+          "frameHash": "d26eb4b4163a1d2ae1226a47ff016e7a2397ed5ce378da06b1a53d2e3a982c54",
+          "chain": "ab4efb9da69358df861330ea5981f902535b30f1bef9ecbeeabb753094aaa675"
+        },
+        {
+          "index": 6,
+          "frameHash": "d0dbef705b789ce17f0aa808f94c1a7522fb26cd2d052f9810fc8dcc913994c4",
+          "chain": "a6d7e02faa40fe5609de6e84a5bcafcfea4f995509d70f0529832558a43a28af"
+        },
+        {
+          "index": 7,
+          "frameHash": "1fa5cd1469047c33edfcf13664bc806baeac0dd5aa11f53052b76df1d169bc9d",
+          "chain": "a1790ed2aff33eb8c316fd3457d5c81dbabe4b7bea41bfa2e554471a14119a4e"
+        },
+        {
+          "index": 8,
+          "frameHash": "670ce40bcca44eca431c287d831f98db1560637e8c89eeaa0d5b5418b47bd551",
+          "chain": "8cc5fb45e9a60ef41b20d7d0d1b21f7dd2733e4cc60f43da4198510aa1a5b09c"
+        },
+        {
+          "index": 9,
+          "frameHash": "1cf2b4371226efdf912649a3328664a3d5ab85bfd17b39597e9e544bde170fae",
+          "chain": "43e58b1b78c56b78352eeeffa289c2e60c94c2333e91e1e8b884385cc77b6ada"
+        },
+        {
+          "index": 10,
+          "frameHash": "d8e36fb54ff7d7b01a620f2a0388c1079094fb0f6572118074e4384515985245",
+          "chain": "efd237cdd619f44ca0627565b3617ac37baadc93f6894252fbab9c4303718d17"
+        },
+        {
+          "index": 11,
+          "frameHash": "8a7da1d59a5e640d61c3b05db5c6ccbc3e89baaf6d4bd17c11df5adb95e30b02",
+          "chain": "174a09640b0e7e6853e4852d773e1857d0c3f6e2c9b2cbfd460702d8c59e1353"
+        },
+        {
+          "index": 12,
+          "frameHash": "b83d60465a713e168581859d35133aca62bf0ed88e89fe557d8288dd4e5e785b",
+          "chain": "15bd784ecf38768b0109267a3106a87798b1fb92029f24a7253b9229a4aede90"
+        },
+        {
+          "index": 13,
+          "frameHash": "d529a25f0062b64412b03cbe54dff192f0e9f7a714667a220c487f5571267b7e",
+          "chain": "d2431b7ec0561e6cf9af1054d076580a12e390ff428c764b7732a99921afebab"
+        },
+        {
+          "index": 14,
+          "frameHash": "2b68c19c290737edc00fe3d89e76d4ad227c842a925a394c8f9add0b7c46337c",
+          "chain": "de72ae0dab26cc794f345b05d6ab976bbfcb1572d63f7e499419ee3dc62cb084"
+        },
+        {
+          "index": 15,
+          "frameHash": "9454f6185809b2310ae3aa993ffb1c0c5a008e8015f5e54b6fc6a419101deadd",
+          "chain": "d10110a82195d565775ae2b4d252a2a6eaac38a1460ec8d0c1f727b97e4ce32d"
+        },
+        {
+          "index": 16,
+          "frameHash": "c1a2d0e6166b2f5c7bd08ffd491f8c2fcee5a474e583cc7ea7ff5339649ad237",
+          "chain": "bc9d9cbc5d31850f7e1ce49c534384c85304a9f371af8b10105c499c2e701dc4"
+        },
+        {
+          "index": 17,
+          "frameHash": "4cd2eb1f9d3a71ecbeca22ca3b300851eb70b077819359fdc917ce476a045a87",
+          "chain": "8a45f322507c746759e80908be80e24c134a18f055d5ae139636873dfd84d34f"
+        },
+        {
+          "index": 18,
+          "frameHash": "2b7f941d4a1f7244da8a4b47c519c81dad55eb2f54ce899ced01fe47cfad27bb",
+          "chain": "aaf71ff54cc5a3dd41e31814dc3df6a6c2dc395e9a01c9fea23f5e55cf2c545d"
+        },
+        {
+          "index": 19,
+          "frameHash": "9e8c2bdd32ba3b604f24a2b201179e9d81a6e00efc01c513d42cca0e2abe8258",
+          "chain": "80f85d321b009c1e9fad6003ca1dee6ef9333733d2c5efb3ad80a17d3ccd5f8c"
+        },
+        {
+          "index": 20,
+          "frameHash": "276f3c50691f2d57c02b85a98db22543dc4829c3fad356eeb45497fa071ae754",
+          "chain": "c8e3c634cb98f4a02cdd3629a58e3fed92b3c5d4305154d6f1174254ac9d7b76"
+        },
+        {
+          "index": 21,
+          "frameHash": "c4c26dab24df00d8eb0a8b41cc62fdc2d405cd0c6e9b0451d3d9529cd1a4466c",
+          "chain": "8c64b6dd81ce9b9f70f9a9d2d8882057ca914b335db583da21e9e1c4d517c0a1"
+        },
+        {
+          "index": 22,
+          "frameHash": "3bf55f2f43f74876d765ec17405c303201a0da06a5af3c13f981ea20fa3188d4",
+          "chain": "d6263575ec972e065e70ba3ea97ead5d415a0f14160e8356f2296ab215ae6c4d"
+        },
+        {
+          "index": 23,
+          "frameHash": "ac5c81e470ca8bb867046e4bdb19a6f8147dc94e454b950f43f653f3f1a0dd66",
+          "chain": "579a19351808d9fffacc98356e3743094d9a24721a8b40c714cea9ef382ba408"
+        },
+        {
+          "index": 24,
+          "frameHash": "7d28dbc8cab933716f1e6e354be66af3a32da55c63909c5ee47ad46d997b70da",
+          "chain": "561085f24eb0e33538b1a732ebc5c63527263af14668fd5b787596156a7042ea"
+        },
+        {
+          "index": 25,
+          "frameHash": "ae43bb306442e461ff49e07b22d210e2a1d4c291e3893dd0eda954fddaaa8251",
+          "chain": "c11c10ee13ce0d710d352891c1f7502ebabe35baf22c49830c63564c7a01ca38"
+        },
+        {
+          "index": 26,
+          "frameHash": "c5c6f2a32a642bf579dcb9b5277caeacd1bd9c3ea2ee7da01927eb7718fc2aa5",
+          "chain": "7dc00adfeda1f8d6a2a2d7ca69326e5637962e4654b886bfc2d6953f35c1e32f"
+        },
+        {
+          "index": 27,
+          "frameHash": "47b1d7a399357ffc82423825939ea6cbc9f04fa303621d708032bc70933175cb",
+          "chain": "1f885001d041607a8b011f11f25afd9b4947fd2494e2c0279c3ee94fcf78aa54"
+        },
+        {
+          "index": 28,
+          "frameHash": "2e6539dc15234adfefef04586abc34623562d1bb86cee846cb1a13f41589a49a",
+          "chain": "5aff45c7b82348c47cea232fc8b5b80c91e607b806ea13001e94a7b00c04318a"
+        },
+        {
+          "index": 29,
+          "frameHash": "532d13d57a132cfd116c7034287e1d07be1c71d6dabe6330d7ac9cc2f677bda7",
+          "chain": "ab67a4b97cc999bbdfb98f366e221c2d9afcffb8e19257e60c3c36a83dfdbe5d"
+        }
+      ],
+      "root": "ab67a4b97cc999bbdfb98f366e221c2d9afcffb8e19257e60c3c36a83dfdbe5d",
+      "rvfAvailable": false
+    },
+    "nativeRustVerifierExecuted": false,
+    "nativeRustBlocker": "cargo unavailable"
+  },
+  "decision": {
+    "rsiEfficacy": "NOT_PROVEN",
+    "deploy": false,
+    "explanation": "MetaHarness rejects the measured RSI candidate. Autogenous demonstrates bounded mesh parameter evolution on its existing fixture, not recursive improvement efficiency."
+  }
+}

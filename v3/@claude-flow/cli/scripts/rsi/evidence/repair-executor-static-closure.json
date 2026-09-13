@@ -1,0 +1,69 @@
+{
+  "schema": "ruflo.repair-executor-static-closure-result/v1",
+  "reservation": "repair-executor-static-closure.reservation.json",
+  "source": {
+    "commit": "4d40f1f6ff23974042a1a406d10025482ba74b0b",
+    "tree": "55c217707d7da879a9b9cf4fe367ddb088631cb5",
+    "runtimeLayoutHash": "ccf90161f686638f6409a6f187631e5848713ed2f5174df47466018c5c5ae8f8"
+  },
+  "finishedAt": "2026-09-13T05:47:53.141Z",
+  "decision": "DECLARED_STATIC_DT_NEEDED_CLOSURE_VERIFIED_RUNTIME_STARTUP_UNVERIFIED",
+  "tests": {
+    "command": "node --test v3/@claude-flow/cli/scripts/rsi/repair/runtime-layout.test.mjs",
+    "tests": 17,
+    "passed": 17,
+    "failed": 0,
+    "durationMs": 115.981869,
+    "candidateProcesses": 0
+  },
+  "hostObservation": {
+    "elapsedMs": 338.770759,
+    "platform": "linux",
+    "architecture": "x64",
+    "nodeVersion": "v24.19.0",
+    "declaredStaticClosureVerified": true,
+    "sharedLibraryCount": 8,
+    "identitiesPinned": true,
+    "searchPathOverridesAbsent": true,
+    "runtimeLayoutVerified": true
+  },
+  "ci": {
+    "workflow": "bounded-rsi-experiment",
+    "runId": 34741093717,
+    "url": "https://github.com/ruvnet/ruflo/actions/runs/34741093717",
+    "researchLoop": "success",
+    "verify": "success",
+    "historicalEpochReplay": "success"
+  },
+  "costs": {
+    "parentValidationProcessStarts": 2,
+    "summedReportedWallMs": 454.752628,
+    "candidateEvaluations": 0,
+    "isolatedProcessStarts": 0,
+    "nativeFieldCalls": 0,
+    "externalProviderSpendUsd": 0,
+    "totalAcquisitionUsd": null,
+    "totalEvaluationUsd": null,
+    "outerEngineeringCostUsd": null
+  },
+  "legacyMission": {
+    "head": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "nativeFieldCallsReserved": 209784,
+    "epochsConsumed": 7,
+    "changed": false
+  },
+  "removedBlocker": "UNVERIFIED_DECLARED_STATIC_DT_NEEDED_DEPENDENCY_GRAPH",
+  "remainingBlockers": [
+    "BUBBLEWRAP_IDENTITY_UNPINNED",
+    "IMMUTABLE_RUNTIME_SNAPSHOT_ABSENT",
+    "DATA_DRIVEN_RUNTIME_LOADS_UNVERIFIED",
+    "ABI_RELOCATION_AND_STARTUP_UNVERIFIED",
+    "OS_NAMESPACE_MOUNT_AND_EGRESS_ISOLATION_UNVERIFIED",
+    "COMPATIBLE_ISOLATION_RUNNER_ABSENT",
+    "REPAIR_RESOURCE_AUTHORIZATION_ABSENT"
+  ],
+  "largestUncertainty": "Whether inherited failure-analysis state improves descendants' ability to produce better successors on fresh tasks under matched cost",
+  "resourceAuthorizationPresent": false,
+  "candidateExecutionEnabled": false,
+  "boundedRsiEvidenceAccepted": false
+}

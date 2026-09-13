@@ -1,0 +1,282 @@
+{
+  "schema": "ruflo.public-repair-source-capsules/v1",
+  "createdAt": "2026-09-12T21:43:00Z",
+  "workloadManifestHash": "4f6cb0b90be2b8de5c438a637164bdc483ec2cf83bdd982e9121dc7a2a20307e",
+  "workloadManifestSourceCommit": "03840179a052934a6de0a094106e6495f07ec6f3",
+  "purpose": "Mirror exact public changed-source, upstream-test, license and package-manifest Git blobs before any optimizer sees workload outcomes.",
+  "proofBoundary": {
+    "use": "EXPOSED_DEVELOPMENT_ACQUISITION_ONLY",
+    "fixesExposed": true,
+    "sealedEvaluation": false,
+    "evaluatorKeys": [],
+    "candidateExecutionEnabled": false,
+    "boundedRsiEvidenceAccepted": false
+  },
+  "mirroring": {
+    "mirroredBlobCount": 23,
+    "mirroredByteCount": 289533,
+    "completeManifestBoundNonLockBlobs": true,
+    "completeDependencyLocks": false,
+    "completeSourceTrees": false,
+    "completeDependencyClosures": false,
+    "offlineExecutable": false,
+    "deferred": [
+      {
+        "repository": "ruvnet/RuVector",
+        "sourcePath": "Cargo.lock",
+        "blob": "2a7d2169469cefb3a431c3a08a511814e8ac246d",
+        "reason": "FREEZE_WITH_COMPLETE_OFFLINE_CARGO_DEPENDENCY_CLOSURE"
+      },
+      {
+        "repository": "pallets/click",
+        "sourcePath": "uv.lock",
+        "blob": "5f3a69c95e73a96cda399c7c83591a859de7f834",
+        "reason": "FREEZE_WITH_COMPLETE_OFFLINE_PYTHON_DEPENDENCY_CLOSURE"
+      }
+    ]
+  },
+  "blobs": [
+    {
+      "blob": "05ee2e99757adb19882664e1fc0377ac29c92f80",
+      "bytes": 996,
+      "encoding": "base64",
+      "path": "public-capsules/05ee2e99757adb19882664e1fc0377ac29c92f80.b64",
+      "repo": "pallets/click",
+      "role": "changed-base",
+      "sha256": "782642b7026db180f941892435627c318ffc001223cbc31cce030cc95637dab4",
+      "sourcePath": "src/click/_utils.py"
+    },
+    {
+      "blob": "0e019f47889766721c4a6424c7915dc40a81532a",
+      "bytes": 4972,
+      "encoding": "base64",
+      "path": "public-capsules/0e019f47889766721c4a6424c7915dc40a81532a.b64",
+      "repo": "sindresorhus/p-limit",
+      "role": "changed-base",
+      "sha256": "d0b6307a91006ba7e82674dd0400a2e1058c5dbbf9591f0764d16c762f1476e8",
+      "sourcePath": "readme.md"
+    },
+    {
+      "blob": "1a20857eadff3f14d22cbf94fb740c6e728cb0b8",
+      "bytes": 4467,
+      "encoding": "base64",
+      "path": "public-capsules/1a20857eadff3f14d22cbf94fb740c6e728cb0b8.b64",
+      "repo": "sindresorhus/p-limit",
+      "role": "changed-fix",
+      "sha256": "7b1abaeec6af1540ed700b39fd5b6c0aa0b7dd1a17b5f82d0d1e6f2bf87ae1e4",
+      "sourcePath": "index.d.ts"
+    },
+    {
+      "blob": "1dd5b15166b342afcc3daf344bc91b26578664b3",
+      "bytes": 1070,
+      "encoding": "base64",
+      "path": "public-capsules/1dd5b15166b342afcc3daf344bc91b26578664b3.b64",
+      "repo": "pallets/click",
+      "role": "changed-base",
+      "sha256": "72f56290175eb0b5f8fa839fe6441c50703cdde9f56adc3793378b370c1dab1c",
+      "sourcePath": "tests/test_utils/test_sentinel.py"
+    },
+    {
+      "blob": "2d4e8f242619dce6fe36d6f262500ea513214db5",
+      "bytes": 1259,
+      "encoding": "base64",
+      "path": "public-capsules/2d4e8f242619dce6fe36d6f262500ea513214db5.b64",
+      "repo": "pallets/click",
+      "role": "changed-fix",
+      "sha256": "c7a62c70514253d091cbca49917fe16281556db1aa83bb389532180c47dc1233",
+      "sourcePath": "src/click/_utils.py"
+    },
+    {
+      "blob": "2dd524ac380d7e2f68710913b95e3dbd4cce7319",
+      "bytes": 1060,
+      "encoding": "base64",
+      "path": "public-capsules/2dd524ac380d7e2f68710913b95e3dbd4cce7319.b64",
+      "repo": "ruvnet/RuVector",
+      "role": "license",
+      "sha256": "50fefb93560af4421369c99c93cc214cd835b3181ab7f16323f9e6f2ded870e3",
+      "sourcePath": "LICENSE"
+    },
+    {
+      "blob": "356c4d8194eb451df3aa932ab9fc493b51f95833",
+      "bytes": 9139,
+      "encoding": "base64",
+      "path": "public-capsules/356c4d8194eb451df3aa932ab9fc493b51f95833.b64",
+      "repo": "sindresorhus/p-limit",
+      "role": "changed-fix",
+      "sha256": "9c9fe3a3d5054ac742d60db9684f076fe9f3ac538eba5c2884944caa418d1a52",
+      "sourcePath": "test.js"
+    },
+    {
+      "blob": "3c9a94e6c9d9a5ba8b658b4c58ede428e95ac515",
+      "bytes": 70177,
+      "encoding": "base64",
+      "path": "public-capsules/3c9a94e6c9d9a5ba8b658b4c58ede428e95ac515.b64",
+      "repo": "pallets/click",
+      "role": "changed-base",
+      "sha256": "73ddb9996dfc8c9dcf9367a4839ffc5b06ac2f8ce552bba5e3269cc3a2239c0e",
+      "sourcePath": "CHANGES.md"
+    },
+    {
+      "blob": "457778a30d3abf77f9371a2df7e0e20a043ffed1",
+      "bytes": 1244,
+      "encoding": "base64",
+      "path": "public-capsules/457778a30d3abf77f9371a2df7e0e20a043ffed1.b64",
+      "repo": "sindresorhus/p-limit",
+      "role": "changed-fix",
+      "sha256": "2b2d5e162277d9643cd4f7a2efb3888c07bcf3b33cf0eb015a709280a923d5fa",
+      "sourcePath": "index.test-d.ts"
+    },
+    {
+      "blob": "4ced0d5fad8270b7e0308b70584dba4dedbbb503",
+      "bytes": 2324,
+      "encoding": "base64",
+      "path": "public-capsules/4ced0d5fad8270b7e0308b70584dba4dedbbb503.b64",
+      "repo": "pallets/click",
+      "role": "changed-fix",
+      "sha256": "7d37d0d6341d70972ad09d4178a3fd92f28de40e0ccd573230daaed2b6f31599",
+      "sourcePath": "tests/test_utils/test_sentinel.py"
+    },
+    {
+      "blob": "5a6496341ba8a9efacff16ed3734f203b4186461",
+      "bytes": 4429,
+      "encoding": "base64",
+      "path": "public-capsules/5a6496341ba8a9efacff16ed3734f203b4186461.b64",
+      "repo": "sindresorhus/p-limit",
+      "role": "changed-base",
+      "sha256": "172c7feeb0cbc159e09810b076a1b6584d769ba15052b77c88e281c1221c23ca",
+      "sourcePath": "index.d.ts"
+    },
+    {
+      "blob": "5ecd39257c623b6dd4df204bbd7c94fbdf0b8d12",
+      "bytes": 3315,
+      "encoding": "base64",
+      "path": "public-capsules/5ecd39257c623b6dd4df204bbd7c94fbdf0b8d12.b64",
+      "repo": "sindresorhus/p-limit",
+      "role": "changed-base",
+      "sha256": "30fa94b6aebe7f044f7383feee7931fc7c1a4912affadac97539cda67c14057d",
+      "sourcePath": "index.js"
+    },
+    {
+      "blob": "64347920c589731fccd568dd3fa4d34e71bee451",
+      "bytes": 5241,
+      "encoding": "base64",
+      "path": "public-capsules/64347920c589731fccd568dd3fa4d34e71bee451.b64",
+      "repo": "sindresorhus/p-limit",
+      "role": "changed-fix",
+      "sha256": "d319b5cd690ff94a7957a225aa449b297e8bfc545767d8fa23dbb11c6a2afc85",
+      "sourcePath": "readme.md"
+    },
+    {
+      "blob": "672c31a4869223c57367a0f1ac640fc5281b524f",
+      "bytes": 1209,
+      "encoding": "base64",
+      "path": "public-capsules/672c31a4869223c57367a0f1ac640fc5281b524f.b64",
+      "repo": "sindresorhus/p-limit",
+      "role": "changed-base",
+      "sha256": "064f7730458642af15b53399bf764ada95a7b5c571c4351f17e7e4cdb2d5adf4",
+      "sourcePath": "index.test-d.ts"
+    },
+    {
+      "blob": "77daf847424ab0af12350aeda27d810a60c92562",
+      "bytes": 1055,
+      "encoding": "base64",
+      "path": "public-capsules/77daf847424ab0af12350aeda27d810a60c92562.b64",
+      "repo": "sindresorhus/p-limit",
+      "role": "package-manifest",
+      "sha256": "1076341808f20cb854314a2b8e121ee8b0b269a7060c9e26ec37572d06bd29bd",
+      "sourcePath": "package.json"
+    },
+    {
+      "blob": "7c1a1bab9ddc769beb2c1ee506ca990b5d9e84d6",
+      "bytes": 70297,
+      "encoding": "base64",
+      "path": "public-capsules/7c1a1bab9ddc769beb2c1ee506ca990b5d9e84d6.b64",
+      "repo": "pallets/click",
+      "role": "changed-fix",
+      "sha256": "2083b435ad84369ac3166a6385544c20d6040ecaeceeafc521301c19cb75fefb",
+      "sourcePath": "CHANGES.md"
+    },
+    {
+      "blob": "b41d72a5ee1d48e201f3da02187dba4fc9192cb2",
+      "bytes": 5320,
+      "encoding": "base64",
+      "path": "public-capsules/b41d72a5ee1d48e201f3da02187dba4fc9192cb2.b64",
+      "repo": "pallets/click",
+      "role": "package-manifest",
+      "sha256": "6cca567eef4004426c3a42a94de7ef6b971992f1d7292faea3a17dd322d92717",
+      "sourcePath": "pyproject.toml"
+    },
+    {
+      "blob": "b74d48ab0e37788e657e5ad12d90e281ef1f39d1",
+      "bytes": 3446,
+      "encoding": "base64",
+      "path": "public-capsules/b74d48ab0e37788e657e5ad12d90e281ef1f39d1.b64",
+      "repo": "sindresorhus/p-limit",
+      "role": "changed-fix",
+      "sha256": "63239cd9ae80b1433e05014fe6ec501475c6fa59fad06418cb5972dbc7cc14e2",
+      "sourcePath": "index.js"
+    },
+    {
+      "blob": "c1669376437688c8eead82471410ed5366dfa8bf",
+      "bytes": 42430,
+      "encoding": "base64",
+      "path": "public-capsules/c1669376437688c8eead82471410ed5366dfa8bf.b64",
+      "repo": "ruvnet/RuVector",
+      "role": "changed-base",
+      "sha256": "0ef4ea3da4cd3da898eac654a9c1a6cfd73729fa676e5c4946d9ca37b359fb34",
+      "sourcePath": "crates/ruvector-graph/src/cypher/parser.rs"
+    },
+    {
+      "blob": "d12a849186982399c537c5b9a8fd77bf2edd5eab",
+      "bytes": 1475,
+      "encoding": "base64",
+      "path": "public-capsules/d12a849186982399c537c5b9a8fd77bf2edd5eab.b64",
+      "repo": "pallets/click",
+      "role": "license",
+      "sha256": "9a8ad106a394e853bfe21f42f4e72d592819a22805d991b5f3275029292b658d",
+      "sourcePath": "LICENSE.txt"
+    },
+    {
+      "blob": "e303a46c6f9b263089954e13c99dfa32adb27934",
+      "bytes": 8764,
+      "encoding": "base64",
+      "path": "public-capsules/e303a46c6f9b263089954e13c99dfa32adb27934.b64",
+      "repo": "sindresorhus/p-limit",
+      "role": "changed-base",
+      "sha256": "b8194d02fd7472e55ba9e80c89ccaeb4ce0e000e3241a06ba8b40e7a3dbcd1c8",
+      "sourcePath": "test.js"
+    },
+    {
+      "blob": "f392d90f5a5fa2bef1b6b0323fd98f09b3c31d93",
+      "bytes": 44727,
+      "encoding": "base64",
+      "path": "public-capsules/f392d90f5a5fa2bef1b6b0323fd98f09b3c31d93.b64",
+      "repo": "ruvnet/RuVector",
+      "role": "changed-fix",
+      "sha256": "710757ec5383f7be627b67cd0e252e2b07def741c1fd94103435cce819249d24",
+      "sourcePath": "crates/ruvector-graph/src/cypher/parser.rs"
+    },
+    {
+      "blob": "fa7ceba3eb4a9657a9db7f3ffca4e4e97a9019de",
+      "bytes": 1117,
+      "encoding": "base64",
+      "path": "public-capsules/fa7ceba3eb4a9657a9db7f3ffca4e4e97a9019de.b64",
+      "repo": "sindresorhus/p-limit",
+      "role": "license",
+      "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3",
+      "sourcePath": "license"
+    }
+  ],
+  "accounting": {
+    "legacyLedgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "legacyNativeFieldCallsReserved": 209784,
+    "legacyEpochsConsumed": 7,
+    "newNativeFieldCalls": 0,
+    "repairCandidateEvaluations": 0,
+    "repairProcessStarts": 0,
+    "repairWallMs": 0,
+    "externalProviderSpendUsd": 0,
+    "totalAcquisitionUsd": null,
+    "totalEvaluationUsd": null
+  }
+}

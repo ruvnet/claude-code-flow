@@ -1,0 +1,90 @@
+{
+  "schema": "ruflo.public-repair-tree-payload-evidence/v1",
+  "recordedAt": "2026-09-13T00:25:00Z",
+  "sourceCommit": "3344314d06b324210af4686660a164ab76dc982c",
+  "sourceTree": "f55083c2227ccf31947e8be7fedb41bb63f2cb8d",
+  "payloadManifestHash": "154d9f56893cd5f1f78ac141a0de69f1b6b15ac21762948e03bf243ca2204ecb",
+  "decision": "ACCEPT_COMPACT_SOURCE_PAYLOAD_INCREMENT_ONLY",
+  "outcome": {
+    "completePayloadRepositories": [
+      "sindresorhus/p-limit",
+      "pallets/click"
+    ],
+    "packedBlobCount": 182,
+    "packedPayloadBytes": 1648424,
+    "completeAllWorkloadPayloads": false,
+    "completeDependencyClosures": false,
+    "offlineExecutable": false,
+    "candidateExecutionEnabled": false,
+    "boundedRsiEvidenceAccepted": false
+  },
+  "verification": {
+    "focusedTestsPassed": 139,
+    "focusedTestsFailed": 0,
+    "historicalEpochsReplayed": 7,
+    "ledgerAncestryVerified": true,
+    "runs": [
+      {
+        "run": 1,
+        "status": 0,
+        "elapsedMs": 3342.619,
+        "stdoutBytes": 1265,
+        "stderrBytes": 0
+      },
+      {
+        "run": 2,
+        "status": 0,
+        "elapsedMs": 3446.713,
+        "stdoutBytes": 1265,
+        "stderrBytes": 0
+      },
+      {
+        "run": 3,
+        "status": 0,
+        "elapsedMs": 3644.277,
+        "stdoutBytes": 1264,
+        "stderrBytes": 0
+      },
+      {
+        "run": 4,
+        "status": 0,
+        "elapsedMs": 3591.592,
+        "stdoutBytes": 1263,
+        "stderrBytes": 0
+      },
+      {
+        "run": 5,
+        "status": 0,
+        "elapsedMs": 3554.525,
+        "stdoutBytes": 1265,
+        "stderrBytes": 0
+      }
+    ],
+    "isolatedTestWallMs": 17579.726,
+    "engineeringValidationProcessStarts": 5,
+    "metaHarnessRun": false,
+    "autogenousRun": false,
+    "omissionReason": "No candidate or descendant outcome was measured; outcome checkers would add no measured value."
+  },
+  "accounting": {
+    "legacyLedgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "legacyNativeFieldCallsReserved": 209784,
+    "legacyEpochsConsumed": 7,
+    "newNativeFieldCalls": 0,
+    "repairCandidateEvaluations": 0,
+    "repairProcessStarts": 0,
+    "repairWallMs": 0,
+    "externalProviderSpendUsd": 0,
+    "totalAcquisitionUsd": null,
+    "totalEvaluationUsd": null
+  },
+  "largestUncertainty": "Whether inherited descendants improve their ability to produce further improvements on unseen repository tasks.",
+  "remainingBlockers": [
+    "RUVECTOR_COMPLETE_SOURCE_PAYLOADS",
+    "OFFLINE_DEPENDENCY_CLOSURES",
+    "PINNED_TOOLCHAINS",
+    "EVALUATOR_AUTHORED_HIDDEN_DEVELOPMENT_TESTS",
+    "REVIEWED_ISOLATED_CANDIDATE_EXECUTOR",
+    "OPERATOR_APPROVED_REPAIR_RESOURCE_ENVELOPE"
+  ]
+}

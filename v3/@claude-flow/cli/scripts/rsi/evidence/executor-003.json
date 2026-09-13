@@ -1,0 +1,91 @@
+{
+  "schema": "ruflo.repair-isolated-executor-evidence/v1",
+  "supersedes": "evidence/executor-002.json",
+  "supersessionReason": "Absent engine spawn streams are normalized to stable empty strings. Earlier negative receipts remain preserved.",
+  "decision": "EXECUTOR_CONTRACT_IMPLEMENTED_RUNNER_INCOMPATIBLE",
+  "sourceCommit": "2e8924c6b39719cd5a61a84bb729a4ea8cd8df58",
+  "sourceTree": "0f61e077d389ae3174cd4fa6d91759d5fd2ff167",
+  "policyHash": "84c079ec4d58d17bb63966bfe17924ed715c919cb46a7b6209d9836945608b9b",
+  "probePath": "evidence/executor-probe-003.json",
+  "probe": {
+    "schema": "ruflo.repair-isolation-capability-receipt/v1",
+    "policyHash": "84c079ec4d58d17bb63966bfe17924ed715c919cb46a7b6209d9836945608b9b",
+    "executorSourceSha256": "581a9ee5ae2365a77b6e37e3feb7373164ef0dce3af87cde7786fc4c288430b0",
+    "host": {
+      "platform": "linux",
+      "release": "6.18.35",
+      "arch": "x64"
+    },
+    "engine": {
+      "path": "/usr/bin/bwrap",
+      "sha256": "52231e1caf55bcbc667b269f49c63599a6f7db4767ae6a039580d0ff853db712",
+      "versionStatus": 0,
+      "versionStdout": "bubblewrap 0.9.0\n",
+      "versionStderr": ""
+    },
+    "capability": {
+      "schema": "ruflo.repair-isolation-probe/v1",
+      "policyHash": "84c079ec4d58d17bb63966bfe17924ed715c919cb46a7b6209d9836945608b9b",
+      "compatible": false,
+      "status": 1,
+      "signal": null,
+      "error": "ETIMEDOUT",
+      "stdout": "",
+      "stderr": "bwrap: open /proc/14/ns/ns failed: No such file or directory\n",
+      "observation": null,
+      "elapsedMs": 5005.715054,
+      "candidateExecutionEnabled": false
+    },
+    "costs": {
+      "engineeringProcessStarts": 2,
+      "wallMs": 5011.640315,
+      "candidateEvaluations": 0,
+      "externalProviderSpendUsd": 0,
+      "totalAcquisitionUsd": null,
+      "totalEvaluationUsd": null
+    },
+    "resourceAuthorizationPresent": false,
+    "candidateExecutionEnabled": false,
+    "boundedRsiEvidenceAccepted": false
+  },
+  "validation": {
+    "correctedSourceExecutorTests": 8,
+    "correctedSourceExecutorTestsPassed": 8,
+    "correctedSourceExecutorTestWallMs": 10203.109478,
+    "priorSourceFocusedTests": 172,
+    "priorSourceFocusedTestsPassed": 172,
+    "priorSourceFocusedTestWallMs": 44600.949589,
+    "historicalEpochsReplayed": 7,
+    "originalAnchor": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088",
+    "ledgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "lifetimeNativeFieldCallsReserved": 209784,
+    "lifetimeEpochs": 7
+  },
+  "accounting": {
+    "newMissionEpochs": 0,
+    "newNativeFieldCalls": 0,
+    "repairCandidateEvaluations": 0,
+    "repairProcessStarts": 0,
+    "repairWallMs": 0,
+    "engineeringProbeProcessStarts": 2,
+    "engineeringProbeWallMs": 5011.640315,
+    "externalProviderSpendUsd": 0,
+    "totalAcquisitionUsd": null,
+    "totalEvaluationUsd": null
+  },
+  "proofBoundary": {
+    "hypothesisExecuted": false,
+    "metaHarnessRun": false,
+    "autogenousRun": false,
+    "reason": "No candidate or descendant outcome was measured.",
+    "candidateExecutionEnabled": false,
+    "boundedRsiEvidenceAccepted": false
+  },
+  "largestUncertainty": "Whether inherited repair state improves descendants' ability to produce better successors on fresh tasks remains unmeasured.",
+  "actionableBlockers": [
+    "Compatible runner supporting Bubblewrap user, mount, PID and network namespaces",
+    "Reviewed resource authorization for the unchanged 36 evaluation, 216 start and 1080000 summed process millisecond proposal",
+    "Fresh hidden development tests and inherited diagnosis, patch and test-selection state"
+  ],
+  "nextAcceptance": "Run executor.mjs probe on a compatible reviewed runner; accept only compatible true with read-only source, writable dedicated output and internal-only interfaces, then externally review resource authorization before any candidate reservation."
+}

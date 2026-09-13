@@ -1,0 +1,144 @@
+{
+  "version": "ruflo.loop-toolcheck/v1",
+  "ledgerHead": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088",
+  "receiptHash": "92dae35489935bea3f11660b0f4fc593bba5de0f08c978231baef87e384049b6",
+  "replayedEpochs": 3,
+  "metaharness": {
+    "version": "0.1.11",
+    "replay": {
+      "pass": true,
+      "checks": {
+        "receipts": true,
+        "reachesRoot": true,
+        "contiguousParents": true,
+        "allPromoted": true,
+        "gateUnchanged": true,
+        "gateReExecutes": true,
+        "allCommitsReceipts": true,
+        "sealedFieldsAuthentic": true
+      },
+      "failures": [],
+      "chainSummary": "gen0(root)"
+    },
+    "improvements": 0,
+    "bundle": {
+      "data_source": "REPOSITORY_DEVELOPMENT",
+      "root_id": "root",
+      "chain": [
+        {
+          "id": "root",
+          "generation": 0,
+          "parents": [],
+          "mutation": null,
+          "primaryDelta": 0,
+          "anchorScore": null,
+          "verdict": "ROOT",
+          "failureReasons": [],
+          "receipt": {
+            "payload": {
+              "kind": "root",
+              "root": "root"
+            },
+            "signature": "ujiS/mjBJ3Jk7BzcptIv6lPENosX8X0sIpc+NkKUbFtzXHdva4o5FESZIshp7y8iYK7PVtCbWZ5r25MReG8HDA==",
+            "publicKey": "MCowBQYDK2VwAyEA7KtpK5GZXMlNHEuZTL6VrMxEZ6TzIu/BqzfPI0Pf1U8=",
+            "alg": "ed25519"
+          },
+          "createdAt": "gen-0"
+        }
+      ],
+      "all_commits": [
+        {
+          "id": "root__arm_gen1",
+          "generation": 1,
+          "parents": [
+            "root"
+          ],
+          "mutation": {
+            "target": "arm",
+            "summary": "adapt arm"
+          },
+          "primaryDelta": 0,
+          "anchorScore": null,
+          "verdict": "REJECTED",
+          "failureReasons": [
+            "noop_rate_not_improved"
+          ],
+          "receipt": {
+            "payload": {
+              "kind": "candidate",
+              "id": "root__arm_gen1",
+              "target": "arm",
+              "verdict": "REJECTED",
+              "primaryDelta": 0,
+              "baselineScore": {
+                "primary": 1,
+                "noopRate": 0,
+                "costPerWin": 32,
+                "regressed": false
+              },
+              "candidateScore": {
+                "primary": 1,
+                "noopRate": 0,
+                "costPerWin": 32,
+                "regressed": false
+              },
+              "anchorScore": null,
+              "failureReasons": [
+                "noop_rate_not_improved"
+              ],
+              "parents": [
+                "root"
+              ],
+              "generation": 1
+            },
+            "signature": "LW65+K7jETfrbtRIrsTUkS5QhjK6iU+/7DWKxxv6QS60kypeBOd3dulYFymM8IzuJvBks4MvyegPk1qXuLQ9CA==",
+            "publicKey": "MCowBQYDK2VwAyEA7KtpK5GZXMlNHEuZTL6VrMxEZ6TzIu/BqzfPI0Pf1U8=",
+            "alg": "ed25519"
+          },
+          "createdAt": "gen-1",
+          "baselineScore": {
+            "primary": 1,
+            "noopRate": 0,
+            "costPerWin": 32,
+            "regressed": false
+          },
+          "candidateScore": {
+            "primary": 1,
+            "noopRate": 0,
+            "costPerWin": 32,
+            "regressed": false
+          }
+        }
+      ],
+      "lift_curve": [
+        {
+          "generation": 0,
+          "primary": 1,
+          "delta": 0,
+          "anchor": null
+        }
+      ],
+      "gate_fingerprint": "b730019b67f5c0dd1aacb8674ce46933be9ff91c499eea87875fff3d0372e36d",
+      "verified_improvements": 0,
+      "anchor_surviving_improvements": 0,
+      "milestone_reached": false,
+      "created_at": "gen-1"
+    }
+  },
+  "autogenous": {
+    "source": "7bf327a9754ce798364dbee8b2825af42a421fd4",
+    "projection": "MRR mapped onto separation solely to exercise native gate; authorization context is a local test fixture",
+    "decision": {
+      "better": false,
+      "safe": true,
+      "authorized": true,
+      "reversible": true,
+      "promote": false
+    },
+    "unauthorizedRejected": true,
+    "irreversibleRejected": true
+  },
+  "limitation": "Library gate projections of the same recorded developer data, not independent task evaluation. Work-unit cost proxy is not dollars.",
+  "boundedRsiEvidenceAccepted": false,
+  "productionPromotion": false
+}

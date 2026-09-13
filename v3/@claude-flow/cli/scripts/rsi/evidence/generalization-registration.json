@@ -1,0 +1,45 @@
+{
+  "protocol": {
+    "version": "ruflo.generalization/v1",
+    "dataSource": "SYNTHETIC",
+    "seedStart": 830101,
+    "seeds": 16,
+    "generations": 6,
+    "trainTasks": 12,
+    "outerTasks": 24,
+    "steps": 16,
+    "checkpoints": [
+      0,
+      2,
+      4,
+      6
+    ],
+    "arms": [
+      "adaptive",
+      "frozen",
+      "shuffled"
+    ],
+    "trainFamily": "squared",
+    "outerFamilies": [
+      "permuted",
+      "absolute",
+      "coupled",
+      "multimodal"
+    ],
+    "comparisons": [
+      "frozen",
+      "shuffled",
+      "previous"
+    ],
+    "comparisonCount": 36,
+    "familywiseAlpha": 0.05,
+    "minMeanGain": 0.01,
+    "decision": "all 36 family/checkpoint comparisons must pass; no averaging away failures",
+    "externalBlindEvaluation": false,
+    "realTaskEvidence": false,
+    "productionPromotion": false
+  },
+  "evaluatorHash": "7efc639fb45428117c7bc1a9ed8ada52d18572218621c91f18dba3a02531a94f",
+  "learnerHash": "f03b80330b483f82bb1eae1a7f52cf38207a156b280629f5a795cbe6a46e623a",
+  "commitment": "9e4900b98581b2bbf4143fe3583115b2efc207b22b9e0dbd9c53851822174477"
+}

@@ -1,0 +1,72 @@
+{
+  "schema": "ruflo.p-limit-offline-plan/v1",
+  "mission": {
+    "originalAnchor": "c5c6da0b728c52414f2dff86f9d23121776d600defff0f214f1502a091f69088",
+    "head": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "fingerprint": "63258db258f134fe91277a3a542ba847f4c57a20e50027fb04cd51310a19c45b",
+    "epochs": 7,
+    "nativeFieldCallsReserved": 209784
+  },
+  "runtime": {
+    "version": "v24.19.0",
+    "platform": "linux",
+    "arch": "x64",
+    "executableSha256": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12"
+  },
+  "source": {
+    "runnerSha256": "ce8752ad5fecc835a2f8f7df53e6673e0cfea07fae5f4235bbfde48b0c02d698",
+    "supportModules": {
+      "admission.mjs": "ea58849fd46762946484703a77b76e860f7899c9ff44171f962a9cbe013ad895",
+      "public-workloads.mjs": "79ac418aa878ea5cdf5d2e0cfef2826eadc6b4da6af2333e5da1bb2e2968b396",
+      "public-tree-payloads.mjs": "6b9db45901f74f733687b96db48c6738c3e51fe66ec485ecdf6facd3bc92faef",
+      "public-tree-inventories.mjs": "be02e9ce93363b0c94519153705afdc838aa50d4444d44c2c218e1f0d7b60cfb",
+      "public-capsules.mjs": "dc087c0ade38784776982bf10e706020482c06c4d8faa689d99cd98d76cc1c66",
+      "../loop/ledger.mjs": "f62660103a28387fc0d6239db9eeb9cd478670343bb51a131502733a5c54b5ab",
+      "../loop/proof.mjs": "ae02dc49e1b8874fdbea995b40293e0384b4fd6545af43d4c0960bb3e90c5325",
+      "../loop/run.mjs": "7061be363a4423d677ffbc4dd5c5fe3e470fa43f7d0e4c74a5b94f146d32fb23",
+      "../loop/retrieval.mjs": "52e936bb9b03bda9e75677fcb0fef1e3f6a2fde4582d59a5119dff871232ebb4"
+    },
+    "dependencyManifestSha256": "c024825410a68e6625c8af459629b23fe1a26b96f9c7763d96859551132fe6e5",
+    "baseBlob": "5ecd39257c623b6dd4df204bbd7c94fbdf0b8d12",
+    "fixBlob": "b74d48ab0e37788e657e5ad12d90e281ef1f39d1",
+    "baseSha256": "30fa94b6aebe7f044f7383feee7931fc7c1a4912affadac97539cda67c14057d",
+    "fixSha256": "63239cd9ae80b1433e05014fe6ec501475c6fa59fad06418cb5972dbc7cc14e2",
+    "files": [
+      {
+        "path": "package.json",
+        "sha256": "1076341808f20cb854314a2b8e121ee8b0b269a7060c9e26ec37572d06bd29bd"
+      },
+      {
+        "path": "license",
+        "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
+      },
+      {
+        "path": "witness.mjs",
+        "sha256": "81cef62f6ffdf63339fab70d32a7ef62a1613e532dbd66ee52f9c115b85f41f9"
+      },
+      {
+        "path": "node_modules/yocto-queue/index.js",
+        "sha256": "84f06f3dc53d844dfd64806bc2b712d2a0444f303c73b9e9df1dba3e2f738b04"
+      },
+      {
+        "path": "node_modules/yocto-queue/package.json",
+        "sha256": "f4deaab9476d38639b6d6eefdb26292fab99ae546b4db68cf13fa8a92ee43992"
+      },
+      {
+        "path": "node_modules/yocto-queue/license",
+        "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
+      }
+    ]
+  },
+  "limits": {
+    "fixedWitnessProcesses": 2,
+    "timeoutMsPerProcess": 5000,
+    "outputBytesPerProcess": 65536,
+    "heapMb": 128
+  },
+  "scope": "EXPOSED_HISTORICAL_RUNTIME_WITNESS_ONLY",
+  "completeUpstreamTestEnvironment": false,
+  "adversarialSandbox": false,
+  "candidateExecutionEnabled": false,
+  "boundedRsiEvidenceAccepted": false
+}

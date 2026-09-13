@@ -1,0 +1,75 @@
+{
+  "schema": "ruflo.public-repair-target-payloads/v1",
+  "createdAt": "2026-09-13T00:34:17Z",
+  "workloadManifestHash": "4f6cb0b90be2b8de5c438a637164bdc483ec2cf83bdd982e9121dc7a2a20307e",
+  "treeInventoryManifestHash": "37bc69ff40d6a0d6780b09f28b4ff5f6982a87414a37d0e41d9ee4621513c4a8",
+  "priorPayloadManifestHash": "154d9f56893cd5f1f78ac141a0de69f1b6b15ac21762948e03bf243ca2204ecb",
+  "priorPayloadSourceCommit": "fdfffe4fd2457424cc4ce01957b40229759c60b0",
+  "purpose": "Preserve the complete frozen local source closure for the RuVector graph target and quantify why the unrelated full workspace payload requires a separate bounded decision.",
+  "proofBoundary": {
+    "use": "EXPOSED_DEVELOPMENT_ACQUISITION_ONLY",
+    "fixesExposed": true,
+    "sealedEvaluation": false,
+    "evaluatorKeys": [],
+    "candidateExecutionEnabled": false,
+    "boundedRsiEvidenceAccepted": false
+  },
+  "selection": {
+    "repository": "ruvnet/RuVector",
+    "baseTree": "c342b626d419ccc782850fd7bf918252f3c5b0d4",
+    "fixTree": "ddaa12ef4bb8447d4c2758479ae94d9e62f6e35f",
+    "targetPackage": "ruvector-graph",
+    "rootFiles": [".cargo/audit.toml", ".cargo/config.toml", "Cargo.lock", "Cargo.toml"],
+    "cratePrefixes": ["crates/ruvector-core/", "crates/ruvector-graph/", "crates/ruvector-turboquant/"],
+    "pathDependencyEdges": [
+      {"from": "crates/ruvector-graph/Cargo.toml", "to": "crates/ruvector-core/", "literal": "../ruvector-core"},
+      {"from": "crates/ruvector-core/Cargo.toml", "to": "crates/ruvector-turboquant/", "literal": "../ruvector-turboquant"}
+    ],
+    "path": "public-target-payloads/c342b626d419ccc782850fd7bf918252f3c5b0d4.ruvector-graph-local-closure.payload-pack-v1.gz.b64",
+    "encoding": "ruflo-payload-pack-v1+gzip+base64",
+    "blobCount": 169,
+    "payloadBytes": 2448546,
+    "rawBytes": 2457994,
+    "compressedBytes": 515049,
+    "rawSha256": "24c914f873d1c121fbd9c626a42571c15c6594a730b7ab0eb517fefd04afbe64",
+    "compressedSha256": "b94c823f1a096133e5e7eb7d4f9bd97ab19def29d1c18b58b92edbbde0cd72b6"
+  },
+  "fullTreeSizing": {
+    "path": "public-target-payloads/c342b626d419ccc782850fd7bf918252f3c5b0d4.unique-blob-sizes.gz.b64",
+    "encoding": "oid-size-nul+gzip+base64",
+    "records": 11997,
+    "rawBytes": 554757,
+    "compressedBytes": 315079,
+    "rawSha256": "f54c4a02db40ea93c8f78745f4704ffc7d94c079dbe072370faa82d8c7674db5",
+    "compressedSha256": "541702dfdddbd39099b154071b24423f425fcfc163b03b09b74e5c5881c2a64e",
+    "provenance": "REMOTE_GIT_OBJECT_DATABASE_OBSERVATION_NOT_PAYLOAD_PROOF"
+  },
+  "coverage": {
+    "completeTargetLocalSourceClosure": true,
+    "changedFixPayloadPresent": true,
+    "completeWorkspacePayloads": false,
+    "completeCratesIoDependencyClosure": false,
+    "pinnedRustToolchain": false,
+    "hiddenDevelopmentTestsFrozen": false,
+    "offlineExecutable": false,
+    "fullTreeBlobEntries": 12169,
+    "fullTreeUniqueBlobs": 11997,
+    "fullTreeReferencedBytes": 316496519,
+    "fullTreeBlobsOverOneMiB": 48,
+    "fullTreeBlobsOverTenMiB": 1,
+    "fullTreeLargestBlobBytes": 15996134,
+    "fullWorkspaceDeferralReason": "316496519_REFERENCED_BYTES_REQUIRES_SEPARATE_STORAGE_AND_ACQUISITION_APPROVAL"
+  },
+  "accounting": {
+    "legacyLedgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "legacyNativeFieldCallsReserved": 209784,
+    "legacyEpochsConsumed": 7,
+    "newNativeFieldCalls": 0,
+    "repairCandidateEvaluations": 0,
+    "repairProcessStarts": 0,
+    "repairWallMs": 0,
+    "externalProviderSpendUsd": 0,
+    "totalAcquisitionUsd": null,
+    "totalEvaluationUsd": null
+  }
+}

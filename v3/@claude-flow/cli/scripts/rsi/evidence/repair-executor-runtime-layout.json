@@ -1,0 +1,80 @@
+{
+  "schema": "ruflo.repair-executor-runtime-layout-result/v1",
+  "reservation": "repair-executor-runtime-layout.reservation.json",
+  "source": {
+    "commit": "5a3c6d7f12b2aa2efa9125a76ce5efd67f95bc49",
+    "tree": "8e06d9673450a716fd80cf43354b2cac1f2f32cc",
+    "runtimeLayoutHash": "6bcfdb29967558abbcff13c5cb4b3cbad9adeab85f6c15d3cd69de05e4c9b439"
+  },
+  "finishedAt": "2026-09-13T05:10:51.931Z",
+  "decision": "RUNTIME_LAYOUT_DEFECT_REMOVED_OS_ISOLATION_UNVERIFIED",
+  "tests": {
+    "command": "node --test v3/@claude-flow/cli/scripts/rsi/repair/runtime-layout.test.mjs",
+    "tests": 11,
+    "passed": 11,
+    "failed": 0,
+    "durationMs": 94.968349,
+    "candidateProcesses": 0
+  },
+  "hostObservation": {
+    "elapsedMs": 340.099475,
+    "platform": "linux",
+    "architecture": "x64",
+    "nodeVersion": "v24.19.0",
+    "node": {
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "canonicalPath": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "sha256": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12",
+      "interpreter": "/lib64/ld-linux-x86-64.so.2"
+    },
+    "prlimit": {
+      "path": "/usr/bin/prlimit",
+      "canonicalPath": "/usr/bin/prlimit",
+      "sha256": "17064f67e650d6152a6902b013aab496b54c87587c8eea6f5023aafee6154069",
+      "interpreter": "/lib64/ld-linux-x86-64.so.2"
+    },
+    "loader": {
+      "path": "/usr/lib64/ld-linux-x86-64.so.2",
+      "linkTarget": "../lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+      "canonicalPath": "/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+      "sha256": "6222a16be7f2d458d6870efe6e715fc0c8d45766fb79cf7dcc3125538d703e28"
+    },
+    "runtimeLayoutVerified": true
+  },
+  "ci": {
+    "workflow": "bounded-rsi-experiment",
+    "runId": 34739540003,
+    "url": "https://github.com/ruvnet/ruflo/actions/runs/34739540003",
+    "researchLoop": "success",
+    "verify": "success",
+    "historicalEpochReplay": "success"
+  },
+  "costs": {
+    "parentValidationProcessStarts": 2,
+    "summedReportedWallMs": 435.067824,
+    "candidateEvaluations": 0,
+    "isolatedProcessStarts": 0,
+    "nativeFieldCalls": 0,
+    "externalProviderSpendUsd": 0,
+    "totalAcquisitionUsd": null,
+    "totalEvaluationUsd": null,
+    "outerEngineeringCostUsd": null
+  },
+  "legacyMission": {
+    "head": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "nativeFieldCallsReserved": 209784,
+    "epochsConsumed": 7,
+    "changed": false
+  },
+  "removedBlocker": "MISSING_ELF_LOADER_PATH_IN_FIXED_ISOLATION_LAUNCH",
+  "remainingBlockers": [
+    "TRANSITIVE_SHARED_LIBRARY_CLOSURE_UNVERIFIED",
+    "OS_NAMESPACE_AND_MOUNT_ISOLATION_UNVERIFIED",
+    "COMPATIBLE_ISOLATION_RUNNER_ABSENT",
+    "REPAIR_RESOURCE_AUTHORIZATION_ABSENT"
+  ],
+  "largestUncertainty": "Whether inherited failure-analysis state improves descendants' ability to produce better successors on fresh tasks under matched cost",
+  "resourceAuthorizationPresent": false,
+  "candidateExecutionEnabled": false,
+  "boundedRsiEvidenceAccepted": false
+}

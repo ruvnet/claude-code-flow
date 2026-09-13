@@ -1,0 +1,15 @@
+{
+  "command": [
+    "node",
+    "v3/@claude-flow/cli/scripts/rsi/loop/replay-history.mjs",
+    "v3/@claude-flow/cli/scripts/rsi/evidence/loop-development",
+    "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e"
+  ],
+  "status": 0,
+  "error": null,
+  "wallMs": 8235.801586997695,
+  "stdout": "1.stdout.txt",
+  "stderr": "1.stderr.txt",
+  "stdoutSha256": "5c58fa8a15412f83454fd5b1c15982c4b3bf6abd3a277eda85146ea798cbadb2",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

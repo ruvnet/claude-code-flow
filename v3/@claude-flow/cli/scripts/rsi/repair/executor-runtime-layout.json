@@ -1,0 +1,97 @@
+{
+  "schema": "ruflo.repair-executor-runtime-layout/v2",
+  "platform": "linux",
+  "architecture": "x64",
+  "node": {
+    "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "version": "v24.19.0",
+    "sha256": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12",
+    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+    "needed": ["libdl.so.2", "libstdc++.so.6", "libm.so.6", "libgcc_s.so.1", "libpthread.so.0", "libc.so.6", "ld-linux-x86-64.so.2"]
+  },
+  "prlimit": {
+    "path": "/usr/bin/prlimit",
+    "sha256": "17064f67e650d6152a6902b013aab496b54c87587c8eea6f5023aafee6154069",
+    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+    "needed": ["libsmartcols.so.1", "libc.so.6"]
+  },
+  "allowedInterpreter": {
+    "path": "/usr/lib64/ld-linux-x86-64.so.2",
+    "linkTarget": "../lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+    "canonicalPath": "/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+    "sha256": "6222a16be7f2d458d6870efe6e715fc0c8d45766fb79cf7dcc3125538d703e28",
+    "root": "/usr"
+  },
+  "sharedLibraries": [
+    {
+      "soname": "ld-linux-x86-64.so.2",
+      "path": "/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+      "canonicalPath": "/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+      "linkTarget": null,
+      "sha256": "6222a16be7f2d458d6870efe6e715fc0c8d45766fb79cf7dcc3125538d703e28",
+      "needed": []
+    },
+    {
+      "soname": "libc.so.6",
+      "path": "/usr/lib/x86_64-linux-gnu/libc.so.6",
+      "canonicalPath": "/usr/lib/x86_64-linux-gnu/libc.so.6",
+      "linkTarget": null,
+      "sha256": "511f825ee075610ac9c0f7f91e2c13de2000d0f7b859f6461137e809a0a009d0",
+      "needed": ["ld-linux-x86-64.so.2"]
+    },
+    {
+      "soname": "libdl.so.2",
+      "path": "/usr/lib/x86_64-linux-gnu/libdl.so.2",
+      "canonicalPath": "/usr/lib/x86_64-linux-gnu/libdl.so.2",
+      "linkTarget": null,
+      "sha256": "feee7549138dc862300b9ba9b2b02502059c838a6c0b92d2ea4c0a357e8e0b45",
+      "needed": ["libc.so.6"]
+    },
+    {
+      "soname": "libgcc_s.so.1",
+      "path": "/usr/lib/x86_64-linux-gnu/libgcc_s.so.1",
+      "canonicalPath": "/usr/lib/x86_64-linux-gnu/libgcc_s.so.1",
+      "linkTarget": null,
+      "sha256": "d93224d2b0dab4247598be683adca02f5cf00586f99c187579cd7e92058fb7cb",
+      "needed": ["libc.so.6", "ld-linux-x86-64.so.2"]
+    },
+    {
+      "soname": "libm.so.6",
+      "path": "/usr/lib/x86_64-linux-gnu/libm.so.6",
+      "canonicalPath": "/usr/lib/x86_64-linux-gnu/libm.so.6",
+      "linkTarget": null,
+      "sha256": "f06f2ce1f1833df5f41cf13b6447ff07bea993ad9b27297d3428c2f70ab3f0e7",
+      "needed": ["libc.so.6", "ld-linux-x86-64.so.2"]
+    },
+    {
+      "soname": "libpthread.so.0",
+      "path": "/usr/lib/x86_64-linux-gnu/libpthread.so.0",
+      "canonicalPath": "/usr/lib/x86_64-linux-gnu/libpthread.so.0",
+      "linkTarget": null,
+      "sha256": "4472cde19acc87a431ad1eefe9e86f8238dd1f26f8dac692cff7040474d9d085",
+      "needed": ["libc.so.6"]
+    },
+    {
+      "soname": "libsmartcols.so.1",
+      "path": "/usr/lib/x86_64-linux-gnu/libsmartcols.so.1",
+      "canonicalPath": "/usr/lib/x86_64-linux-gnu/libsmartcols.so.1.1.0",
+      "linkTarget": "libsmartcols.so.1.1.0",
+      "sha256": "0560fded774642441657d3cf3125ac62234545dbe30725ed97cc6a79ba45791b",
+      "needed": ["libc.so.6"]
+    },
+    {
+      "soname": "libstdc++.so.6",
+      "path": "/usr/lib/x86_64-linux-gnu/libstdc++.so.6",
+      "canonicalPath": "/usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.33",
+      "linkTarget": "libstdc++.so.6.0.33",
+      "sha256": "1fd75fe70354a416d75aef22bcae68c47bd25d20e2d0568c30b1a9838cf62f11",
+      "needed": ["libm.so.6", "libc.so.6", "ld-linux-x86-64.so.2", "libgcc_s.so.1"]
+    }
+  ],
+  "syntheticSymlinks": [
+    {"target": "usr/lib", "link": "/lib"},
+    {"target": "usr/lib64", "link": "/lib64"}
+  ],
+  "candidateExecutionEnabled": false,
+  "boundedRsiEvidenceAccepted": false
+}

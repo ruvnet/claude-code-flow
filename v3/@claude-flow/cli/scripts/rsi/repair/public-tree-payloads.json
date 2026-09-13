@@ -1,0 +1,69 @@
+{
+  "schema": "ruflo.public-repair-tree-payloads/v1",
+  "createdAt": "2026-09-13T00:11:14Z",
+  "workloadManifestHash": "4f6cb0b90be2b8de5c438a637164bdc483ec2cf83bdd982e9121dc7a2a20307e",
+  "capsuleManifestHash": "f581dc26bee0d8ff03460c2734e29a236ce14596af65b652f48eb3b62bb77d2c",
+  "treeInventoryManifestHash": "37bc69ff40d6a0d6780b09f28b4ff5f6982a87414a37d0e41d9ee4621513c4a8",
+  "treeInventorySourceCommit": "60c9f65cfe1e34f22af86fc32d1f0d42f5b9b993",
+  "purpose": "Preserve and verify every base and fix source blob payload for two compact exposed public development workloads without claiming dependencies, execution, sealing or RSI.",
+  "proofBoundary": {
+    "use": "EXPOSED_DEVELOPMENT_ACQUISITION_ONLY",
+    "fixesExposed": true,
+    "sealedEvaluation": false,
+    "evaluatorKeys": [],
+    "candidateExecutionEnabled": false,
+    "boundedRsiEvidenceAccepted": false
+  },
+  "coverage": {
+    "completePayloadRepositories": ["sindresorhus/p-limit", "pallets/click"],
+    "deferredPayloadRepositories": [{"repository": "ruvnet/RuVector", "reason": "LARGE_TREE_REQUIRES_SEPARATE_BOUNDED_ACQUISITION"}],
+    "completeBaseAndFixTreePayloadsForCoveredRepositories": true,
+    "completeAllWorkloadPayloads": false,
+    "completeDependencyClosures": false,
+    "offlineExecutable": false,
+    "packedBlobCount": 182,
+    "packedPayloadBytes": 1648424,
+    "packRawBytes": 1655033,
+    "packCompressedBytes": 497992
+  },
+  "payloads": [
+    {
+      "repository": "sindresorhus/p-limit",
+      "baseTree": "21d1b1115ab955f499ca0de32b8819b936775dd9",
+      "fixTree": "15da3cf8d9426b331317aa3719e8a157721d3cbe",
+      "path": "public-tree-payloads/21d1b1115ab955f499ca0de32b8819b936775dd9.payload-pack-v1.gz.b64",
+      "encoding": "ruflo-payload-pack-v1+gzip+base64",
+      "blobCount": 16,
+      "payloadBytes": 44369,
+      "rawBytes": 44788,
+      "compressedBytes": 12292,
+      "rawSha256": "00f3a47bcd39d56d41d1108aa457a2cdd579018ded5792dfbc85b9a1ef316c6f",
+      "compressedSha256": "c8c8b2aa97ea4ff1a41d5c270be8be9b97fd6fc5eac4da29dd1299bb8120627a"
+    },
+    {
+      "repository": "pallets/click",
+      "baseTree": "2955d48825c98fd7dcbc60eb41cf18a952a2c0a3",
+      "fixTree": "b119ee08d395dfe02e0efbfe605863d2eac816dc",
+      "path": "public-tree-payloads/2955d48825c98fd7dcbc60eb41cf18a952a2c0a3.payload-pack-v1.gz.b64",
+      "encoding": "ruflo-payload-pack-v1+gzip+base64",
+      "blobCount": 166,
+      "payloadBytes": 1604055,
+      "rawBytes": 1610245,
+      "compressedBytes": 485700,
+      "rawSha256": "4babbfd8222ba43e764ba3c73f2bd28c0139a6dedcfa3f312142e1d30f868256",
+      "compressedSha256": "436d5ebbe96f65cebbc4b4d0467624f9b78dad079fb9901d19950a2acf47043a"
+    }
+  ],
+  "accounting": {
+    "legacyLedgerHead": "5a0e219e871fcf616209807c828c5793c29752f8d190fc38a0bc95e4db88422e",
+    "legacyNativeFieldCallsReserved": 209784,
+    "legacyEpochsConsumed": 7,
+    "newNativeFieldCalls": 0,
+    "repairCandidateEvaluations": 0,
+    "repairProcessStarts": 0,
+    "repairWallMs": 0,
+    "externalProviderSpendUsd": 0,
+    "totalAcquisitionUsd": null,
+    "totalEvaluationUsd": null
+  }
+}

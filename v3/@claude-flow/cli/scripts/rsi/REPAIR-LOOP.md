@@ -123,6 +123,11 @@ remain disabled. Read that increment before repeating accounting design work.
    and fix source payloads for the compact p-limit and Click workloads. The
    larger RuVector payload set and every offline dependency closure remain
    deliberately deferred, so candidate execution remains disabled.
+   [WORKLOADS-005.md](WORKLOADS-005.md) preserves the complete 169-blob local
+   source closure for the RuVector graph target and its two direct path-dependency
+   crates. It also freezes an object-size inventory showing that the unrelated
+   full workspace is 316496519 referenced bytes; that larger acquisition remains
+   separately gated and no runnable dependency closure is claimed.
    Continue to acquire independently specified real
    defects across repository and bug lineages. Record exclusions, fix exposure,
    source dependencies and costs. Freeze the sample before comparing methods.

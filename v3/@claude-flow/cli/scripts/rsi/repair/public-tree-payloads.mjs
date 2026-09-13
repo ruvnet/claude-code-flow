@@ -22,7 +22,7 @@ const exactKeys = (v, expected, reason) => ok(v && typeof v === 'object' && !Arr
 const safePath = path => !path.startsWith('/') && !path.includes('\\') &&
   path.split('/').every(p => p && p !== '.' && p !== '..');
 
-function parsePayloadPack(raw) {
+export function parsePayloadPack(raw) {
   ok(raw.subarray(0, MAGIC.length).equals(MAGIC), 'payload pack magic');
   const payloads = new Map();
   let offset = MAGIC.length, payloadBytes = 0;

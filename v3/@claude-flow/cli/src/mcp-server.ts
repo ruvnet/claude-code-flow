@@ -501,21 +501,10 @@ export class MCPServerManager extends EventEmitter {
       version: VERSION,
     }));
 
-    // Send server initialization notification
-    writeFrame({
-      jsonrpc: '2.0',
-      method: 'server.initialized',
-      params: {
-        serverInfo: {
-          name: 'ruflo',
-          version: VERSION,
-          capabilities: {
-            tools: { listChanged: true },
-            resources: { subscribe: true, listChanged: true },
-          },
-        },
-      },
-    });
+    // Per MCP protocol, the server MUST NOT send any messages to stdout before
+    // receiving the client's `initialize` request. The previous code sent a
+    // premature `server.initialized` notification here, which broke strict
+    // MCP clients like Claude Desktop (see #898).
 
     // Handle stdin messages (S-5: bounded buffer to prevent OOM)
     const MAX_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB

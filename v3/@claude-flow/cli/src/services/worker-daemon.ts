@@ -266,9 +266,12 @@ export class WorkerDaemon extends EventEmitter {
       minFreeMemoryPercent: fileConfig.minFreeMemoryPercent,
     };
 
-    // CPU-proportional smart default instead of hardcoded 2.0
+    // CPU-proportional smart default (#1077): os.loadavg() returns the
+    // system-wide 1-minute average across ALL cores. On an 8-core Mac under
+    // normal dev workload, load averages of 8-16 are typical. The multiplier
+    // must be high enough that workers aren't permanently deferred.
     const cpuCount = WorkerDaemon.getEffectiveCpuCount();
-    let smartMaxCpuLoad = Math.max(cpuCount * 0.8, 2.0); // Floor of 2.0 for single-CPU machines
+    let smartMaxCpuLoad = Math.max(cpuCount * 1.5, 4.0);
 
     // #2110 — WSL2 reports `/proc/loadavg` values that include Windows-side
     // process counts mapped into the Linux kernel. Real load on a 4-CPU
@@ -281,11 +284,10 @@ export class WorkerDaemon extends EventEmitter {
     if (WorkerDaemon.isWslEnvironment()) {
       smartMaxCpuLoad = Math.max(smartMaxCpuLoad, 1000);
     }
-
-    // Platform-aware default: macOS os.freemem() excludes reclaimable file cache,
-    // so reported "free" is much lower than actually available memory.
-    // Linux reports available memory (including reclaimable cache) more accurately.
-    const defaultMinFreeMemory = process.platform === 'darwin' ? 5 : 10;
+    // Platform-aware default (#1077): macOS os.freemem() excludes reclaimable
+    // file cache, so reported "free" is typically 1-5% even when plenty of
+    // memory is available. Use a very low threshold on macOS.
+    const defaultMinFreeMemory = process.platform === 'darwin' ? 2 : 10;
 
     // Priority: constructor arg > config.json > smart default
     // For resourceThresholds, merge field-by-field so partial overrides

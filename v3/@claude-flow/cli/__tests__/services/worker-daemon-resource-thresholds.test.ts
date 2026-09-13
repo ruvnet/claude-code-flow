@@ -37,38 +37,38 @@ describe('WorkerDaemon resource thresholds', () => {
   // Smart CPU-proportional defaults
   // =========================================================================
   describe('smart CPU-proportional defaults', () => {
-    it('should compute maxCpuLoad as max(cpuCount * 0.8, 2.0)', () => {
+    it('should compute maxCpuLoad as max(cpuCount * 1.5, 4.0)', () => {
       const daemon = new WorkerDaemon(tempDir);
       const config = daemon.getStatus().config;
 
       const cpuCount = cpus().length || 1;
-      const expected = Math.max(cpuCount * 0.8, 2.0);
+      const expected = Math.max(cpuCount * 1.5, 4.0);
 
       expect(config.resourceThresholds.maxCpuLoad).toBeCloseTo(expected, 1);
     });
 
-    it('should always be at least 2.0 regardless of CPU count', () => {
+    it('should always be at least 4.0 regardless of CPU count', () => {
       const daemon = new WorkerDaemon(tempDir);
       const config = daemon.getStatus().config;
 
-      expect(config.resourceThresholds.maxCpuLoad).toBeGreaterThanOrEqual(2.0);
+      expect(config.resourceThresholds.maxCpuLoad).toBeGreaterThanOrEqual(4.0);
     });
 
-    it('should scale above 2.0 on multi-core machines', () => {
+    it('should scale above 4.0 on multi-core machines', () => {
       const cpuCount = cpus().length;
       if (cpuCount <= 3) return; // skip on small machines
 
       const daemon = new WorkerDaemon(tempDir);
       const config = daemon.getStatus().config;
 
-      expect(config.resourceThresholds.maxCpuLoad).toBeGreaterThan(2.0);
+      expect(config.resourceThresholds.maxCpuLoad).toBeGreaterThan(4.0);
     });
 
     it('should use platform-aware default for minFreeMemoryPercent', () => {
       const daemon = new WorkerDaemon(tempDir);
       const config = daemon.getStatus().config;
 
-      const expectedMinFreeMem = process.platform === 'darwin' ? 5 : 10;
+      const expectedMinFreeMem = process.platform === 'darwin' ? 2 : 10;
       expect(config.resourceThresholds.minFreeMemoryPercent).toBe(expectedMinFreeMem);
     });
   });
@@ -182,8 +182,8 @@ describe('WorkerDaemon resource thresholds', () => {
       const daemon = new WorkerDaemon(tempDir);
       const config = daemon.getStatus().config;
 
-      const expectedMinFreeMem = process.platform === 'darwin' ? 5 : 10;
-      expect(config.resourceThresholds.maxCpuLoad).toBeGreaterThanOrEqual(2.0);
+      const expectedMinFreeMem = process.platform === 'darwin' ? 2 : 10;
+      expect(config.resourceThresholds.maxCpuLoad).toBeGreaterThanOrEqual(4.0);
       expect(config.resourceThresholds.minFreeMemoryPercent).toBe(expectedMinFreeMem);
     });
   });
@@ -302,9 +302,9 @@ describe('WorkerDaemon resource thresholds', () => {
       const daemon = new WorkerDaemon(tempDir);
       const config = daemon.getStatus().config;
 
-      const expectedMinFreeMem = process.platform === 'darwin' ? 5 : 10;
+      const expectedMinFreeMem = process.platform === 'darwin' ? 2 : 10;
       expect(typeof config.resourceThresholds.maxCpuLoad).toBe('number');
-      expect(config.resourceThresholds.maxCpuLoad).toBeGreaterThanOrEqual(2.0);
+      expect(config.resourceThresholds.maxCpuLoad).toBeGreaterThanOrEqual(4.0);
       expect(config.resourceThresholds.minFreeMemoryPercent).toBe(expectedMinFreeMem);
       expect(config.maxConcurrent).toBe(2); // default
     });
@@ -422,9 +422,9 @@ describe('WorkerDaemon resource thresholds', () => {
   // Each test targets a specific code mutation that would survive existing tests.
   // =========================================================================
   describe('mutation killing', () => {
-    // MUTANT: Math.max(cpuCount * 0.8, 2.0) → Math.min(cpuCount * 0.8, 2.0)
-    // On 12-core: Math.min(9.6, 2.0) = 2.0 — would survive ">=2.0" tests
-    it('should NOT use Math.min — multi-core default must exceed 2.0', () => {
+    // MUTANT: Math.max(cpuCount * 1.5, 4.0) → Math.min(cpuCount * 1.5, 4.0)
+    // On 12-core: Math.min(18, 4.0) = 4.0 — would survive ">=4.0" tests
+    it('should NOT use Math.min — multi-core default must exceed 4.0', () => {
       const cpuCount = cpus().length;
       if (cpuCount <= 3) return;
 
@@ -432,12 +432,12 @@ describe('WorkerDaemon resource thresholds', () => {
       const config = daemon.getStatus().config;
 
       // Kills: Math.max → Math.min mutant
-      // Math.min(12*0.8, 2.0) = 2.0, but correct is 9.6
-      expect(config.resourceThresholds.maxCpuLoad).toBeGreaterThan(2.0);
-      expect(config.resourceThresholds.maxCpuLoad).toBeLessThan(cpuCount); // sanity
+      // Math.min(12*1.5, 4.0) = 4.0, but correct is 18
+      expect(config.resourceThresholds.maxCpuLoad).toBeGreaterThan(4.0);
+      expect(config.resourceThresholds.maxCpuLoad).toBeLessThan(cpuCount * 2); // sanity
     });
 
-    // MUTANT: cpuCount * 0.8 → cpuCount * 0 (or cpuCount + 0.8)
+    // MUTANT: cpuCount * 1.5 → cpuCount * 0 (or cpuCount + 1.5)
     it('should scale proportionally to CPU count, not be constant', () => {
       const cpuCount = cpus().length;
       if (cpuCount <= 3) return;
@@ -445,9 +445,9 @@ describe('WorkerDaemon resource thresholds', () => {
       const daemon = new WorkerDaemon(tempDir);
       const config = daemon.getStatus().config;
 
-      // Kills: * 0.8 → * 0, + 0.8, - 0.8
-      expect(config.resourceThresholds.maxCpuLoad).toBeGreaterThan(cpuCount * 0.5);
-      expect(config.resourceThresholds.maxCpuLoad).toBeLessThan(cpuCount * 1.0);
+      // Kills: * 1.5 → * 0, + 1.5, - 1.5
+      expect(config.resourceThresholds.maxCpuLoad).toBeGreaterThan(cpuCount * 1.0);
+      expect(config.resourceThresholds.maxCpuLoad).toBeLessThan(cpuCount * 2.0);
     });
 
     // MUTANT: `>` → `>=` in canRunWorker CPU check
@@ -738,7 +738,7 @@ describe('WorkerDaemon resource thresholds', () => {
       const config = daemon.getStatus().config;
 
       const effectiveCpus = WorkerDaemon.getEffectiveCpuCount();
-      const expectedMaxCpuLoad = Math.max(effectiveCpus * 0.8, 2.0);
+      const expectedMaxCpuLoad = Math.max(effectiveCpus * 1.5, 4.0);
 
       expect(config.resourceThresholds.maxCpuLoad).toBeCloseTo(expectedMaxCpuLoad, 1);
     });
